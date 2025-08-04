@@ -1,9 +1,16 @@
 import {
+  IconBox,
+  IconBrandSpeedtest,
+  IconBuildingPlus,
+  IconCylinder,
   IconDashboard,
-  IconDatabase,
   IconFileText,
+  IconGasStation,
   IconHelp, IconSearch,
   IconSettings,
+  IconSettingsCog,
+  IconShoppingBagPlus,
+  IconShoppingCart,
   IconUserPlus
 } from '@tabler/icons-react';
 import type { SidebarData } from '@/types/navigation';
@@ -23,25 +30,60 @@ export const SIDEBAR_DATA: SidebarData = {
       url: '/dashboard',
       icon: IconDashboard,
     },
+    {
+      title: 'Stocks',
+      url: '/stocks',
+      icon: IconBox,
+    },
+    {
+      title: 'Tank',
+      url: '/tanks',
+      icon: IconCylinder,
+    },
+    {
+      title: 'Machine',
+      url: '/machines',
+      icon: IconSettingsCog,
+    },
+    {
+      title: 'Nozzle',
+      url: '/nozzles',
+      icon: IconGasStation,
+    },
+    {
+      title: 'Sales',
+      url: '/sales',
+      icon: IconShoppingCart,
+    },
+    {
+      title: 'Purchase',
+      url: '/purchase',
+      icon: IconShoppingBagPlus,
+    },
+    {
+      title: 'Meter Reading',
+      url: '/meter-reading',
+      icon: IconBrandSpeedtest,
+    },
   ],
 
   // only admin can see this navigation
   admin: [
-    {
-      title: 'Data Management',
-      url: '/admin/data-management',
-      icon: IconDatabase,
-    },
     {
       title: 'Reports',
       url: '/admin/reports',
       icon: IconFileText,
     },
     {
-      title: 'Users',
-      url: '/admin/users',
-      icon: IconUserPlus,
+      title: 'Branch',
+      url: '/admin/branches',
+      icon: IconBuildingPlus,
     },
+    {
+      title: 'Supplier',
+      url: '/admin/supplier',
+      icon: IconUserPlus,
+    }
   ],
 
   // secondary navigation for all users

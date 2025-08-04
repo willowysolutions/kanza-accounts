@@ -16,13 +16,13 @@ export const APP_CONFIG = {
 
   // Navigation settings
   navigation: {
-    showQuickCreate: true,
+    showQuickCreate: false,
     collapsibleSidebar: true,
   },
 
   siteHeader: {
     defaultTitle: "Dashboard",
-    showGitHubLink: true,
+    showGitHubLink: false,
   },
 } as const;
 
