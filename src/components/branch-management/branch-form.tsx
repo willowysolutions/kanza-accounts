@@ -3,7 +3,7 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { branchFormSchema } from '@/schemas/branch-schema';
+import { branchFormSchema } from '@/schemas/branch-auth-schema';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { BranchManagerFormProps, BranchManagerFormData } from '@/types/branch';
+import type { BranchManagerFormProps, BranchManagerFormData } from '@/types/branch-manager';
 import { useEffect } from 'react';
 
 type CreateBranchManagerFormData = BranchManagerFormData;

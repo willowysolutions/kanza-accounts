@@ -13,16 +13,30 @@ import {
 
 import { FC } from "react";
 import { Button } from "@/components/ui/button";
-import { Tank } from "@/types/tank";
-// import { toast } from "sonner";
-// import { useRouter } from "next/navigation";
+import { Tank } from "@prisma/client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-export const TankDeleteDialog: FC<{
+export const DeleteTankDialog: FC<{
   tank: Tank;
   open: boolean;
   setOpen: (open: boolean) => void;
 }> = ({ tank, open, setOpen }) => {
-
+    const router = useRouter()
+    const handleDelete = async () => {
+      try{
+          await fetch(`http://localhost:3000/api/tanks/${tank?.id}`,{
+              method:"DELETE"
+            });
+          toast.success(`Tank "${tank.tankName}" deleted.`)
+          setOpen(!open)
+          router.refresh()
+      }catch(error){
+          toast.error("Failed to delete tank.")
+          console.log(error,"Error on deleting tank");
+          
+      }
+    }
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -37,9 +51,8 @@ export const TankDeleteDialog: FC<{
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button variant="destructive">
-              Delete
-            </Button>
+            <Button variant="destructive"
+              onClick={handleDelete}>Delete</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -28,12 +27,8 @@ import {
 } from "@/components/ui/card";
 
 import { useState } from "react";
-import { Nozzle } from "@/types/nozzle";
+import { NozzleTableProps } from "@/types/nozzle";
 
-interface NozzleTableProps<TValue> {
-  columns: ColumnDef<Nozzle, TValue>[];
-  data: Nozzle[];
-}
 
 export function NozzleTable<TValue>({ columns, data }: NozzleTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -90,7 +85,7 @@ export function NozzleTable<TValue>({ columns, data }: NozzleTableProps<TValue>)
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="bg-primary text-primary-foreground font-black">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}

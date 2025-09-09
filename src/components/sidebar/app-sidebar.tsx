@@ -4,9 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { IconInnerShadowTop } from "@tabler/icons-react";
 
-import { NavAdmin } from "@/components/sidebar/nav-admin";
 import { NavMain } from "@/components/sidebar/nav-main";
-import { NavSecondary } from "@/components/sidebar/nav-secondary";
 import { NavUser } from "@/components/sidebar/nav-user";
 import {
   Sidebar,
@@ -18,11 +16,21 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { SIDEBAR_DATA, COMPANY_INFO } from "@/constants/navigation";
+import { UserProfile } from "@/types/user";
+import { NavGroup } from "./nav-group";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: UserProfile;
+}
+
+export function AppSidebar({ user,...props }: AppSidebarProps) {
+
+  const filteredNavMain = SIDEBAR_DATA.navMain.filter(
+  () => user?.role?.toLowerCase() !== "staff");
+  
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="bg-secondary text-secondary-foreground">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -39,14 +47,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={SIDEBAR_DATA.navMain} />
-        <NavAdmin items={SIDEBAR_DATA.admin} />
-        <NavSecondary items={SIDEBAR_DATA.navSecondary} className="mt-auto" />
+      <SidebarContent className="bg-primary text-primary-foreground">
+        <NavMain items={filteredNavMain}/>
+        {user?.role === "admin" && (
+          <NavGroup label="Admin Area" items={SIDEBAR_DATA.admin} />
+        )}
+        {user?.role === "branch" && (
+          <NavGroup label="Branch Area" items={SIDEBAR_DATA.branch} />
+        )}
+        {user?.role === "staff" && (
+          <NavGroup label="Staff Area" items={SIDEBAR_DATA.staff} />
+        )}
+        {/* <NavSecondary items={SIDEBAR_DATA.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={SIDEBAR_DATA.demoUser} />
-      </SidebarFooter>
+      <SidebarFooter className="bg-sidebar-primary text-primary-foreground">{user && <NavUser user={user} />}</SidebarFooter>
     </Sidebar>
   );
 }

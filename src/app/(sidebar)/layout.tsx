@@ -3,17 +3,23 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SiteHeader } from "@/components/common/site-header";
 import { APP_CONFIG, theme } from "@/config/app";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: APP_CONFIG.name,
   description: APP_CONFIG.description,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth.api.getSession({
+     headers: await headers(),
+  });  
+
   return (
     <SidebarProvider
       style={
@@ -23,10 +29,10 @@ export default function RootLayout({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="floating" />
+      <AppSidebar variant="floating" user={session?.user} />
       <SidebarInset>
-        <SiteHeader />
-        <main className="p-6">{children}</main>
+        <SiteHeader/>
+        <main className="p-6 bg-blue-100 min-h-[calc(100vh-1rem)]">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

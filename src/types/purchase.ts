@@ -1,10 +1,12 @@
+import { Purchase as PrismaPurchase } from "@prisma/client";
+import { ColumnDef } from "@tanstack/react-table";
 
 
-export interface Purchase {
-  supplierId: string;
-  contactNumber: number;
-  productType:string;
-  quantiity:number;
-  unitRate:number;
-  deliveryDate:Date;
+export interface Purchase extends PrismaPurchase {
+  supplier: { name: string };
+}
+
+export interface PurchaseTableProps<TValue> {
+  columns: ColumnDef<Purchase, TValue>[];
+  data: Purchase[];
 }

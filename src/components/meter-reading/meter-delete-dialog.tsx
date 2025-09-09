@@ -13,16 +13,30 @@ import {
 
 import { FC } from "react";
 import { Button } from "@/components/ui/button";
-import { MeterReading } from "@/types/meter-reading";
-// import { toast } from "sonner";
-// import { useRouter } from "next/navigation";
+import { MeterReading } from "@prisma/client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-export const NozzleDeleteDialog: FC<{
+export const MeterReadingDeleteDialog: FC<{
   meterReading: MeterReading;
   open: boolean;
   setOpen: (open: boolean) => void;
 }> = ({ meterReading, open, setOpen }) => {
-
+    const router = useRouter()
+    const handleDelete = async () => {
+      try{
+          await fetch(`http://localhost:3000/api/meterreadings/${meterReading?.id}`,{
+              method:"DELETE"
+            });
+          toast.success(`Meter reading "${meterReading.attendant}" deleted.`)
+          setOpen(!open)
+          router.refresh()
+      }catch(error){
+          toast.error("Failed to delete meter reading.")
+          console.log(error,"Error on deleting meter reading");
+          
+      }
+    }
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -31,15 +45,14 @@ export const NozzleDeleteDialog: FC<{
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete{" "}
-            <span className="font-bold">{meterReading?.nozzle}</span> nozzle.
+            <span className="font-bold">{meterReading?.nozzleId}</span> nozzle.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button variant="destructive">
-              Delete
-            </Button>
+            <Button variant="destructive"
+              onClick={handleDelete}>Delete</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,19 +1,28 @@
-// src/app/(sidebar)/admin/users/page.tsx
-import { AddBranchDialog } from '@/components/branch-management/add-branch-dialog';
-export default async function UsersPage() {
+export const dynamic = "force-dynamic";
 
+import { BranchTable } from "@/components/branches/branch-table";
+import { BranchFormModal } from "@/components/branches/branch-form";
+import { branchColumns } from "@/components/branches/branch-column";
+
+export default async function BranchPage() {
+    const res = await await fetch("http://localhost:3000/api/branch")
+    const {data} = await res.json()    
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">Manage system users and their roles</p>
-        </div>
-        <AddBranchDialog/>
-      </div>
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Branch</h1>
+              <p className="text-muted-foreground">Manage your branches</p>
+            </div>
+              <BranchFormModal />
+          </div>
 
-      {/* <UsersTable /> */}
+          <BranchTable columns={branchColumns} data={data} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -8,4 +8,8 @@ export const stockSchema = z.object({
   supplierId: z.string(),
 });
 
+export const stockSchemaWithId = stockSchema.extend({
+  id: z.string(),
+});
+
 export type StockInput = z.infer<typeof stockSchema>;

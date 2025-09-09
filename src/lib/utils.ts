@@ -22,8 +22,8 @@ export function getInitials(name: string): string {
  */
 export function formatCurrency(
   amount: number,
-  currency: string = 'USD',
-  locale: string = 'en-US'
+  currency: string = 'INR',
+  locale: string = 'en-IN'
 ): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -66,6 +66,26 @@ export function formatDate(
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+  }
+): string {
+  const parsedDate = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat(locale, options).format(parsedDate);
+}
+
+/**
+ * Format a Date object or date string into a readable date and time format
+ * Default format: DD MMM YYYY, HH:mm (e.g., 07 Aug 2025, 15:45)
+ */
+export function formatDateTime(
+  date: Date | string,
+  locale: string = 'en-IN',
+  options: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
   }
 ): string {
   const parsedDate = typeof date === 'string' ? new Date(date) : date;

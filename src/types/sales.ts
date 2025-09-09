@@ -1,12 +1,12 @@
+import { Sale as PrismaSales } from "@prisma/client";
+import { ColumnDef } from "@tanstack/react-table";
 
 
-export interface Sales {
-  customerId: string;
-  contactNumber: number;
-  nozzle: string;
-  fuelType:string;
-  quantiity:number;
-  rate:number;
-  paymentMethod:string;
-  attendant:string;
+export interface Sales extends PrismaSales {
+  nozzle: { nozzleNumber: string; fuelType:string};
+}
+
+export interface SalesTableProps<TValue> {
+  columns: ColumnDef<Sales, TValue>[];
+  data: Sales[];
 }

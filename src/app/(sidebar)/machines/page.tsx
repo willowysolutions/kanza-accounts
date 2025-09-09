@@ -1,9 +1,12 @@
 export const dynamic = "force-dynamic";
 
+import { Machinecard } from "@/components/machines/machine-card";
 import { MachineFormModal } from "@/components/machines/machine-form";
 
-export default async function StocksPage() {
-
+export default async function MachinePage() {
+    const res = await await fetch("http://localhost:3000/api/machines")
+    const {data} = await res.json()
+        
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">
@@ -16,6 +19,7 @@ export default async function StocksPage() {
             <MachineFormModal />
           </div>
 
+          <Machinecard data={data}/>
         </div>
       </div>
     </div>

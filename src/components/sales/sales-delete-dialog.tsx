@@ -13,16 +13,30 @@ import {
 
 import { FC } from "react";
 import { Button } from "@/components/ui/button";
-import { Sales } from "@/types/sales";
-// import { toast } from "sonner";
-// import { useRouter } from "next/navigation";
+import { Sale } from "@prisma/client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export const SalesDeleteDialog: FC<{
-  sales: Sales;
+  sales: Sale;
   open: boolean;
   setOpen: (open: boolean) => void;
 }> = ({ sales, open, setOpen }) => {
-
+    const router = useRouter()
+    const handleDelete = async () => {
+      try{
+          await fetch(`http://localhost:3000/api/sales/${sales?.id}`,{
+              method:"DELETE"
+            });
+          toast.success(`Sales "${sales.customerName}" deleted.`)
+          setOpen(!open)
+          router.refresh()
+      }catch(error){
+          toast.error("Failed to delete sales.")
+          console.log(error,"Error on deleting sales");
+          
+      }
+    }
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -31,15 +45,14 @@ export const SalesDeleteDialog: FC<{
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete{" "}
-            <span className="font-bold">{sales?.customerId}</span> sales.
+            <span className="font-bold">{sales?.id}</span> sales.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button variant="destructive">
-              Delete
-            </Button>
+            <Button variant="destructive"
+              onClick={handleDelete}>Delete</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

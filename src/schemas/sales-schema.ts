@@ -1,14 +1,21 @@
 import { z } from "zod";
 
 export const salesSchema = z.object({
-  customerName: z.string(),
-  contactNumber: z.coerce.number().min(1).optional(),
-  nozzleId: z.string().min(1),
-  fuelType: z.string().min(1),
-  quantity: z.coerce.number().min(0),
+  date:z.coerce.date(),
+  cashPayment: z.coerce.number().min(0),
+  atmPayment: z.coerce.number().min(0),
+  paytmPayment: z.coerce.number().min(0),
+  fleetPayment: z.coerce.number().min(0),
+  oilT2Total: z.coerce.number().min(0),
+  gasTotal: z.coerce.number().min(0),
+  xgDieselTotal: z.coerce.number().min(0),
+  hsdDieselTotal: z.coerce.number().min(0),
+  msPetrolTotal: z.coerce.number().min(0),
   rate: z.coerce.number().min(0),
-  paymentMethod: z.string().min(0),
-  attendant: z.string().min(0),
+});
+
+export const salesSchemaWithId = salesSchema.extend({
+  id: z.string(),
 });
 
 export type SalesInput = z.infer<typeof salesSchema>;

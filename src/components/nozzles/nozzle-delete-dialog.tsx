@@ -13,9 +13,9 @@ import {
 
 import { FC } from "react";
 import { Button } from "@/components/ui/button";
-import { Nozzle } from "@/types/nozzle";
-// import { toast } from "sonner";
-// import { useRouter } from "next/navigation";
+import { Nozzle } from "@prisma/client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export const NozzleDeleteDialog: FC<{
   nozzle: Nozzle;
@@ -23,8 +23,22 @@ export const NozzleDeleteDialog: FC<{
   setOpen: (open: boolean) => void;
 }> = ({ nozzle, open, setOpen }) => {
 
-
-  return (
+    const router = useRouter()
+    const handleDelete = async () => {
+      try{
+          await fetch(`http://localhost:3000/api/nozzles/${nozzle?.id}`,{
+              method:"DELETE"
+            });
+          toast.success(`Nozzle "${nozzle.nozzleNumber}" deleted.`)
+          setOpen(!open)
+          router.refresh()
+      }catch(error){
+          toast.error("Failed to delete nozzle.")
+          console.log(error,"Error on deleting nozzle");
+          
+      }
+    }
+    return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -37,9 +51,8 @@ export const NozzleDeleteDialog: FC<{
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button variant="destructive">
-              Delete
-            </Button>
+            <Button variant="destructive"
+              onClick={handleDelete}>Delete</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

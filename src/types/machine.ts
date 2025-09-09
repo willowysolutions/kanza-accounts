@@ -1,10 +1,12 @@
+import { MachineTank, Machine as PrismaMachine, Tank } from "@prisma/client";
+import { ColumnDef } from "@tanstack/react-table";
 
 
-export interface Machine {
-  machinwName: string;
-  model: string;
-  serialNumber:number;
-  tankId:string;
-  noOfNozzles:number;
-  installDate:Date;
+export interface Machine extends PrismaMachine {
+ machineTanks: (MachineTank & { tank: Tank })[];
+}
+
+export interface MeterReadingTableProps<TValue> {
+  columns: ColumnDef<Machine, TValue>[];
+  data: Machine[];
 }

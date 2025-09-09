@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   FormControl,
@@ -31,46 +31,131 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { tankSchema } from "@/schemas/tank-schema";
 import { z } from "zod";
 import { IconPlus } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Tank } from "@/types/tank";
 
 type TankFormValues = z.infer<typeof tankSchema>;
 
-export function TankFormModal({
+export function TankFormDialog({
   open,
   openChange,
+  tank,
 }: {
   open?: boolean;
   openChange?: (open: boolean) => void;
+  tank?: Tank;
 }) {
+  const [supplierOptions, setSupplierOptions] = useState<{ name: string; id: string }[]>([]);
+  const [productOption, setProductOptions] = useState<{ 
+  productName: string;
+  id: string;
+  currentPrice:number;
+  productUnit:string }[]>([]);
+
+  const router = useRouter();
+
   const form = useForm<TankFormValues>({
     resolver: zodResolver(tankSchema),
     defaultValues: {
-      tankName: "",
-      fuelType: "",
-      capacity: undefined,
-      minLevel: undefined,
-      supplierId: "",
+      tankName: tank?.tankName || "",
+      fuelType: tank?.fuelType || "",
+      capacity: tank?.capacity || 0,
+      minLevel: tank?.minLevel || 0,
+      supplierId: tank?.supplierId ?? undefined,
     },
   });
 
-  const handleSubmit = () => {}
+  const handleSubmit = async (
+    values: TankFormValues,
+    close: () => void
+  ) => {
+    try {
+      const url = tank
+        ? `http://localhost:3000/api/tanks/${tank.id}`
+        : "http://localhost:3000/api/tanks/create";
+
+      const method = tank ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        toast.error(error || "Failed to save tank");
+        return;
+      }
+
+      toast.success(tank ? "Tank updated successfully" : "Tank created successfully");
+      close();
+      router.refresh();
+    } catch (error) {
+      console.error("Something went wrong:", error);
+      toast.error("Unexpected error occurred");
+    }
+  };
+
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/suppliers");
+        const json = await res.json();
+        setSupplierOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch suppliers", error);
+      }
+    };
+
+    fetchSuppliers();
+  }, []);
+
+    useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("/api/products");
+        const json = await res.json();
+        setProductOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch products", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
 
   return (
-    <FormDialog open={open} openChange={openChange} form={form} onSubmit={handleSubmit}>
+    <FormDialog
+      open={open}
+      openChange={openChange}
+      form={form}
+      onSubmit={(values) => handleSubmit(values, () => openChange?.(false))}
+    >
       <FormDialogTrigger asChild>
         <Button>
           <IconPlus className="size-4 mr-2" />
-          Add Tank
+          {tank ? "Edit Tank" : "Add Tank"}
         </Button>
       </FormDialogTrigger>
 
       <FormDialogContent className="sm:max-w-md">
         <FormDialogHeader>
-          <FormDialogTitle>Add New Tank</FormDialogTitle>
+          <FormDialogTitle>
+            {tank ? "Edit Tank" : "Add New Tank"}
+          </FormDialogTitle>
           <FormDialogDescription>
-            Enter the details of the fuel tank.
+            {tank
+              ? "Update tank details. Click save when you're done."
+              : "Enter the details of the fuel tank."}
           </FormDialogDescription>
         </FormDialogHeader>
 
+        {/* Tank Name */}
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="tankName"
@@ -78,36 +163,44 @@ export function TankFormModal({
             <FormItem>
               <FormLabel>Tank Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Tank A" {...field} />
+                <Input placeholder="e.g. Tank 1" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Fuel Type */}
         <FormField
           control={form.control}
           name="fuelType"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Fuel Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+              >
                 <FormControl>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select fuel type" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="petrol">Petrol</SelectItem>
-                  <SelectItem value="diesel">Diesel</SelectItem>
-                  <SelectItem value="cng">CNG</SelectItem>
+                  {productOption.map(product => (
+                    <SelectItem key={product.id} value={product.productName}>
+                      {product.productName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+      </div>
 
+        {/* Capacity & Min Level */}
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -137,15 +230,27 @@ export function TankFormModal({
           />
         </div>
 
+        {/* Supplier */}
         <FormField
           control={form.control}
           name="supplierId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Supplier</FormLabel>
-              <FormControl>
-                <Input placeholder="Supplier ID" {...field} />
-              </FormControl>
+              <FormLabel>Supplier (optional)</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Supplier" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {supplierOptions.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -157,7 +262,9 @@ export function TankFormModal({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="submit">Save</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {tank ? "Update" : "Save"}
+          </Button>
         </FormDialogFooter>
       </FormDialogContent>
     </FormDialog>

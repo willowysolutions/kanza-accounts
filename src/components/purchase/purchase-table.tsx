@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -28,12 +27,8 @@ import {
 } from "@/components/ui/card";
 
 import { useState } from "react";
-import { Purchase } from "@/types/purchase";
+import { PurchaseTableProps } from "@/types/purchase";
 
-interface PurchaseTableProps<TValue> {
-  columns: ColumnDef<Purchase, TValue>[];
-  data: Purchase[];
-}
 
 export function PurchaseTable<TValue>({ columns, data }: PurchaseTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -60,29 +55,10 @@ export function PurchaseTable<TValue>({ columns, data }: PurchaseTableProps<TVal
 
   return (
     <div className="flex flex-col gap-5">
-      {/* <Card>
-        <CardHeader>
-          <div className="space-y-2">
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>Filter Purchases by item name</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search Purchases Item..."
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </CardContent>
-      </Card> */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-bold">Purchase Orders</CardTitle>
-          <CardDescription>Complete list of all purchase orders</CardDescription>
+          <CardTitle className="font-bold">Purchases</CardTitle>
+          <CardDescription>Complete list of all purchases</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -90,7 +66,7 @@ export function PurchaseTable<TValue>({ columns, data }: PurchaseTableProps<TVal
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="bg-primary text-primary-foreground font-black">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -27,17 +26,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Stock } from "@/types/stocks";
+import { StockTableProps } from "@/types/stocks";
 
-interface StockTableProps<TValue> {
-  columns: ColumnDef<Stock, TValue>[];
-  data: Stock[];
-}
+
 
 export function StockTable<TValue>({ columns, data }: StockTableProps<TValue>) {
+    console.log(data);
+    
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -92,7 +88,7 @@ export function StockTable<TValue>({ columns, data }: StockTableProps<TValue>) {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="bg-primary text-primary-foreground font-black">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
@@ -102,26 +98,17 @@ export function StockTable<TValue>({ columns, data }: StockTableProps<TValue>) {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.length ? (
+              {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {cell.column.id === "quantity" && row.original.quantity <= row.original.reorderLevel ? (
-                          <span className="text-red-600 font-medium">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </span>
-                        ) : cell.column.id === "actions" ? (
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}
@@ -129,7 +116,10 @@ export function StockTable<TValue>({ columns, data }: StockTableProps<TValue>) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
                     No results.
                   </TableCell>
                 </TableRow>

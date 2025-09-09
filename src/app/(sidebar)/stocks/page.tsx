@@ -1,10 +1,11 @@
 export const dynamic = "force-dynamic";
 
 import { StockTable } from "@/components/stocks/stock-table";
-import { StockFormModal } from "@/components/stocks/stock-form";
 import { stockColumns } from "@/components/stocks/stock-column";
 
 export default async function StocksPage() {
+    const res = await await fetch("http://localhost:3000/api/stocks")
+    const {data} = await res.json()    
 
   return (
     <div className="flex flex-1 flex-col">
@@ -15,10 +16,9 @@ export default async function StocksPage() {
               <h1 className="text-2xl font-bold tracking-tight">Stocks</h1>
               <p className="text-muted-foreground">Manage fuel and inventory stock levels</p>
             </div>
-            <StockFormModal />
           </div>
 
-          <StockTable data={[]} columns={stockColumns}/>
+          <StockTable data={data} columns={stockColumns}/>
         </div>
       </div>
     </div>

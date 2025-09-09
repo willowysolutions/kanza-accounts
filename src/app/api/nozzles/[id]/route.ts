@@ -1,0 +1,65 @@
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { nozzleSchemaWithId } from "@/schemas/nozzle-schema";
+import { ObjectId } from "mongodb";
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await req.json();
+    const parsed = nozzleSchemaWithId.safeParse({ id: params.id, ...body });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input", issues: parsed.error.errors },
+        { status: 400 }
+      );
+    }
+
+    const { id, ...data } = parsed.data;
+
+    const nozzles = await prisma.nozzle.update({
+      where: { id },
+      data,
+    });
+
+    return NextResponse.json({ data: nozzles }, { status: 200 });
+  } catch (error) {
+    console.error("Error updating nozzles:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+//DELETE
+export async function DELETE(
+  _req: Request,
+  { params }: { params: { id: string } }
+) {
+  const id = await params.id;
+
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json(
+      { error: "Invalid ID format" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const nozzlesDelete = await prisma.nozzle.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ data: nozzlesDelete }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting nozzle:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

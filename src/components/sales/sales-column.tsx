@@ -10,49 +10,134 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit2, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { Sales } from "@/types/sales";
 import { SalesFormModal } from "./sales-form";
+import { SalesDeleteDialog } from "./sales-delete-dialog";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { Sales } from "@/types/sales";
 
 export const salesColumns: ColumnDef<Sales>[] = [
   {
-    accessorKey: "transactionId",
-    header: "Po no",
-  },
-  {
     accessorKey: "date",
     header: "Date & Time",
+    cell:({row}) => {
+      const dateTime = row.original.date
+      return (
+        <div>{formatDate(dateTime)}</div>
+      )
+    }
   },
   {
-    accessorKey: "customer",
-    header: "Customer",
+    accessorKey:"cashPayment",
+    header:"Cash Payment",
+    cell: ({row}) => {
+      const cashPayment = row.original.cashPayment
+      return (
+        <div>{formatCurrency(cashPayment)}</div>
+      )
+    }
   },
   {
-    accessorKey: "nozzle",
-    header: "Nozzle",
+    accessorKey:"atmPayment",
+    header:"ATM Payment",
+    cell: ({row}) => {
+      const atmPayment = row.original.atmPayment
+      return (
+        <div>{formatCurrency(atmPayment)}</div>
+      )
+    }
   },
   {
-    accessorKey: "Fuel",
-    header: "Fuel Type",
+    accessorKey:"paytmPayment",
+    header:"Paytm Payment",
+    cell: ({row}) => {
+      const paytmPayment = row.original.paytmPayment
+      return (
+        <div>{formatCurrency(paytmPayment)}</div>
+      )
+    }
   },
   {
-    accessorKey: "quantity",
-    header: "Qty (L)",
+    accessorKey:"fleetPayment",
+    header:"Fleet Payment",
+    cell: ({row}) => {
+      const fleetPayment = row.original.fleetPayment
+      return (
+        <div>{formatCurrency(fleetPayment)}</div>
+      )
+    }
+  },
+  {
+    accessorKey:"oilT2Total",
+    header:"2T-OIL",
+    cell: ({row}) => {
+      const oilT2Total = row.original.oilT2Total
+      return (
+        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-black text-white`}>
+        {formatCurrency(oilT2Total)}
+        </div>
+      )
+    }
+  },
+  {
+    accessorKey:"gasTotal",
+    header:"GAS",
+    cell: ({row}) => {
+      const gasTotal = row.original.gasTotal
+      return (
+        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium`}>
+        {formatCurrency(gasTotal)}
+        </div>
+      )
+    }
+  },
+  {
+    accessorKey:"hsdDieselTotal",
+    header:"HSD-DIESEL",
+    cell: ({row}) => {
+      const hsdDieselTotal = row.original.hsdDieselTotal
+      return (
+        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800`}>
+        {formatCurrency(hsdDieselTotal)}
+        </div>
+      )
+    }
+  },
+  {
+    accessorKey:"xgDieselTotal",
+    header:"XG-DIESEL",
+    cell: ({row}) => {
+      const xgDieselTotal = row.original.xgDieselTotal
+      return (
+        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-green-100 text-green-800`}>
+        {formatCurrency(xgDieselTotal)}
+        </div>
+      )
+    }
+  },
+  {
+    accessorKey:"msPetrolTotal",
+    header:"MS-PETROL",
+    cell: ({row}) => {
+      const msPetrolTotal = row.original.msPetrolTotal
+      return (
+        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-red-100 text-red-800`}>
+        {formatCurrency(msPetrolTotal)}
+        </div>
+      )
+    }
   },
   {
     accessorKey: "rate",
-    header: "Rate",
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
-  },
-  {
-    accessorKey: "paymentMethod",
-    header: "Payment Method",
-  },
-  {
-    accessorKey: "attendant",
-    header: "Attendant",
+    header: "Total Amount",
+    cell:({row}) => {
+      const rate = row.original.rate
+
+      return (
+        <div>
+          {formatCurrency(rate)}
+        </div>
+      )
+    }
   },
   {
     id: "actions",
@@ -60,9 +145,9 @@ export const salesColumns: ColumnDef<Sales>[] = [
   },
 ];
 
-const SalesActions = ({ }: { sales: Sales }) => {
+const SalesActions = ({ sales }: { sales: Sales }) => {
   const [openEdit, setOpenEdit] = useState(false);
-  // const [openDelete, setOpenDelete] = useState(false); // Enable when delete modal is added
+  const [openDelete, setOpenDelete] = useState(false);
 
   return (
     <>
@@ -74,17 +159,24 @@ const SalesActions = ({ }: { sales: Sales }) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setOpenEdit(true)}>
+            <DropdownMenuItem onSelect={() => setOpenEdit(true)}>
               <Edit2 className="size-4 mr-2" /> Edit
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
+
+            <DropdownMenuItem onSelect={() => setOpenDelete(!openDelete)}
+              className="text-destructive">
               <Trash2 className="size-4 mr-2" /> Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <SalesFormModal open={openEdit} openChange={setOpenEdit} />
+      <SalesFormModal open={openEdit} openChange={setOpenEdit} sales={sales}/>
+
+      <SalesDeleteDialog 
+        sales={sales}
+        open={openDelete}
+        setOpen={setOpenDelete}/>
     </>
   );
 };

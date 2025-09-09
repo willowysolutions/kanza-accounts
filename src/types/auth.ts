@@ -1,15 +1,15 @@
-// import type { Session, User } from '@prisma/client';
+import type { Session, User } from '@prisma/client';
 
-// Session-related types
-// export interface SessionResponse {
-//   user: User;
-//   session: Session;
-// }
+//Session-related types
+export interface SessionResponse {
+  user: User;
+  session: Session;
+}
 
-// Auth client session data type (returned by authClient.getSession())
-// export interface AuthClientSessionData {
-//   data: SessionResponse | null;
-// }
+//Auth client session data type (returned by authClient.getSession())
+export interface AuthClientSessionData {
+  data: SessionResponse | null;
+}
 
 // Login data types
 export interface LoginData {

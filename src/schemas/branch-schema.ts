@@ -1,24 +1,13 @@
 import { z } from "zod";
 
-export const branchFormSchema = z
-  .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Please confirm your password"),
-    role: z.string().min(1, "Role is required"),
-    branch: z.string().min(1, "Branch is required"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-export type UserFormSchema = z.infer<typeof branchFormSchema>;
-
-export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+export const branchSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z.string().email({ message: "Invalid email address" }),
+  phone: z.string().min(10),
 });
 
-export type LoginSchema = z.infer<typeof loginSchema>;
+export const branchSchemaWithId = branchSchema.extend({
+  id: z.string(),
+});
+
+export type BranchInput = z.infer<typeof branchSchema>;

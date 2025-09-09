@@ -1,8 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import { TankFormModal } from "@/components/tank/tank-form";
+import { TankFormDialog } from "@/components/tank/tank-form";
+import { TankCard } from "@/components/tank/tank-card";
 
-export default async function StocksPage() {
+export default async function TankPage() {
+    const res = await await fetch("http://localhost:3000/api/tanks",{cache:"no-store"})
+    const {data} = await res.json()      
 
   return (
     <div className="flex flex-1 flex-col">
@@ -13,9 +16,10 @@ export default async function StocksPage() {
               <h1 className="text-2xl font-bold tracking-tight">Tank Management</h1>
               <p className="text-muted-foreground">Monitor and manage fuel tank levels</p>
             </div>
-            <TankFormModal />
+            <TankFormDialog />
           </div>
 
+          <TankCard tanks={data}/>
         </div>
       </div>
     </div>

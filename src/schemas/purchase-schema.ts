@@ -2,11 +2,16 @@ import { z } from "zod";
 
 export const purchaseSchema = z.object({
   supplierId: z.string(),
-  contactNumber: z.coerce.number().min(1).optional(),
+  phone: z.string().min(7, "Phone number is required"),
+  date:z.coerce.date(),
   productType: z.string().min(1),
   quantity: z.coerce.number().min(0),
-  unitRate: z.coerce.number().min(0),
-  deliveryDate: z.coerce.date(),
+  purchasePrice:z.coerce.number(),
+  paidAmount:z.coerce.number(),
+});
+
+export const purchaseSchemaWithId = purchaseSchema.extend({
+  id: z.string(),
 });
 
 export type PurchaseInput = z.infer<typeof purchaseSchema>;

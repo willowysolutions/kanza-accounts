@@ -3,64 +3,73 @@ export const dynamic = "force-dynamic";
 import { SalesTable } from "@/components/sales/sales-table";
 import { SalesFormModal } from "@/components/sales/sales-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Receipt, ShoppingCart, TrendingUp } from "lucide-react";
+import { Coins, CoinsIcon } from "lucide-react";
 import { salesColumns } from "@/components/sales/sales-column";
+import { Sales } from "@/types/sales";
 
 
 export default async function SalesPage() {
+    const res = await await fetch("http://localhost:3000/api/sales")
+    const {sales} = await res.json() 
+
+    const xpDieselTotal = sales.reduce((sum: number, sale: Sales) => sum + sale.xgDieselTotal, 0);
+
+    const hsdDieselTotal = sales.reduce((sum: number, sale: Sales) => sum + sale.hsdDieselTotal, 0);
+
+    const msPetrolTotal = sales.reduce((sum: number, sale: Sales) => sum + sale.msPetrolTotal, 0);
+
+
+    const totalSale = sales.reduce((sum: number, sale: Sales) => sum + sale.rate, 0);
 
   return (
     <div className="flex flex-1 flex-col">
     <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today Sales</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">XG Diesel Sold</CardTitle>
+            <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* <div className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</div> */}
-            <div className="text-2xl font-bold">₹25,525</div>
-            {/* <p className="text-xs text-muted-foreground">{todaySales.length} transactions</p> */}
-            <p className="text-xs text-muted-foreground">4 transactions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fuel Sold</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {/* <div className="text-2xl font-bold">{totalQuantity.toFixed(1)}L</div> */}
-            <div className="text-2xl font-bold">283.4L</div>
-            <p className="text-xs text-muted-foreground">Total volume today</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Transaction</CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-                ₹6426
-              {/* ₹{todaySales.length > 0 ? (totalAmount / todaySales.length).toFixed(0) : "0"} */}
+            <div className="text-2xl font-bold text-green-900">
+                ₹{xpDieselTotal}
             </div>
-            <p className="text-xs text-muted-foreground">Per transaction</p>
+            <p className="text-xs text-muted-foreground">Amount</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cash Sales</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">HS Diesel Sold</CardTitle>
+            <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* <div className="text-2xl font-bold">
-              ₹{todaySales.filter(s => s.paymentMethod === "Cash").reduce((sum, s) => sum + s.amount, 0).toLocaleString()}
-            </div> */}
-            <div className="text-2xl font-bold">
-                ₹25,12.17
+            <div className="text-2xl font-bold text-blue-900">
+                ₹{hsdDieselTotal}
             </div>
-            <p className="text-xs text-muted-foreground">Cash transactions</p>
+            <p className="text-xs text-muted-foreground">Amount</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MS Petrol Sold</CardTitle>
+            <CoinsIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-900">
+                ₹{msPetrolTotal}
+            </div>
+            <p className="text-xs text-muted-foreground">Amount</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Sold</CardTitle>
+            <Coins className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-700">
+                ₹{totalSale}
+            </div>
+            <p className="text-xs text-muted-foreground">Amount</p>
           </CardContent>
         </Card>
       </div>
@@ -74,7 +83,7 @@ export default async function SalesPage() {
             <SalesFormModal />
           </div>
 
-          <SalesTable data={[]} columns={salesColumns}/>
+          <SalesTable data={sales} columns={salesColumns}/>
         </div>
       </div>
     </div>

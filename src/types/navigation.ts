@@ -3,20 +3,20 @@ import type { Icon } from '@tabler/icons-react';
 export interface NavItem {
   title: string;
   url: string;
-  icon: Icon;
+  icon?: Icon;
+  children?: NavItem[];
 }
 
 export interface UserProfile {
   name: string;
   email: string;
-  avatar: string;
 }
 
 export interface SidebarData {
-  demoUser: UserProfile;
   navMain: NavItem[];
-  navSecondary: NavItem[];
   admin: NavItem[];
+  branch:NavItem[];
+  staff:NavItem[];
 }
 
 export interface MetricCard {

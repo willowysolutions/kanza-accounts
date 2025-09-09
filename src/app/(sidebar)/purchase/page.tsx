@@ -1,75 +1,77 @@
 export const dynamic = "force-dynamic";
 
-import { PurchaseTable } from "@/components/purchase/purchase-table";
-import { PurchaseFormModal } from "@/components/purchase/purchase-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Package, TrendingDown, Truck } from "lucide-react";
-import { purchaseColumns } from "@/components/purchase/purchase-column";
-
+import {  Fuel, Truck, } from "lucide-react";
+import { Purchase } from "@/types/purchase";
+import PurchaseManagement from "@/components/purchase/purchase-management";
 
 export default async function PurchasePage() {
+    const purchaseRes = await fetch("http://localhost:3000/api/purchases")
+    const {purchase =[]} = await purchaseRes.json() 
+    console.log(purchase);
+    
+
+    const orderRes = await fetch("http://localhost:3000/api/purchase-order")
+    const {purchaseOrder} = await orderRes.json()     
+
+    const xpTotal = purchase.filter((purchase: Purchase) => purchase.productType === "XP-DIESEL")
+                      .reduce((sum: number, purchase: Purchase) => sum + purchase.quantity, 0) ?? 0;
+
+    const hsdTotal = purchase.filter((purchase: Purchase) => purchase.productType === "HSD-DIESEL")
+                      .reduce((sum: number, purchase: Purchase) => sum + purchase.quantity, 0);
+    
+    const msTotal = purchase.filter((purchase: Purchase) => purchase.productType === "MS-PETROL")
+                      .reduce((sum: number, purchase: Purchase) => sum + purchase.quantity, 0);
+    
+    const twoTTodal = purchase.filter((purchase: Purchase) => purchase.productType === "2T-OIL")
+                      .reduce((sum: number, purchase: Purchase) => sum + purchase.quantity, 0);
+    
 
   return (
     <div className="flex flex-1 flex-col">
         <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total XP-DIESEL Purchases</CardTitle>
+            <Fuel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* <div className="text-2xl font-bold">₹{totalPurchases.toLocaleString()}</div> */}
-            <div className="text-2xl font-bold">₹14,38,625</div>
+            <div className="text-2xl font-bold text-green-900">{xpTotal.toFixed(2)}L</div>
             <p className="text-xs text-muted-foreground">All time purchases</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total HSD-DIESEL Purchases</CardTitle>
+            <Fuel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* <div className="text-2xl font-bold text-yellow-600">{pendingOrders}</div> */}
-            <div className="text-2xl font-bold text-yellow-600">2</div>
-            <p className="text-xs text-muted-foreground">Awaiting delivery</p>
+            <div className="text-2xl font-bold text-blue-900">{hsdTotal.toFixed(2)}L</div>
+            <p className="text-xs text-muted-foreground">All time purchases</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Delivered</CardTitle>
+            <CardTitle className="text-sm font-medium">MS-PETROL Purchases</CardTitle>
             <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* <div className="text-2xl font-bold text-green-600">{deliveredOrders}</div> */}
-            <div className="text-2xl font-bold text-green-600">2</div>
+            <div className="text-2xl font-bold text-red-600">{msTotal.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Completed orders</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Suppliers</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">2T-OIL Purchases</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* <div className="text-2xl font-bold">{new Set(purchases.map(p => p.supplier)).size}</div> */}
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">Active suppliers</p>
+            <div className="text-2xl font-bold text-violet-600">{twoTTodal.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Completed orders</p>
           </CardContent>
         </Card>
       </div>
-      <div className="@container/main flex flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Purchase Management</h1>
-              <p className="text-muted-foreground">Manage fuel and inventory purchases</p>
-            </div>
-            <PurchaseFormModal />
-          </div>
-
-          <PurchaseTable data={[]} columns={purchaseColumns}/>
-        </div>
-      </div>
+      <PurchaseManagement purchase={purchase} purchaseOrder={purchaseOrder}/>
     </div>
   );
 }

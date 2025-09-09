@@ -1,9 +1,12 @@
+import { Stock as PrismaStock } from "@prisma/client";
+import { ColumnDef } from "@tanstack/react-table";
 
 
-export interface Stock {
-  item: { name: string };
-  quantity: number;
-  unit:string;
-  reorderLevel:number;
-  supplier:{name:string};
+export interface Stock extends PrismaStock {
+  supplier: { name: string };
+}
+
+export interface StockTableProps<TValue> {
+  columns: ColumnDef<Stock, TValue>[];
+  data: Stock[];
 }

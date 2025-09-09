@@ -1,0 +1,525 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("CLUSTER_URL")
+}
+
+model Stock {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  item         String @unique
+  quantity     Float
+
+  branchId       String?   @db.ObjectId
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+
+  supplierId String    @db.ObjectId
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//MachineTank
+
+model MachineTank {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+
+  machineId String  @db.ObjectId
+  machine   Machine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  tankId String  @db.ObjectId
+  tank   Tank    @relation(fields: [tankId], references: [id], onDelete: Cascade)
+
+  branchId String?   @db.ObjectId
+  branch   Branch?   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Machine
+
+model Machine {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  machineName  String   @unique
+  model        String
+  serialNumber String   @unique
+  noOfNozzles  Int
+
+  branchId       String?   @db.ObjectId
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+
+  machineTanks MachineTank[]
+  nozzle       Nozzle[]
+  meterReading MeterReading[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//Tank
+
+model Tank {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  tankName     String   @unique
+  fuelType     String
+  capacity     Float
+  minLevel     Float
+  currentLevel Float    @default(0)
+  status       Status   @default(good)
+  lastFilled   DateTime @default(now())
+
+  supplierId   String?    @db.ObjectId
+  supplier     Supplier? @relation(fields: [supplierId], references: [id] , onDelete: SetNull)
+
+  branchId     String?   @db.ObjectId
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+
+  machineTanks MachineTank[]
+  refill       Refill[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Status {
+  good
+  warning
+  critical
+}
+
+model Refill {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  tankId       String @db.ObjectId
+  tank         Tank?  @relation(fields: [tankId], references: [id])
+  refillAmount Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Nozzle {
+  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  nozzleNumber    String
+  fuelType        String
+  openingReading  Float
+
+  machineId       String   @db.ObjectId
+  machine         Machine? @relation(fields: [machineId], references: [id])
+
+  branchId        String?   @db.ObjectId
+  branch          Branch?   @relation(fields: [branchId], references: [id])
+
+  meterreading    MeterReading[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Product {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+
+  productName   String @unique
+  productUnit   String
+  purchasePrice Float
+  sellingPrice  Float
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Sale {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+
+  date            DateTime
+  rate            Float
+  cashPayment     Float
+  atmPayment      Float
+  paytmPayment    Float
+  fleetPayment    Float
+  oilT2Total      Float
+  gasTotal        Float
+  xgDieselTotal   Float
+  hsdDieselTotal  Float
+  msPetrolTotal   Float
+
+  branchId        String?   @db.ObjectId
+  branch          Branch?   @relation(fields: [branchId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Credit {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+
+  customerId     String    @db.ObjectId
+  customer       Customer? @relation(fields: [customerId],references: [id])
+  fuelType       String
+  quantity       Float
+
+  branchId       String?   @db.ObjectId
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+
+  amount         Float
+  date           DateTime
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+}
+
+model CustomerPayment {
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+
+  customerId    String    @db.ObjectId
+  customer      Customer? @relation(fields: [customerId],references: [id])
+
+  branchId       String?   @db.ObjectId
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+
+  amount        Float
+  paymentMethod String
+  paidOn        DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SupplierPayment {
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+
+  supplierId    String    @db.ObjectId
+  supplier      Supplier? @relation(fields: [supplierId],references: [id])
+
+  branchId      String?   @db.ObjectId
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+
+  amount        Float
+  paymentMethod String
+  paidOn        DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model PaymentHistory {
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+
+  customerId    String?    @db.ObjectId
+  customer      Customer? @relation(fields: [customerId],references: [id])
+
+  supplierId    String?    @db.ObjectId
+  supplier      Supplier?  @relation(fields: [supplierId], references: [id])
+
+  branchId       String?   @db.ObjectId
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+
+  paidAmount    Float
+  paymentMethod String
+  paidOn        DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Purchase {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  supplierId    String    @db.ObjectId
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+
+  branchId       String?   @db.ObjectId
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+  
+  phone         String 
+  productType   String
+  date          DateTime
+  quantity      Float
+  purchasePrice Float
+  paidAmount    Float
+  pendingAmount Float
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model PurchaseOrder {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  supplierId    String    @db.ObjectId
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+
+  branchId       String?   @db.ObjectId
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+  
+  productType   String
+  quantity      Float
+  orderDate     DateTime
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Expense
+
+model Expense {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  title             String
+  description       String?
+  amount            Int
+  date              DateTime
+  expenseCategoryId String    @db.ObjectId
+
+  branchId          String?   @db.ObjectId   
+  branch            Branch?   @relation(fields: [branchId], references: [id])
+
+  category          ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  bankId            String?   @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+}
+
+
+model ExpenseCategory {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  name     String    @unique
+  expenses Expense[]
+}
+
+model MeterReading {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Relations
+  nozzleId      String   @db.ObjectId
+  nozzle        Nozzle   @relation(fields: [nozzleId], references: [id])
+
+  machineId     String?  @db.ObjectId
+  machine       Machine? @relation(fields: [machineId], references: [id])
+
+  branchId      String?  @db.ObjectId
+  branch        Branch?  @relation(fields: [branchId], references: [id])
+
+  // Reading data
+  fuelType      String
+
+  openingReading Float        
+  closingReading Float       
+  difference     Float?
+  sale           Float    
+
+  fuelRate       Float?
+  totalAmount    Float
+
+  date           DateTime     
+  @@unique([nozzleId, date])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BalanceReceipt {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  date          DateTime @unique
+  amount        Float
+  branchId      String?  @db.ObjectId
+  branch        Branch?  @relation(fields: [branchId], references: [id])
+
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Oil {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  date          DateTime    
+  productType   String
+  quantity      Float
+  price         Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Supplier {
+  id                  String @id @default(auto()) @map("_id") @db.ObjectId
+  SupplierId          String
+  name                String? @unique
+  email               String? 
+  phone               String? 
+  openingBalance      Float  
+  outstandingPayments Float 
+
+  address             String?
+
+  purchase            Purchase[]
+  stock               Stock[]
+  supplierPayment     SupplierPayment[]
+  tank                Tank[]
+  purchaseOrder       PurchaseOrder[]
+  PaymentHistory      PaymentHistory[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Customer {
+  id                  String @id @default(auto()) @map("_id") @db.ObjectId
+
+  name                String @unique
+  email               String? 
+  phone               String? 
+  openingBalance      Float  
+  outstandingPayments Float 
+  address             String?
+
+  branchId            String?   @db.ObjectId
+  branch              Branch?   @relation(fields: [branchId], references: [id])
+
+  credit              Credit[]
+  payment             CustomerPayment[]
+  PaymentHistory      PaymentHistory[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Bank {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  bankName            String
+  accountNumber       Int
+  ifse                String
+  balanceAmount       Float
+
+  branchId            String?   @db.ObjectId
+  branch              Branch?   @relation(fields: [branchId], references: [id])
+
+  bankDeposite        BankDeposite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BankDeposite {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  bankId     String   @db.ObjectId
+  bank       Bank     @relation(fields: [bankId], references: [id])
+
+  date       DateTime
+  amount     Float         
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+}
+
+model Branch {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  name                String   @unique
+  email               String   @unique
+  phone               String
+
+  stock               Stock[]
+  machineTank         MachineTank[]
+  machine             Machine[]
+  tank                Tank[]
+  nozzle              Nozzle[]
+  sale                Sale[]
+  credit              Credit[]
+  payment             CustomerPayment[]
+  paymentHistory      PaymentHistory[]
+  purchase            Purchase[]
+  meterReading        MeterReading[]
+  customer            Customer[]
+  expense             Expense[]
+  purchaseOrder       PurchaseOrder[]
+  bank                Bank[]
+  supplierPayment     SupplierPayment[]
+  balanceReceipt      BalanceReceipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  value       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id            String    @id @map("_id")
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  branch        String   
+  role          String
+  banned        Boolean?
+  banReason     String?
+  banExpires    DateTime?
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id             String   @id @map("_id")
+  expiresAt      DateTime
+  token          String
+  createdAt      DateTime
+  updatedAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @map("_id")
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @map("_id")
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}

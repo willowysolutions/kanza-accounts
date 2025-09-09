@@ -13,9 +13,9 @@ import {
 
 import { FC } from "react";
 import { Button } from "@/components/ui/button";
-import { Purchase } from "@/types/purchase";
-// import { toast } from "sonner";
-// import { useRouter } from "next/navigation";
+import { Purchase } from "@prisma/client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export const PurchaseDeleteDialog: FC<{
   purchase: Purchase;
@@ -23,7 +23,21 @@ export const PurchaseDeleteDialog: FC<{
   setOpen: (open: boolean) => void;
 }> = ({ purchase, open, setOpen }) => {
 
-
+    const router = useRouter()
+    const handleDelete = async () => {
+      try{
+          await fetch(`http://localhost:3000/api/purchases/${purchase?.id}`,{
+              method:"DELETE"
+            });
+          toast.success(`Purchase "${purchase.productType}" deleted.`)
+          setOpen(!open)
+          router.refresh()
+      }catch(error){
+          toast.error("Failed to delete purchase.")
+          console.log(error,"Error on deleting purchase");
+          
+      }
+    }
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogContent>
@@ -37,9 +51,8 @@ export const PurchaseDeleteDialog: FC<{
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button variant="destructive">
-              Delete
-            </Button>
+            <Button variant="destructive"
+              onClick={handleDelete}>Delete</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

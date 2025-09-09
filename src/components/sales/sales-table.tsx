@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -28,13 +27,8 @@ import {
 } from "@/components/ui/card";
 
 import { useState } from "react";
-import { Sales } from "@/types/sales";
+import { SalesTableProps } from "@/types/sales";
 
-
-interface SalesTableProps<TValue> {
-  columns: ColumnDef<Sales, TValue>[];
-  data: Sales[];
-}
 
 export function SalesTable<TValue>({ columns, data }: SalesTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -91,7 +85,7 @@ export function SalesTable<TValue>({ columns, data }: SalesTableProps<TValue>) {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="bg-primary text-primary-foreground font-black">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
