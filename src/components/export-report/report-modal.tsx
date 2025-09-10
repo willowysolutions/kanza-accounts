@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { formatCurrency, formatDate } from "@/lib/utils";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -65,6 +67,7 @@ type ReportData = {
     difference: number;
     fuelRate: number;
     totalAmount: number;
+    sale: number;
     nozzle: { nozzleNumber: string; fuelType: string };
     machine: { name: string };
   }[];
@@ -120,19 +123,41 @@ doc.text(`${date && formatDate(date)}`, pageWidth - marginX, 50, {
   align: "right",
 });
 
-const startY = 90; // below header
-  const body: (object | string | number)[][] = [];
+const startY = 90;
+const body: (object | string | number)[][] = [];
 
-  // --- Product Header ---
-  body.push([
-    { content: "PRODUCT", colSpan: 6, styles: { halign: "center", fillColor: [253, 224, 71] } },
+// --- Table header ---
+body.push([
+  { content: "PRODUCT", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+  { content: "OP.READING", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+  { content: "CL.READING", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+  { content: "SALE", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+  { content: "RATE", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+  { content: "AMOUNT", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+]);
+
+body.push([
+    { content: "", colSpan: 6, styles: { minCellHeight: 5 } },
   ]);
-  body.push(["PRODUCT", "OP.READING", "CL.READING", "SALE", "RATE", "AMOUNT"]);
 
-  // --- Meter readings ---
-  report.meterReadings.forEach((m) => {
+// --- Group readings by fuelType ---
+const grouped = report.meterReadings.reduce((acc, m) => {
+  const fuel = m.nozzle?.fuelType || "Other";
+  if (!acc[fuel]) acc[fuel] = [];
+  acc[fuel].push(m);
+  return acc;
+}, {} as Record<string, typeof report.meterReadings>);
+
+// --- Rows ---
+Object.entries(grouped).forEach(([fuelType, readings]) => {
+  readings.forEach((m, idx) => {
     body.push([
-      `${m.nozzle?.nozzleNumber}`,
+      // PRODUCT column (fuel type) only on the first row
+      idx === 0
+        ? { content: fuelType, styles: { fillColor: [253, 224, 71], fontStyle: "bold" } }
+        : "",
+
+      // ✅ Always show opening/closing readings etc. for each row
       m.openingReading,
       m.closingReading,
       m.difference,
@@ -141,27 +166,71 @@ const startY = 90; // below header
     ]);
   });
 
-  // ✅ Empty row that spans the entire table width
-  body.push([
+  // (optional) subtotal row like your screenshot
+const total = Math.round(
+  readings.reduce(
+    (sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0),
+    0
+  )
+);
+
+body.push([
+  { content: "", colSpan: 4 },
+  { 
+    content: "Total", 
+    styles: { 
+      halign: "center", 
+      fontSize: 10, 
+      fillColor: [253, 224, 71], 
+      fontStyle: "bold", 
+      textColor: [0, 0, 0] 
+    } 
+  },
+  { 
+    content: total, 
+    styles: { 
+      halign: "center", 
+      fillColor: [253, 224, 71], 
+      fontStyle: "bold", 
+      fontSize: 10, 
+      textColor: [0, 0, 0] 
+    } 
+  },
+]);
+
+
+   body.push([
     { content: "", colSpan: 6, styles: { minCellHeight: 10 } },
   ]);
+});
 
-  // --- Oils section ---
-  body.push([
-    { content: "OIL AND GAS", colSpan: 6, styles: { halign: "center", fillColor: [253, 224, 71] } },
-  ]);
-  if (report.oils.length > 0) {
-    report.oils.forEach((o) => {
-      body.push([o.productType, "", "", o.quantity, "", o.price]);
-    });
-  } else {
-    body.push(["Nil", "", "", 0, "", 0]);
-  }
+// --- Oils section ---
+if (report.oils.length > 0) {
+  report.oils.forEach((o) => {
+    if (o.productType.toUpperCase() === "2T-OIL") {
+      // ✅ Special style for 2T OIL
+      body.push([
+        { content: o.productType, styles: { fillColor: [255, 0, 0], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" } },
+        "",
+        "",
+        o.quantity,
+        "",
+        o.price,
+      ]);
+    } else {
+      // Normal oil rows
+      body.push([o.productType, "", "", o.quantity, o.amount, o.price]);
+    }
+  });
+} else {
+  body.push(["Nil", "", "", 0, "", 0]);
+}
+
 
   // --- Grand Total row ---
   body.push([
-    { content: "GRAND TOTAL", colSpan: 5, styles: { halign: "center" } },
-    { content: report.totals.totalSale, styles: { halign: "right", fillColor: [253, 224, 71] } },
+    { content: "GRAND TOTAL", colSpan: 5, styles: { halign: "center", fontStyle: "bold" } },
+    { content: report.totals.totalSale, styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" , fontSize: 10,} },
   ]);
 
   body.push([
@@ -173,46 +242,47 @@ const startY = 90; // below header
   type TableRowData = [TableCellData, string | number | TableCellData];
 
   const receiptRows: TableRowData[] = [
-    [{ content: "Sale", colSpan: 2 }, report.totals.totalSale],
-    [{ content: "Balance Receipt", colSpan: 2 }, report.totals.totalBalanceReceipt],
+    [{ content: "SALE", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, report.totals.totalSale],
+    [{ content: "BALANCE RECEIPT", colSpan: 2 , styles: { halign: "center", underline: true, fontStyle: "bold" }}, report.totals.totalBalanceReceipt],
     [{ content: "", colSpan: 2 },{content: report.totals.salesAndBalaceReceipt, styles: { fillColor: [253, 224, 71]}}],
-    [{ content: "Expenses", colSpan: 2 }, report.totals.expenseSum.toFixed(2)],
-    [{ content: "BANK DEPOSITES", colSpan: 2, styles: { halign: "center", underline: true } }, ""],
+    [{ content: "EXPENSES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, report.totals.expenseSum.toFixed(2)],
+    [{ content: "BANK DEPOSITES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, ""],
     ...report.bankDeposite.map((b) => [{ content: b.bank.bankName, colSpan: 2 }, b.amount] as TableRowData),
-    [{ content: "Cash Balance", colSpan: 2 },
-     { content: report.totals.cashBalance.toFixed(2), styles: { fillColor: [253, 224, 71] } } ],
+    [{ content: "CASH BALANCE", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } },
+     { content: report.totals.cashBalance.toFixed(2), styles: { fillColor: [253, 224, 71], fontStyle: "bold" } } ],
   ];
 
   const expenseRows: TableRowData[] = [
     // Payments
-    ...report.sales.map((s) => [{ content: "ATM", colSpan: 2 }, s.atmPayment] as TableRowData),
-    ...report.sales.map((s) => [{ content: "Paytm", colSpan: 2 }, s.paytmPayment] as TableRowData),
-    ...report.sales.map((s) => [{ content: "Fleet", colSpan: 2 }, s.fleetPayment] as TableRowData),
+    ...report.sales.map((s) => [{ content: "ATM", colSpan: 2, styles: { fontStyle: "bold" } }, s.atmPayment] as TableRowData),
+    ...report.sales.map((s) => [{ content: "PAYTM", colSpan: 2, styles: { fontStyle: "bold" } }, s.paytmPayment] as TableRowData),
+    ...report.sales.map((s) => [{ content: "FLEET", colSpan: 2, styles: { fontStyle: "bold" } }, s.fleetPayment] as TableRowData),
     // Expenses
-    ...report.credits.map((c) => [{ content: c.customer?.name, colSpan: 2 }, c.amount] as TableRowData),
-    ...report.expenses.map((e) => [{ content: e.title, colSpan: 2 }, e.amount] as TableRowData),
+    ...report.credits.map((c) => [{ content: c.customer?.name, colSpan: 2, styles: { fontStyle: "bold" } }, c.amount] as TableRowData),
+    ...report.expenses.map((e) => [{ content: e.title, colSpan: 2, styles: { fontStyle: "bold" } }, e.amount] as TableRowData),
     [
-      { content: "Total Expenses", colSpan: 2 },
-      { content: report.totals.expenseSum.toFixed(2), styles: { fillColor: [253, 224, 71] } },
+      { content: "EXPENSES TOTAL", colSpan: 2, styles: { fontStyle: "bold" } },
+      { content: report.totals.expenseSum.toFixed(2), styles: { fillColor: [253, 224, 71], fontStyle: "bold" } },
     ] as TableRowData,
   ];
 
   // Balance rows
   const maxLength = Math.max(receiptRows.length, expenseRows.length);
-  while (receiptRows.length < maxLength) receiptRows.push([{ content: "", colSpan: 2 }, ""]);
   while (expenseRows.length < maxLength) expenseRows.push([{ content: "", colSpan: 2 }, ""]);
+  while (receiptRows.length < maxLength) receiptRows.push([{ content: "", colSpan: 2 }, ""]);
 
   // --- Section Header ---
   body.push([
-    { content: "RECEIPT", colSpan: 2, styles: { halign: "center", fillColor: [253, 224, 71] } },
-    { content: "AMOUNT", styles: { halign: "center", fillColor: [253, 224, 71] } },
-    { content: "EXPENSES", colSpan: 2, styles: { halign: "center", fillColor: [253, 224, 71] } },
-    { content: "AMOUNT", styles: { halign: "center", fillColor: [253, 224, 71] } },
+    { content: "EXPENSES", colSpan: 2, styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+    { content: "AMOUNT", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+    { content: "RECEIPT", colSpan: 2, styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+    { content: "AMOUNT", styles: { halign: "center", fillColor: [253, 224, 71], fontStyle: "bold" } },
+
   ]);
 
   // Merge rows
   for (let i = 0; i < maxLength; i++) {
-    body.push([...receiptRows[i], ...expenseRows[i]]);
+    body.push([ ...expenseRows[i], ...receiptRows[i]]);
   }
 
   // --- Single autoTable ---
@@ -224,26 +294,28 @@ const startY = 90; // below header
   tableWidth: pageWidth - marginX * 2, // ✅ match header width
   margin: { left: marginX, right: marginX },
   columnStyles: {
-    0: { halign: "left" },
-    1: { halign: "right" },
-    2: { halign: "right" },
-    3: { halign: "right" },
-    4: { halign: "right" },
-    5: { halign: "right" },
+    0: { halign: "center" },
+    1: { halign: "center", fontStyle: "bold" },
+    2: { halign: "center", fontStyle: "bold" },
+    3: { halign: "center", fontStyle: "bold" },
+    4: { halign: "center", fontStyle: "bold" },
+    5: { halign: "center", fontStyle: "bold" },
   },
 });
 
   doc.save(`Daily-Report-${date && formatDate(date)}.pdf`);
 };
 
-
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex justify-between items-center">
-          <DialogTitle>Daily Report - {date && formatDate(date)}</DialogTitle>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="top"
+        className="w-full overflow-y-scroll max-h-screen p-5"
+      >
+        <SheetHeader className="mb-4">
+          <SheetTitle>Daily Report - {date && formatDate(date)}</SheetTitle>
+          <SheetDescription>Complete daily transaction summary.</SheetDescription>
+        </SheetHeader>
         {loading && <div className="p-4 text-center">Loading...</div>}
 
         {report && (
@@ -253,8 +325,8 @@ const startY = 90; // below header
               <TableHeader>
                 <TableRow className="bg-yellow-200">
                   <TableHead>NOZZLE</TableHead>
-                  <TableHead className="text-right">OP</TableHead>
-                  <TableHead className="text-right">CL</TableHead>
+                  <TableHead className="text-right">OP.READING </TableHead>
+                  <TableHead className="text-right">CL.READING </TableHead>
                   <TableHead className="text-right">SALE</TableHead>
                   <TableHead className="text-right">RATE</TableHead>
                   <TableHead className="text-right">AMOUNT</TableHead>
@@ -314,58 +386,6 @@ const startY = 90; // below header
 
             {/* Receipts & Expenses */}
             <div className="grid grid-cols-2 gap-6">
-              {/* Receipts */}
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-yellow-200">
-                    <TableHead>RECEIPT</TableHead>
-                    <TableHead className="text-right">AMOUNT</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.sales.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell>Sale</TableCell>
-                      <TableCell className="text-right">{formatCurrency(s.rate)}</TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow>
-                    <TableCell>Balance Receipt</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(report.totals.totalBalanceReceipt)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow className="font-bold border-t">
-                    <TableCell />
-                    <TableCell className="text-right bg-yellow-200">
-                      {formatCurrency(report.totals.salesAndBalaceReceipt)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Expenses</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(report.totals.expenseSum)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow className="font-bold border-t">
-                    <TableCell>BANK DEPOSITS</TableCell>
-                    <TableCell />
-                  </TableRow>
-                  {report.bankDeposite.map((b) => (
-                    <TableRow key={b.id}>
-                      <TableCell>{b.bank.bankName}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(b.amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow className="font-bold border-t">
-                    <TableCell>Cash Balance</TableCell>
-                    <TableCell className="text-right bg-yellow-200">
-                      {formatCurrency(report.totals.cashBalance)}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-
               {/* Expenses */}
               <Table>
                 <TableHeader>
@@ -429,14 +449,76 @@ const startY = 90; // below header
                   </TableRow>
                 </TableBody>
               </Table>
+
+              {/* Receipts */}
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-yellow-200">
+                    <TableHead>RECEIPT</TableHead>
+                    <TableHead className="text-right">AMOUNT</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.sales.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell>Sale</TableCell>
+                      <TableCell className="text-right">{formatCurrency(s.rate)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell>Balance Receipt</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(report.totals.totalBalanceReceipt)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow className="font-bold border-t">
+                    <TableCell />
+                    <TableCell className="text-right bg-yellow-200">
+                      {formatCurrency(report.totals.salesAndBalaceReceipt)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Expenses</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(report.totals.expenseSum)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow className="font-bold border-t">
+                    <TableCell>BANK DEPOSITS</TableCell>
+                    <TableCell />
+                  </TableRow>
+                  {report.bankDeposite.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell>{b.bank.bankName}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(b.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="font-bold border-t">
+                    <TableCell>Cash Balance</TableCell>
+                    <TableCell className="text-right bg-yellow-200">
+                      {formatCurrency(report.totals.cashBalance)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+
+              
             </div>
           </div>
         )}
-        {/* Export Button */}
-        <Button onClick={handleExportPDF} className="bg-black text-white mt-4">
-          <IconFileExport /> Export PDF
-        </Button>
-      </DialogContent>
-    </Dialog>
+        <SheetFooter className="mt-4 flex justify-end gap-2">
+          <div className="mt-4 flex justify-end gap-2">
+            <SheetClose asChild>
+              <Button type="button" variant="outline">
+                Close
+              </Button>
+            </SheetClose>
+            <Button onClick={handleExportPDF} className="bg-black text-white">
+              <IconFileExport /> Export PDF
+            </Button>
+          </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }

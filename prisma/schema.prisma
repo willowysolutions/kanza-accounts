@@ -413,6 +413,8 @@ model BankDeposite {
 
   bankId     String   @db.ObjectId
   bank       Bank     @relation(fields: [bankId], references: [id])
+  branchId   String?   @db.ObjectId
+  branch     Branch?   @relation(fields: [branchId], references: [id])
 
   date       DateTime
   amount     Float         
@@ -445,6 +447,7 @@ model Branch {
   bank                Bank[]
   supplierPayment     SupplierPayment[]
   balanceReceipt      BalanceReceipt[]
+  bankDeposite       BankDeposite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

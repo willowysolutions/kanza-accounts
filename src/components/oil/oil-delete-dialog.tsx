@@ -29,7 +29,7 @@ export const OilDeleteDialog: FC<{
           await fetch(`http://localhost:3000/api/oils/${oil?.id}`,{
               method:"DELETE"
             });
-          toast.success(`Oils "${oil.oilType}" deleted.`)
+          toast.success(`Oils "${oil.productType}" deleted.`)
           setOpen(!open)
           router.refresh()
       }catch(error){
@@ -45,7 +45,7 @@ export const OilDeleteDialog: FC<{
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete{" "}
-            <span className="font-bold">{oil?.oilType}</span> oil.
+            <span className="font-bold">{oil?.productType}</span> oil.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

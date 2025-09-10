@@ -5,11 +5,11 @@ import { purchaseOrderSchemaWithId } from "@/schemas/purchase-order";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
-    const parsed = purchaseOrderSchemaWithId.safeParse({ id: params.id, ...body });
+    const parsed = purchaseOrderSchemaWithId.safeParse({ id: (await params).id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -38,9 +38,9 @@ export async function PATCH(
 //DELETE
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = await params.id;
+  const { id } = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json(

@@ -15,6 +15,7 @@ import { useState } from "react";
 import { format, isSameDay } from "date-fns";
 import { BalanceReceipt } from "@/types/balance-receipt";
 import { BalanceReceiptFormDialog } from "./balance-receipt-form";
+import { formatCurrency } from "@/lib/utils";
 
 export const balanceReceiptColumn: ColumnDef<BalanceReceipt>[] = [
   {
@@ -44,7 +45,11 @@ export const balanceReceiptColumn: ColumnDef<BalanceReceipt>[] = [
   },
   {
     accessorKey: "amount",
-    header: "Amount"
+    header: "Balance Amount",
+    cell: ({ row }) => {
+      const amount = row.getValue("amount") as number;
+      return <span>{formatCurrency(amount)}</span>;
+    },
   },
   {
       id: "action",

@@ -6,11 +6,11 @@ import { expenseSchemaWithId } from "@/schemas/expense-schema";
 // PATCH - Update Expense and adjust bank + sale
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
-    const parsed = expenseSchemaWithId.safeParse({ id: params.id, ...body });
+    const parsed = expenseSchemaWithId.safeParse({ id: (await params).id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -29,31 +29,46 @@ export async function PATCH(
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
-    const expense = await prisma.$transaction(async (tx) => {
-      const updatedExpense = await tx.expense.update({
+    const amountDiff = data.amount - oldExpense.amount;
+    const expenseDate = new Date(oldExpense.date);
+
+    const [updatedExpense] = await prisma.$transaction(async (tx) => {
+      // 1. Update expense
+      const updated = await tx.expense.update({
         where: { id },
         data,
       });
 
-      const amountDiff = data.amount - oldExpense.amount;
-
-      // --- Adjust Bank ---
+      // 2. Adjust Bank
       if (oldExpense.bankId) {
         await tx.bank.update({
           where: { id: oldExpense.bankId },
-          data: {
-            balanceAmount:
-              amountDiff > 0
-                ? { decrement: amountDiff }
-                : { increment: Math.abs(amountDiff) },
-          },
+          data: { balanceAmount: { decrement: amountDiff } }, // mirror bank deposit logic
         });
       }
 
-      // --- Adjust Sale (same date + branch) ---
+      // 3. Adjust BalanceReceipt
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId: oldExpense.branchId,
+          date: {
+            gte: new Date(expenseDate.setHours(0, 0, 0, 0)),
+            lte: new Date(expenseDate.setHours(23, 59, 59, 999)),
+          },
+        },
+      });
+
+      if (existingReceipt) {
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: { amount: { decrement: amountDiff } }, // expense → reduce cash
+        });
+      }
+
+      // 4. Adjust Sale (if required)
       const sale = await tx.sale.findFirst({
         where: {
-          date: new Date(oldExpense.date), // use oldExpense.date to locate
+          date: new Date(oldExpense.date),
           branchId: oldExpense.branchId,
         },
       });
@@ -61,21 +76,16 @@ export async function PATCH(
       if (sale && amountDiff !== 0) {
         await tx.sale.update({
           where: { id: sale.id },
-          data: {
-            rate:
-              amountDiff > 0
-                ? { decrement: amountDiff } // increased expense → reduce sale
-                : { increment: Math.abs(amountDiff) }, // reduced expense → add back
-          },
+          data: { rate: { decrement: amountDiff } },
         });
       }
 
-      return updatedExpense;
+      return [updated];
     });
 
-    return NextResponse.json({ data: expense }, { status: 200 });
+    return NextResponse.json({ data: updatedExpense }, { status: 200 });
   } catch (error) {
-    console.error("Error updating expenses:", error);
+    console.error("Error updating expense:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -86,9 +96,9 @@ export async function PATCH(
 // DELETE - Remove expense and refund to bank + sale
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const { id } = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
@@ -103,10 +113,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
-    const deletedExpense = await prisma.$transaction(async (tx) => {
+    const expenseDate = new Date(oldExpense.date);
+
+    const [deletedExpense] = await prisma.$transaction(async (tx) => {
+      // 1. Delete expense
       const removed = await tx.expense.delete({ where: { id } });
 
-      // --- Refund Bank ---
+      // 2. Refund Bank
       if (oldExpense.bankId) {
         await tx.bank.update({
           where: { id: oldExpense.bankId },
@@ -114,7 +127,25 @@ export async function DELETE(
         });
       }
 
-      // --- Refund Sale (same date + branch) ---
+      // 3. Increment back in BalanceReceipt
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId: oldExpense.branchId,
+          date: {
+            gte: new Date(expenseDate.setHours(0, 0, 0, 0)),
+            lte: new Date(expenseDate.setHours(23, 59, 59, 999)),
+          },
+        },
+      });
+
+      if (existingReceipt) {
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: { amount: { increment: oldExpense.amount } }, // undo earlier decrement
+        });
+      }
+
+      // 4. Refund Sale
       const sale = await tx.sale.findFirst({
         where: {
           date: new Date(oldExpense.date),
@@ -129,12 +160,12 @@ export async function DELETE(
         });
       }
 
-      return removed;
+      return [removed];
     });
 
     return NextResponse.json({ data: deletedExpense }, { status: 200 });
   } catch (error) {
-    console.error("Error deleting expenses:", error);
+    console.error("Error deleting expense:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -2,43 +2,90 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { bankDepositeSchema } from "@/schemas/bank-deposite-schema";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Zod validation
+    // ✅ Validate with Zod
     const result = bankDepositeSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
-        { error: "Validation failed", issues: result.error.flatten().fieldErrors },
+        {
+          error: "Validation failed",
+          issues: result.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
-    }    
+    }
 
-    const bankDeposite = await prisma.bankDeposite.create({
-      data: result.data,
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    const branchId = session?.user?.branch;
+    const { bankId, amount, date } = result.data;
+
+    const bankDeposite = await prisma.$transaction(async (tx) => {
+      // 1. Create BankDeposit
+      const newDeposit = await tx.bankDeposite.create({
+        data: {
+          ...result.data,
+          branchId
+        },
+      });
+
+      // 2. Increment Bank Balance
+      await tx.bank.update({
+        where: { id: bankId },
+        data: {
+          balanceAmount: {
+            increment: amount,
+          },
+        },
+      });
+
+      // 3. Update BalanceReceipt (increment for deposits)
+      const depositDate = new Date(date);
+
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId,
+          date: {
+            gte: new Date(depositDate.setHours(0, 0, 0, 0)),
+            lte: new Date(depositDate.setHours(23, 59, 59, 999)),
+          },
+        },
+      });
+
+      if (existingReceipt) {
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: {
+            amount: { decrement: amount },
+          },
+        });
+      } else {
+        await tx.balanceReceipt.create({
+          data: {
+            date: new Date(date),
+            amount: -amount,
+            branchId,
+          },
+        });
+      }
+
+      return newDeposit;
     });
 
-    await prisma.bank.update({
-        where:{id:result.data?.bankId},
-        data:{
-            balanceAmount:{
-                increment:result.data?.amount
-            }
-        }
-    })
-      revalidatePath("/bank-deposite");
+    revalidatePath("/bank-deposite");
     return NextResponse.json({ data: bankDeposite }, { status: 201 });
   } catch (error) {
-    console.error("Error creating bankdeposite:", error);
+    console.error("Error creating bank deposit:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-
-
-
-

@@ -5,11 +5,11 @@ import { oilSchemaWithId } from "@/schemas/oil-schema";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
-    const parsed = oilSchemaWithId.safeParse({ id: params.id, ...body });
+    const parsed = oilSchemaWithId.safeParse({ id: (await params).id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -28,23 +28,23 @@ export async function PATCH(
       return NextResponse.json({ error: "Oil not found" }, { status: 404 });
     }
 
-    // If same oilType but quantity changes → adjust difference
-    if (existingOil.oilType === data.oilType) {
+    // If same productType but quantity changes → adjust difference
+    if (existingOil.productType === data.productType) {
       const diff = data.quantity - existingOil.quantity;
       if (diff !== 0) {
         await prisma.stock.updateMany({
-          where: { item: existingOil.oilType },
-          data: { quantity: { decrement: diff } }, 
+          where: { item: existingOil.productType },
+          data: { quantity: { decrement: diff } },
         });
       }
     } else {
       // If oilType changed → return old qty to old type, deduct new qty from new type
       await prisma.stock.updateMany({
-        where: { item: existingOil.oilType },
+        where: { item: existingOil.productType },
         data: { quantity: { increment: existingOil.quantity } },
       });
       await prisma.stock.updateMany({
-        where: { item: data.oilType },
+        where: { item: data.productType },
         data: { quantity: { decrement: data.quantity } },
       });
     }
@@ -69,9 +69,9 @@ export async function PATCH(
 //DELETE
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const { id } = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json(
@@ -87,7 +87,7 @@ export async function DELETE(
     }
 
     await prisma.stock.updateMany({
-      where: { item: oil.oilType },
+      where: { item: oil.productType },
       data: { quantity: { increment: oil.quantity } },
     });
 

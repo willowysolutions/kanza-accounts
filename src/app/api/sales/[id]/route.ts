@@ -4,10 +4,10 @@ import { salesSchemaWithId } from "@/schemas/sales-schema";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await req.json();
-    const result = salesSchemaWithId.safeParse({ id: params.id, ...body });
+    const result = salesSchemaWithId.safeParse({ id: (await params).id, ...body });
     if (!result.success) {
       return NextResponse.json(
         { error: "Validation failed", issues: result.error.flatten().fieldErrors },
@@ -15,7 +15,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       );
     }
 
-    const saleId = params.id;
+    const { id: saleId } = await params;
 
     // Get existing sale
     const existingSale = await prisma.sale.findUnique({ where: { id: saleId } });
@@ -38,13 +38,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     // Old quantities
     const oldT2Qty = oilT2.sellingPrice ? existingSale.oilT2Total / oilT2.sellingPrice : 0;
     const oldHsdQty = hsd.sellingPrice ? existingSale.hsdDieselTotal / hsd.sellingPrice : 0;
-    const oldXpQty = xp.sellingPrice ? existingSale.xpDieselTotal / xp.sellingPrice : 0;
+    const oldXpQty = xp.sellingPrice ? existingSale.xgDieselTotal / xp.sellingPrice : 0;
     const oldMsQty = ms.sellingPrice ? existingSale.msPetrolTotal / ms.sellingPrice : 0;
 
     // New quantities
     const newoilT2Qty = oilT2.sellingPrice ? result.data.oilT2Total / oilT2.sellingPrice : 0;
     const newHsdQty = hsd.sellingPrice ? result.data.hsdDieselTotal / hsd.sellingPrice : 0;
-    const newXpQty = xp.sellingPrice ? result.data.xpDieselTotal / xp.sellingPrice : 0;
+    const newXpQty = xp.sellingPrice ? result.data.xgDieselTotal / xp.sellingPrice : 0;
     const newMsQty = ms.sellingPrice ? result.data.msPetrolTotal / ms.sellingPrice : 0;
 
     // Differences
@@ -97,9 +97,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 // DELETE Sales
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const { id } = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json(
@@ -140,7 +140,7 @@ export async function DELETE(
       : 0;
 
     const xpQty = xpDieselProduct.sellingPrice
-      ? Number(sale.xpDieselTotal) / xpDieselProduct.sellingPrice
+      ? Number(sale.xgDieselTotal) / xpDieselProduct.sellingPrice
       : 0;
 
     const msPetrolQty = msPetrolProduct.sellingPrice

@@ -13,7 +13,6 @@ import { useState } from "react";
 import { MachineFormModal } from "./machine-form";
 import { MachineDeleteDialog } from "./machine-delete-dialog";
 import { Machine } from "@/types/machine";
-import { formatDate } from "@/lib/utils";
 
 type Props = {
   data: Machine[];
@@ -53,10 +52,6 @@ export function Machinecard({ data }: Props) {
                   <div>
                     <p className="text-muted-foreground">Nozzles</p>
                     <p className="font-medium">{machine.noOfNozzles}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Install Date</p>
-                    <p className="font-medium">{formatDate(machine.installDate)}</p>
                   </div>
                 </div>
 

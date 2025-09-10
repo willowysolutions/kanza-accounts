@@ -3,13 +3,14 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { creditSchemaWithId } from "@/schemas/credit-schema";
 
+
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
-    const parsed = creditSchemaWithId.safeParse({ id: params.id, ...body });
+    const parsed = creditSchemaWithId.safeParse({ id: (await params).id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -20,7 +21,6 @@ export async function PATCH(
 
     const { id, ...data } = parsed.data;
 
-    // Get existing credit
     const existingCredit = await prisma.credit.findUnique({
       where: { id },
     });
@@ -29,50 +29,65 @@ export async function PATCH(
       return NextResponse.json({ error: "Credit not found" }, { status: 404 });
     }
 
-    // Calculate balance difference
     const oldAmount = existingCredit.amount;
     const newAmount = data.amount;
-    const diff = newAmount - oldAmount;
+    const difference = newAmount - oldAmount;
+    const creditDate = new Date(existingCredit.date);
 
-    // Update credit + adjust balance in one transaction
-    const [updatedCredit] = await prisma.$transaction([
-      prisma.credit.update({
+    const [updatedCredit] = await prisma.$transaction(async (tx) => {
+      // 1. Update credit
+      const updated = await tx.credit.update({
         where: { id },
         data,
-      }),
-      prisma.customer.update({
+      });
+
+      // 2. Adjust customer outstanding
+      await tx.customer.update({
         where: { id: existingCredit.customerId },
-        data: {
-          openingBalance: diff > 0
-            ? { decrement: diff } // amount increased → subtract extra from balance
-            : { increment: Math.abs(diff) }, // amount decreased → add back to balance
+        data: { outstandingPayments: { increment: difference } },
+      });
+
+      // 3. Adjust BalanceReceipt
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId: existingCredit.branchId,
+          date: {
+            gte: new Date(creditDate.setHours(0, 0, 0, 0)),
+            lte: new Date(creditDate.setHours(23, 59, 59, 999)),
+          },
         },
-      }),
-    ]);
+      });
+
+      if (existingReceipt) {
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: { amount: { decrement: difference } }, // mirror logic from POST
+        });
+      }
+
+      return [updated];
+    });
 
     return NextResponse.json({ data: updatedCredit }, { status: 200 });
   } catch (error) {
     console.error("Error updating credit:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
 
 //DELETE
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const { id } = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
   }
 
   try {
-    // Find credit to delete
     const existingCredit = await prisma.credit.findUnique({
       where: { id },
     });
@@ -81,25 +96,42 @@ export async function DELETE(
       return NextResponse.json({ error: "Credit not found" }, { status: 404 });
     }
 
-    // Delete credit + restore balance in one transaction
-    const [deletedCredit] = await prisma.$transaction([
-      prisma.credit.delete({
-        where: { id },
-      }),
-      prisma.customer.update({
+    const creditDate = new Date(existingCredit.date);
+
+    const [deletedCredit] = await prisma.$transaction(async (tx) => {
+      // 1. Delete credit
+      const removedCredit = await tx.credit.delete({ where: { id } });
+
+      // 2. Adjust customer outstanding
+      await tx.customer.update({
         where: { id: existingCredit.customerId },
-        data: {
-          openingBalance: { increment: existingCredit.amount }, // Add back deleted credit amount
+        data: { outstandingPayments: { decrement: existingCredit.amount } },
+      });
+
+      // 3. Increment back in BalanceReceipt (undo earlier decrement)
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId: existingCredit.branchId,
+          date: {
+            gte: new Date(creditDate.setHours(0, 0, 0, 0)),
+            lte: new Date(creditDate.setHours(23, 59, 59, 999)),
+          },
         },
-      }),
-    ]);
+      });
+
+      if (existingReceipt) {
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: { amount: { increment: existingCredit.amount } },
+        });
+      }
+
+      return [removedCredit];
+    });
 
     return NextResponse.json({ data: deletedCredit }, { status: 200 });
   } catch (error) {
     console.error("Error deleting credit:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

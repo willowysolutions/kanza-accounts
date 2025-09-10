@@ -5,11 +5,11 @@ import { ObjectId } from "mongodb";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
-    const parsed = purchaseSchemaWithId.safeParse({ id: params.id, ...body });
+    const parsed = purchaseSchemaWithId.safeParse({ id: (await params).id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -76,10 +76,10 @@ export async function PATCH(
 //DELETE
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
 
-  const id = await params.id;
+  const { id } = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json(
@@ -90,7 +90,7 @@ export async function DELETE(
 
   try {
     const purchase = await prisma.purchase.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!purchase) {
@@ -107,7 +107,7 @@ export async function DELETE(
 
     // Delete purchase record
     await prisma.purchase.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: "Purchase deleted successfully" }, { status: 200 });

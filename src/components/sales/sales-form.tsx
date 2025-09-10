@@ -47,6 +47,8 @@ export function SalesFormModal({
     id: string;
     date: Date;
     fuelType:string;
+    fuelRate:number;
+    sale:number;
   }[]>([]);
 
   const [oilSales, setOilSales] = useState<{ 
@@ -164,31 +166,28 @@ useEffect(() => {
         new Date(reading.date).toLocaleDateString() === formattedDate
     );
 
-    const fuelTotal = matchingReadings.reduce(
-      (sum, reading) => sum + Number(reading.totalAmount || 0),
-      0
-    );
 
-    const xgDieselTotal = Number(
+    const xgDieselTotal = Math.round(
       matchingReadings
         .filter((p) => p.fuelType === "XG-DIESEL")
-        .reduce((sum, reading) => sum + (reading.totalAmount || 0), 0)
-        .toFixed(2)
+        .reduce((sum, reading) => sum + (reading.fuelRate || 0) * (reading.sale || 0), 0)
     );
 
-    const msPetrolTotal = Number(
+    const msPetrolTotal = Math.round(
       matchingReadings
         .filter((p) => p.fuelType === "MS-PETROL")
-        .reduce((sum, reading) => sum + (reading.totalAmount || 0), 0)
-        .toFixed(2)
+        .reduce((sum, reading) => sum + (reading.fuelRate || 0) * (reading.sale || 0), 0)
     );
 
-    const hsdTotal = Number(
+
+    const hsdTotal = Math.round(
       matchingReadings
         .filter((p) => p.fuelType === "HSD-DIESEL")
-        .reduce((sum, reading) => sum + (reading.totalAmount || 0), 0)
-        .toFixed(2)
+        .reduce((sum, reading) => sum + (reading.fuelRate || 0) * (reading.sale || 0), 0)
     );
+
+    const fuelTotal = msPetrolTotal + xgDieselTotal + hsdTotal;
+
 
     // --- Oil & Gas Sales ---
     const matchingOils = oilSales.filter(

@@ -1,7 +1,8 @@
+export const dynamic = "force-dynamic";
 import { UserForm } from "@/components/users/branch-manager/user-form";
 
 export default async function SignUp() {
-    const res = await fetch("http://localhost:3000/api/users");
+    const res = await fetch("/api/users", { cache: "no-store" });
     const { roles, branch } = await res.json();
 
   return (

@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
+    // ✅ Validate input
     const result = expenseSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     });
 
     const branchId = session?.user?.branch;
-    const { bankId, amount } = result.data;
+    const { bankId, amount, date } = result.data;
 
     const expense = await prisma.$transaction(async (tx) => {
       // 1. Create expense
@@ -41,6 +42,38 @@ export async function POST(req: NextRequest) {
             balanceAmount: {
               decrement: amount,
             },
+          },
+        });
+      }
+
+      // 3. Update BalanceReceipt (decrement from same date)
+      const expenseDate = new Date(date);
+
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId,
+          date: {
+            gte: new Date(expenseDate.setHours(0, 0, 0, 0)),
+            lte: new Date(expenseDate.setHours(23, 59, 59, 999)),
+          },
+        },
+      });
+
+      if (existingReceipt) {
+        // decrement from existing balance
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: {
+            amount: { decrement: amount },
+          },
+        });
+      } else {
+        // create new balance receipt with negative amount
+        await tx.balanceReceipt.create({
+          data: {
+            date: new Date(date),
+            amount: -amount, // ⬅️ store as negative since it's an expense
+            branchId,
           },
         });
       }

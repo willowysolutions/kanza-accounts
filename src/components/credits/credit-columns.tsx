@@ -17,7 +17,7 @@ import { useState } from "react";
 import { Credit } from "@/types/credits";
 import { CreditFormDialog } from "./credit-form";
 import { CreditDeleteDialog } from "./credit-delete-dailog";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const creditColumns: ColumnDef<Credit>[] = [
   {
@@ -39,7 +39,10 @@ export const creditColumns: ColumnDef<Credit>[] = [
   {
     accessorKey: "amount",
     header: "Amount",
-    cell: ({ row }) => <div className="px-3">{row.getValue("amount")}</div>,
+    cell: ({ row }) => {
+      const amount = row.getValue("amount") as number;
+      return <span>{formatCurrency(amount)}</span>;
+    },
   },
   {
     accessorKey: "date",

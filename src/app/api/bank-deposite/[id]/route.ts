@@ -5,11 +5,11 @@ import { NextResponse } from "next/server";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
-    const parsed = bankDepositeSchemaWithId.safeParse({ id: params.id, ...body });
+    const parsed = bankDepositeSchemaWithId.safeParse({ id: (await params).id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -25,44 +25,62 @@ export async function PATCH(
     });
 
     if (!existingDeposite) {
-      return NextResponse.json(
-        { error: "Deposit not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Deposit not found" }, { status: 404 });
     }
 
     const oldAmount = existingDeposite.amount;
     const newAmount = data.amount;
     const difference = newAmount - oldAmount;
 
-    const [bankDeposite] = await prisma.$transaction([
-      prisma.bankDeposite.update({
+    const depositDate = new Date(existingDeposite.date);
+
+    const [bankDeposite] = await prisma.$transaction(async (tx) => {
+      // 1. Update deposit
+      const updatedDeposit = await tx.bankDeposite.update({
         where: { id },
         data,
-      }),
-      prisma.bank.update({
+      });
+
+      // 2. Update bank balance
+      await tx.bank.update({
         where: { id: existingDeposite.bankId },
-        data: {
-          balanceAmount: {
-            increment: difference,
+        data: { balanceAmount: { increment: difference } },
+      });
+
+      // 3. Adjust BalanceReceipt (reverse since deposits reduce branch cash)
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId: existingDeposite.branchId,
+          date: {
+            gte: new Date(depositDate.setHours(0, 0, 0, 0)),
+            lte: new Date(depositDate.setHours(23, 59, 59, 999)),
           },
         },
-      }),
-    ]);
+      });
+
+      if (existingReceipt) {
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: { amount: { decrement: difference } }, 
+        });
+      }
+
+      return [updatedDeposit];
+    });
 
     return NextResponse.json({ data: bankDeposite }, { status: 200 });
   } catch (error) {
     console.error("Error updating bank deposit:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 // DELETE
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const id = params.id;
+export async function DELETE(
+  req: Request,
+   { params }: { params: Promise<{ id: string }> }
+) {
+  const {id} = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
@@ -77,15 +95,38 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       return NextResponse.json({ error: "Deposit not found" }, { status: 404 });
     }
 
-    const [deletedBankDeposite] = await prisma.$transaction([
-      prisma.bankDeposite.delete({ where: { id } }),
-      prisma.bank.update({
+    const depositDate = new Date(existingDeposite.date);
+
+    const [deletedBankDeposite] = await prisma.$transaction(async (tx) => {
+      // 1. Delete deposit
+      const removedDeposit = await tx.bankDeposite.delete({ where: { id } });
+
+      // 2. Decrement bank balance
+      await tx.bank.update({
         where: { id: existingDeposite.bankId },
-        data: {
-          balanceAmount: { decrement: existingDeposite.amount },
+        data: { balanceAmount: { decrement: existingDeposite.amount } },
+      });
+
+      // 3. Increment back in BalanceReceipt (since deletion cancels earlier decrement)
+      const existingReceipt = await tx.balanceReceipt.findFirst({
+        where: {
+          branchId: existingDeposite.branchId,
+          date: {
+            gte: new Date(depositDate.setHours(0, 0, 0, 0)),
+            lte: new Date(depositDate.setHours(23, 59, 59, 999)),
+          },
         },
-      }),
-    ]);
+      });
+
+      if (existingReceipt) {
+        await tx.balanceReceipt.update({
+          where: { id: existingReceipt.id },
+          data: { amount: { increment: existingDeposite.amount } },
+        });
+      }
+
+      return [removedDeposit];
+    });
 
     return NextResponse.json({ data: deletedBankDeposite }, { status: 200 });
   } catch (error) {
