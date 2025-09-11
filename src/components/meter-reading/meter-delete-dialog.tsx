@@ -25,7 +25,7 @@ export const MeterReadingDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/meterreadings/${meterReading?.id}`,{
+          await fetch(`/api/meterreadings/${meterReading?.id}`,{
               method:"DELETE"
             });
           toast.success(`Meter reading "${meterReading.fuelType}" deleted.`)

@@ -65,8 +65,8 @@ export function MachineFormModal({
         ) => {
           try {
             const url = machine
-              ? `http://localhost:3000/api/machines/${machine.id}`
-              : "http://localhost:3000/api/machines/create";
+              ? `/api/machines/${machine.id}`
+              : "/api/machines/create";
 
             const method = machine ? "PATCH" : "POST";
 
@@ -99,7 +99,7 @@ export function MachineFormModal({
         useEffect(() => {
         const fetchSuppliers = async () => {
           try {
-            const res = await fetch("http://localhost:3000/api/tanks");
+            const res = await fetch("/api/tanks");
             const json = await res.json();
             setSupplierOptions(json.data || []);
           } catch (error) {

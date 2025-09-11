@@ -63,8 +63,8 @@ export function SupplierFormDialog({
     setIsSubmitting(true);
     try {
       const url = suppliers
-        ? `http://localhost:3000/api/suppliers/${suppliers.id}`
-        : "http://localhost:3000/api/suppliers/create";
+        ? `/api/suppliers/${suppliers.id}`
+        : "/api/suppliers/create";
 
       const method = suppliers ? "PATCH" : "POST";
 

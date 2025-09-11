@@ -7,10 +7,14 @@ import { Role } from '@/types/role';
 import { User } from '@/types/user';
 
 export default async function UsersPage() {
-    const res = await fetch("http://localhost:3000/api/users");
-    const { users, roles, branch } = await res.json();
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-    console.log(users);
+const res = await fetch(`${baseUrl}/api/users`, {
+  cache: "no-store",
+});
+const { users, roles, branch } = await res.json();
+
+console.log(users);
     
 
   const session = await auth.api.getSession({

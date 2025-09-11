@@ -6,13 +6,20 @@ import { Purchase } from "@/types/purchase";
 import PurchaseManagement from "@/components/purchase/purchase-management";
 
 export default async function PurchasePage() {
-    const purchaseRes = await fetch("http://localhost:3000/api/purchases")
-    const {purchase =[]} = await purchaseRes.json() 
-    console.log(purchase);
-    
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-    const orderRes = await fetch("http://localhost:3000/api/purchase-order")
-    const {purchaseOrder} = await orderRes.json()     
+// Purchases
+const purchaseRes = await fetch(`${baseUrl}/api/purchases`, {
+  cache: "no-store",
+});
+const { purchase = [] } = await purchaseRes.json();
+console.log(purchase);
+
+// Purchase Orders
+const orderRes = await fetch(`${baseUrl}/api/purchase-order`, {
+  cache: "no-store",
+});
+const { purchaseOrder } = await orderRes.json();
 
     const xpTotal = purchase.filter((purchase: Purchase) => purchase.productType === "XP-DIESEL")
                       .reduce((sum: number, purchase: Purchase) => sum + purchase.quantity, 0) ?? 0;

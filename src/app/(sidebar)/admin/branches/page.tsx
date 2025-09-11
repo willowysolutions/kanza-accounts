@@ -5,8 +5,13 @@ import { BranchFormModal } from "@/components/branches/branch-form";
 import { branchColumns } from "@/components/branches/branch-column";
 
 export default async function BranchPage() {
-    const res = await await fetch("http://localhost:3000/api/branch")
-    const {data} = await res.json()    
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+  const res = await fetch(`${baseUrl}/api/branch`, {
+    cache: "no-store", // or "force-cache" if you prefer caching
+  });
+
+  const { data } = await res.json();
 
   return (
     <div className="flex flex-1 flex-col">

@@ -24,7 +24,7 @@ export const BankDeleteDialog:FC<{
   const router = useRouter()
    const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/banks/${bank?.id}`,{
+          await fetch(`/api/banks/${bank?.id}`,{
               method:"DELETE"
             });
           toast.success(`Bank "${bank.bankName}" deleted.`)

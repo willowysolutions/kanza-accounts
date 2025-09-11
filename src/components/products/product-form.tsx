@@ -67,8 +67,8 @@ export function ProductFormDialog({
     setIsSubmitting(true);
     try {
       const url = products
-        ? `http://localhost:3000/api/products/${products.id}`
-        : "http://localhost:3000/api/products/create";
+        ? `/api/products/${products.id}`
+        : "/api/products/create";
 
       const method = products ? "PATCH" : "POST";
 

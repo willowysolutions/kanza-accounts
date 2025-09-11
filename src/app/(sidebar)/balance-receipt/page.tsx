@@ -5,8 +5,13 @@ import { BalanceReceiptTable } from "@/components/balance-receipt/balance-receip
 import { balanceReceiptColumn } from "@/components/balance-receipt/balance-receipt-column";
 
 export default async function SupplierPage() {
-    const res = await await fetch("http://localhost:3000/api/balance-receipts")
-    const {balanceReceipts} = await res.json() 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+const res = await fetch(`${baseUrl}/api/balance-receipts`, {
+  cache: "no-store",
+});
+
+const { balanceReceipts } = await res.json();
 
   return (
     <div className="flex flex-1 flex-col">

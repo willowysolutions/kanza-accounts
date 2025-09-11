@@ -56,8 +56,8 @@ export function BranchFormModal({
   ) => {
     try {
       const url = branch
-        ? `http://localhost:3000/api/branch/${branch.id}`
-        : "http://localhost:3000/api/branch/create";
+        ? `/api/branch/${branch.id}`
+        : "/api/branch/create";
 
       const method = branch ? "PATCH" : "POST";
 

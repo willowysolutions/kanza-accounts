@@ -39,10 +39,11 @@ export default async function GeneralReportPage({
   if (from) query.set("from", from.toISOString());
   if (to) query.set("to", to.toISOString());
 
-  const res = await fetch(
-    `http://localhost:3000/api/reports/general?${query.toString()}`,
-    { cache: "no-store" }
-  );
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+  const res = await fetch(`${baseUrl}/api/reports/general?${query.toString()}`, {
+    cache: "no-store",
+  });
 
   const { rows, totals } = await res.json();
 

@@ -4,8 +4,11 @@ import { StockTable } from "@/components/stocks/stock-table";
 import { stockColumns } from "@/components/stocks/stock-column";
 
 export default async function StocksPage() {
-    const res = await await fetch("http://localhost:3000/api/stocks")
-    const {data} = await res.json()    
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const res = await fetch(`${baseUrl}/api/stocks`, {
+    cache: "no-store",
+  });
+  const { data } = await res.json();
 
   return (
     <div className="flex flex-1 flex-col">

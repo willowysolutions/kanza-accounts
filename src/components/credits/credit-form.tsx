@@ -86,8 +86,8 @@ export function CreditFormDialog({
     setIsSubmitting(true);
     try {
       const url = credits
-        ? `http://localhost:3000/api/credits/${credits.id}`
-        : "http://localhost:3000/api/credits/create";
+        ? `/api/credits/${credits.id}`
+        : "/api/credits/create";
 
       const method = credits ? "PATCH" : "POST";
 

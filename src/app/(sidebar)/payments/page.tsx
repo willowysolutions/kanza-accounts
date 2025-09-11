@@ -2,14 +2,25 @@ import PaymentManagement from "@/components/payments/payment-management";
 
 export default async function PaymentsPage() {
 
-  const dueRes = await fetch("http://localhost:3000/api/payments/due");
-  const {customers} = await dueRes.json();
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-  const purchaseDueRes = await fetch("http://localhost:3000/api/payments/purchase-due");
-  const {suppliers} = await purchaseDueRes.json();
+// Customer dues
+const dueRes = await fetch(`${baseUrl}/api/payments/due`, {
+  cache: "no-store",
+});
+const { customers } = await dueRes.json();
 
-  const historyRes = await fetch("http://localhost:3000/api/payments/history");
-  const {paymentHistory} = await historyRes.json();
+// Supplier dues
+const purchaseDueRes = await fetch(`${baseUrl}/api/payments/purchase-due`, {
+  cache: "no-store",
+});
+const { suppliers } = await purchaseDueRes.json();
+
+// Payment history
+const historyRes = await fetch(`${baseUrl}/api/payments/history`, {
+  cache: "no-store",
+});
+const { paymentHistory } = await historyRes.json();
   
 
   return (

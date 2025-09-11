@@ -63,8 +63,8 @@ export function UserForm({ roles, branches, onSuccess, initialData, isEdit }: Us
 
     try {
       const url = isEdit
-        ? `http://localhost:3000/api/auth/${initialData?.id}`
-        : 'http://localhost:3000/api/auth/create-user';
+        ? `/api/auth/${initialData?.id}`
+        : '/api/auth/create-user';
 
       const method = isEdit ? 'PATCH' : 'POST';
 

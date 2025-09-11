@@ -73,8 +73,8 @@ export function TankFormDialog({
   ) => {
     try {
       const url = tank
-        ? `http://localhost:3000/api/tanks/${tank.id}`
-        : "http://localhost:3000/api/tanks/create";
+        ? `/api/tanks/${tank.id}`
+        : "/api/tanks/create";
 
       const method = tank ? "PATCH" : "POST";
 
@@ -102,7 +102,7 @@ export function TankFormDialog({
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/suppliers");
+        const res = await fetch("/api/suppliers");
         const json = await res.json();
         setSupplierOptions(json.data || []);
       } catch (error) {

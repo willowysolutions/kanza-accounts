@@ -4,8 +4,13 @@ import { ExpenseTable } from "@/components/expenses/expense-table";
 import { ExpenseFormDialog } from "@/components/expenses/expense-form";
 
 export default async function ExpensePage() {
-    const res = await await fetch("http://localhost:3000/api/expenses")
-    const {data} = await res.json() 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+const res = await fetch(`${baseUrl}/api/expenses`, {
+  cache: "no-store",
+});
+
+const { data } = await res.json();
 
   return (
     <div className="flex flex-1 flex-col">

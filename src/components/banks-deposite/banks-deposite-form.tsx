@@ -92,7 +92,7 @@ export const BankDepositeFormDialog = ({
     useEffect(() => {
     const fetchBanks = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/banks");
+        const res = await fetch("/api/banks");
         const json = await res.json();
         setBankOptions(json.banks || []);
       } catch (error) {

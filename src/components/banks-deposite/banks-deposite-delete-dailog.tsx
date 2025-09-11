@@ -24,7 +24,7 @@ export const BankDepositeDeleteDialog:FC<{
   const router = useRouter()
    const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/bank-deposite/${bankDeposite?.id}`,{
+          await fetch(`/api/bank-deposite/${bankDeposite?.id}`,{
               method:"DELETE"
             });
           toast.success(`Bank deposite "${bankDeposite.amount}" deleted.`)

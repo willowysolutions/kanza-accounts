@@ -24,7 +24,7 @@ export const ExpenseDeleteDialog:FC<{
   const router = useRouter()
    const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/expenses/${expense?.id}`,{
+          await fetch(`/api/expenses/${expense?.id}`,{
               method:"DELETE"
             });
           toast.success(`Expense "${expense.title}" deleted.`)

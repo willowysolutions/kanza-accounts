@@ -4,9 +4,13 @@ import { Machinecard } from "@/components/machines/machine-card";
 import { MachineFormModal } from "@/components/machines/machine-form";
 
 export default async function MachinePage() {
-    const res = await await fetch("http://localhost:3000/api/machines")
-    const {data} = await res.json()
-        
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    
+    const res = await fetch(`${baseUrl}/api/machines`, {
+      cache: "no-store",
+    });
+    const { data } = await res.json();
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">

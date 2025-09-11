@@ -9,8 +9,11 @@ import { Sales } from "@/types/sales";
 
 
 export default async function SalesPage() {
-    const res = await await fetch("http://localhost:3000/api/sales")
-    const {sales} = await res.json() 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const res = await fetch(`${baseUrl}/api/sales`, {
+      cache: "no-store",
+    });
+    const { sales } = await res.json();
 
     const xpDieselTotal = sales.reduce((sum: number, sale: Sales) => sum + sale.xgDieselTotal, 0);
 

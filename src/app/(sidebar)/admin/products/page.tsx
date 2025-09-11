@@ -5,7 +5,11 @@ import { ProductTable } from "@/components/products/product-table";
 import { productColumns } from "@/components/products/product-columns";
 
 export default async function ProductPage() {
-    const res = await await fetch("http://localhost:3000/api/products")
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  
+  const res = await fetch(`${baseUrl}/api/products`, {
+    cache: "no-store", // or "force-cache" if you want caching
+  });
     const {data} = await res.json() 
 
   return (

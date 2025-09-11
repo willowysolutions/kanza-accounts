@@ -26,7 +26,7 @@ export const StockDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/stocks/${stock?.id}`,{
+          await fetch(`/api/stocks/${stock?.id}`,{
               method:"DELETE"
             });
           toast.success(`Stock "${stock.item}" deleted.`)

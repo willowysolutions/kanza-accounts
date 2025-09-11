@@ -66,7 +66,7 @@ const handleSubmit = async (
   values: z.infer<typeof refillTankSchema>,
   close: () => void) => {
   try {
-    const res = await fetch("http://localhost:3000/api/refill/create", {
+    const res = await fetch("/api/refill/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),

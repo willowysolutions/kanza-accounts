@@ -8,10 +8,14 @@ import { nozzleColumns } from "@/components/nozzles/nozzle-column";
 import { Nozzle } from "@/types/nozzle";
 
 export default async function NozzlePage() {
-    const res = await await fetch("http://localhost:3000/api/nozzles")
-    const {data} = await res.json() 
-    
-    const noOfNozzles = data.length;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+  const res = await fetch(`${baseUrl}/api/nozzles`, {
+    cache: "no-store",
+  });
+  const { data } = await res.json();
+
+  const noOfNozzles = data.length;
 
     const xpNozzleCount = data.filter(
       (nozzle: Nozzle) => nozzle.fuelType === "XG-DIESEL"

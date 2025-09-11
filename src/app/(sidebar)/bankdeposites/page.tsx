@@ -5,8 +5,13 @@ import { bankDepositeColumns } from "@/components/banks-deposite/banks-deposite-
 import { BankDepositeFormDialog } from "@/components/banks-deposite/banks-deposite-form";
 
 export default async function BankDepositePage() {
-    const resDeposite = await await fetch("http://localhost:3000/api/bank-deposite")
-    const {bankDeposite} = await resDeposite.json() 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+const resDeposite = await fetch(`${baseUrl}/api/bank-deposite`, {
+  cache: "no-store",
+});
+
+const { bankDeposite } = await resDeposite.json();
 
   return (
     <div className="flex flex-1 flex-col">

@@ -26,7 +26,7 @@ export const BranchDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/branch/${branch?.id}`,{
+          await fetch(`/api/branch/${branch?.id}`,{
               method:"DELETE"
             });
           toast.success(`Branch "${branch.name}" deleted.`)

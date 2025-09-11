@@ -4,8 +4,12 @@ import { ExpenseCategoryFormDialog } from "@/components/expense-category/expense
 
 export default async function ExpenseCategoryPage() {
 
-    const res = await await fetch("http://localhost:3000/api/expensescategory")
-    const {data} = await res.json() 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+const res = await fetch(`${baseUrl}/api/expensescategory`, {
+  cache: "no-store",
+});
+const { data } = await res.json();
 
   return (
     <div className="flex flex-1 flex-col">

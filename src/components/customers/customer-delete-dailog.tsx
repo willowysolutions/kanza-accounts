@@ -25,7 +25,7 @@ export const CustomerDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/customers/${customers?.id}`,{
+          await fetch(`/api/customers/${customers?.id}`,{
               method:"DELETE"
             });
           toast.success(`Customers "${customers.name}" deleted.`)

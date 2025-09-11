@@ -26,7 +26,7 @@ export const PurchaseOrderDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/purchase-order/${purchaseOrder?.id}`,{
+          await fetch(`/api/purchase-order/${purchaseOrder?.id}`,{
               method:"DELETE"
             });
           toast.success(`Purchase order"${purchaseOrder.productType}" deleted.`)

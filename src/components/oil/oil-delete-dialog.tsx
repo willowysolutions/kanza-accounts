@@ -26,7 +26,7 @@ export const OilDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/oils/${oil?.id}`,{
+          await fetch(`/api/oils/${oil?.id}`,{
               method:"DELETE"
             });
           toast.success(`Oils "${oil.productType}" deleted.`)

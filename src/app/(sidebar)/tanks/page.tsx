@@ -4,8 +4,9 @@ import { TankFormDialog } from "@/components/tank/tank-form";
 import { TankCard } from "@/components/tank/tank-card";
 
 export default async function TankPage() {
-    const res = await await fetch("http://localhost:3000/api/tanks",{cache:"no-store"})
-    const {data} = await res.json()      
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const res = await fetch(`${baseUrl}/api/tanks`, { cache: "no-store" });
+  const { data } = await res.json();
 
   return (
     <div className="flex flex-1 flex-col">

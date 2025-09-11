@@ -25,7 +25,7 @@ export const DeleteTankDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/tanks/${tank?.id}`,{
+          await fetch(`/api/tanks/${tank?.id}`,{
               method:"DELETE"
             });
           toast.success(`Tank "${tank.tankName}" deleted.`)

@@ -26,7 +26,7 @@ export const NozzleDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/nozzles/${nozzle?.id}`,{
+          await fetch(`/api/nozzles/${nozzle?.id}`,{
               method:"DELETE"
             });
           toast.success(`Nozzle "${nozzle.nozzleNumber}" deleted.`)

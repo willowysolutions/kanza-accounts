@@ -61,8 +61,8 @@ export function CustomerFormDialog({
     setIsSubmitting(true);
     try {
       const url = customers
-        ? `http://localhost:3000/api/customers/${customers.id}`
-        : "http://localhost:3000/api/customers/create";
+        ? `/api/customers/${customers.id}`
+        : "/api/customers/create";
 
       const method = customers ? "PATCH" : "POST";
 

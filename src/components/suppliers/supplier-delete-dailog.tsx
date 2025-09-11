@@ -25,7 +25,7 @@ export const SupplierDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`http://localhost:3000/api/suppliers/${supplier?.id}`,{
+          await fetch(`/api/suppliers/${supplier?.id}`,{
               method:"DELETE"
             });
           toast.success(`Suppliers "${supplier.name}" deleted.`)

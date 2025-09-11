@@ -3,8 +3,14 @@ import { UsersTable } from '@/components/users/branch-manager/users-table';
 import { AddUserDialog } from '@/components/users/branch-manager/add-user-dialog';
 
 export default async function UsersPage() {
-    const res = await fetch("http://localhost:3000/api/users");
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+    const res = await fetch(`${baseUrl}/api/users`, {
+      cache: "no-store",
+    });
+
     const { users, roles, branch } = await res.json();
+
 
   return (
     <div className="p-6 space-y-6">
