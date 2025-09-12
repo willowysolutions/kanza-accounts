@@ -4,15 +4,19 @@ import { betterFetch } from "@better-fetch/fetch";
 import { SessionResponse } from "@/types/auth";
 
 export async function middleware(request: NextRequest) {
-  const { data: session } = await betterFetch<SessionResponse>(
-    "/api/auth/get-session",
-    {
-      baseURL: process.env.BETTER_AUTH_URL,
-      headers: {
-        cookie: request.headers.get("cookie") || "", // Forward the cookies from the request
-      },
+const baseURL =
+  process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000";
+
+const { data: session } = await betterFetch<SessionResponse>(
+  "/api/auth/get-session",
+  {
+    baseURL,
+    headers: {
+      cookie: request.headers.get("cookie") || "", // Forward cookies
     },
-  );
+  },
+);
+
 
   const pathname = request.nextUrl.pathname;
 
