@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { bankDepositeSchema } from "@/schemas/bank-deposite-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { updateBalanceReceipt } from "@/lib/balance-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,34 +47,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 3. Update BalanceReceipt (increment for deposits)
-      const depositDate = new Date(date);
-
-      const existingReceipt = await tx.balanceReceipt.findFirst({
-        where: {
-          branchId,
-          date: {
-            gte: new Date(depositDate.setHours(0, 0, 0, 0)),
-            lte: new Date(depositDate.setHours(23, 59, 59, 999)),
-          },
-        },
-      });
-
-      if (existingReceipt) {
-        await tx.balanceReceipt.update({
-          where: { id: existingReceipt.id },
-          data: {
-            amount: { decrement: amount },
-          },
-        });
-      } else {
-        await tx.balanceReceipt.create({
-          data: {
-            date: new Date(date),
-            amount: -amount,
-            branchId,
-          },
-        });
+      // 3. Update BalanceReceipt (negative amount = cash moved to bank)
+      if (branchId) {
+        await updateBalanceReceipt(branchId, new Date(date), -amount, tx);
       }
 
       return newDeposit;

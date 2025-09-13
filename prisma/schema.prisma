@@ -326,12 +326,12 @@ model MeterReading {
 
 model BalanceReceipt {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  date          DateTime @unique
+  date          DateTime
   amount        Float
   branchId      String?  @db.ObjectId
   branch        Branch?  @relation(fields: [branchId], references: [id])
 
-
+  @@unique([date, branchId])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

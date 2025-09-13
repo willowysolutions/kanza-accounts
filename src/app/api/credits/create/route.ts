@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { creditSchema } from "@/schemas/credit-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { updateBalanceReceipt } from "@/lib/balance-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,34 +57,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 3. Update BalanceReceipt
-      const creditDate = new Date(date);
-
-      const existingReceipt = await tx.balanceReceipt.findFirst({
-        where: {
-          branchId,
-          date: {
-            gte: new Date(creditDate.setHours(0, 0, 0, 0)),
-            lte: new Date(creditDate.setHours(23, 59, 59, 999)),
-          },
-        },
-      });
-
-      if (existingReceipt) {
-        await tx.balanceReceipt.update({
-          where: { id: existingReceipt.id },
-          data: {
-            amount: { decrement: amount },
-          },
-        });
-      } else {
-        await tx.balanceReceipt.create({
-          data: {
-            date: new Date(date),
-            amount: -amount,
-            branchId,
-          },
-        });
+      // 3. Update BalanceReceipt (negative amount = cash given as credit)
+      if (branchId) {
+        await updateBalanceReceipt(branchId, new Date(date), -amount, tx);
       }
 
       return [createdCredit];

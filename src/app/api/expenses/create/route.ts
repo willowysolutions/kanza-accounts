@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { expenseSchema } from "@/schemas/expense-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { updateBalanceReceipt } from "@/lib/balance-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,36 +47,9 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 3. Update BalanceReceipt (decrement from same date)
-      const expenseDate = new Date(date);
-
-      const existingReceipt = await tx.balanceReceipt.findFirst({
-        where: {
-          branchId,
-          date: {
-            gte: new Date(expenseDate.setHours(0, 0, 0, 0)),
-            lte: new Date(expenseDate.setHours(23, 59, 59, 999)),
-          },
-        },
-      });
-
-      if (existingReceipt) {
-        // decrement from existing balance
-        await tx.balanceReceipt.update({
-          where: { id: existingReceipt.id },
-          data: {
-            amount: { decrement: amount },
-          },
-        });
-      } else {
-        // create new balance receipt with negative amount
-        await tx.balanceReceipt.create({
-          data: {
-            date: new Date(date),
-            amount: -amount, // ⬅️ store as negative since it's an expense
-            branchId,
-          },
-        });
+      // 3. Update BalanceReceipt (negative amount = cash spent)
+      if (branchId) {
+        await updateBalanceReceipt(branchId, new Date(date), -amount, tx);
       }
 
       return newExpense;
