@@ -482,7 +482,7 @@ return (
                     .filter(r => r.fuelType === "HSD-DIESEL")
                     .map(r => r.totalAmount ?? 0)
                     .reduce((sum, item) => sum + Number(item || 0), 0)
-                )}
+                ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
               </div>
             </div>
 
@@ -504,7 +504,7 @@ return (
                     .filter(r => r.fuelType === "XG-DIESEL")
                     .map(r => r.totalAmount ?? 0)
                     .reduce((sum, item) => sum + Number(item || 0), 0)
-                )}
+                ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
               </div>
             </div>
 
@@ -526,7 +526,7 @@ return (
                     .filter(r => r.fuelType === "MS-PETROL")
                     .map(r => r.totalAmount ?? 0)
                     .reduce((sum, item) => sum + Number(item || 0), 0)
-                )}
+                ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
               </div>
             </div>
 
@@ -547,15 +547,25 @@ return (
             </div>
             <div className="text-xl font-semibold">
               ₹{" "}
-              {(
-                (form.watch("rows") ?? [])
-                  .filter(
-                    r =>
-                      typeof r.fuelType === "string" &&
-                      ["HSD-DIESEL", "XG-DIESEL", "MS-PETROL"].includes(r.fuelType)
-                  )
-                  .map(r => r.totalAmount ?? 0)
-                  .reduce((sum, item) => sum + Number(item || 0), 0)
+              {Math.round(
+                Math.round(
+                  (form.watch("rows") ?? [])
+                    .filter(r => r.fuelType === "HSD-DIESEL")
+                    .map(r => r.totalAmount ?? 0)
+                    .reduce((sum, item) => sum + Number(item || 0), 0)
+                ) +
+                Math.round(
+                  (form.watch("rows") ?? [])
+                    .filter(r => r.fuelType === "XG-DIESEL")
+                    .map(r => r.totalAmount ?? 0)
+                    .reduce((sum, item) => sum + Number(item || 0), 0)
+                ) +
+                Math.round(
+                  (form.watch("rows") ?? [])
+                    .filter(r => r.fuelType === "MS-PETROL")
+                    .map(r => r.totalAmount ?? 0)
+                    .reduce((sum, item) => sum + Number(item || 0), 0)
+                )
               ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
             </div>
           </div>
