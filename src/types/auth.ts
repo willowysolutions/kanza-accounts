@@ -1,12 +1,18 @@
-import type { Session, User } from '@prisma/client';
+import type { Session, User } from "@prisma/client";
 
-//Session-related types
-export interface SessionResponse {
-  user: User;
+// The actual payload inside the nested `data`
+export interface SessionData {
   session: Session;
+  user: User;
 }
 
-//Auth client session data type (returned by authClient.getSession())
+// What betterFetch returns from /api/auth/get-session
+export interface SessionResponse {
+  data: SessionData;
+  error: unknown; // you can make this stricter if you know the error shape
+}
+
+// Auth client session data type (returned by authClient.getSession())
 export interface AuthClientSessionData {
   data: SessionResponse | null;
 }
