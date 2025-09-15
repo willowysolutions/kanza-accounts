@@ -150,7 +150,7 @@ export async function POST(req: Request) {
         });
       }
     }, {
-      timeout: 20000 
+      timeout: 50000 
     });
 
     revalidatePath("/meterreadings");
