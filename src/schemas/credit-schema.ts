@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const creditSchema = z.object({
   customerId:z.string().min(2),
   fuelType: z.string(),
-  quantity:z.coerce.number(),
+  quantity:z.coerce.number().optional(),
   amount: z.coerce.number().min(1),
   date: z.coerce.date(),
 });
