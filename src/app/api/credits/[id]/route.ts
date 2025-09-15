@@ -25,8 +25,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
-    const parsed = creditSchemaWithId.safeParse({ id: (await params).id, ...body });
+    const parsed = creditSchemaWithId.safeParse({ id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -35,7 +36,7 @@ export async function PATCH(
       );
     }
 
-    const { id, ...data } = parsed.data;
+    const { id: _omitId, ...data } = parsed.data; void _omitId;
 
     const existingCredit = await prisma.credit.findUnique({
       where: { id },

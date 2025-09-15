@@ -24,8 +24,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
-    const parsed = balanceReceiptSchemaWithId.safeParse({ id: (await params).id, ...body });
+    const parsed = balanceReceiptSchemaWithId.safeParse({ id, ...body });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -34,7 +35,7 @@ export async function PATCH(
       );
     }
 
-    const { id, ...data } = parsed.data;
+    const { id: _omitId, ...data } = parsed.data; void _omitId;
 
     const balanceReceipt = await prisma.balanceReceipt.update({
       where: { id },
@@ -56,7 +57,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const {id} = await params;
+  const { id } = await params;
 
   if (!ObjectId.isValid(id)) {
     return NextResponse.json(

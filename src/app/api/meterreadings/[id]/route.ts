@@ -24,8 +24,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
-    const parsed = meterReadingSchemaWithId.safeParse({ id: (await params).id, ...body });
+    const parsed = meterReadingSchemaWithId.safeParse({ id, ...body });
 
 
     if (!parsed.success) {
@@ -35,7 +36,7 @@ export async function PATCH(
       );
     }
 
-    const { id, ...data } = parsed.data;
+    const { id: _omitId, ...data } = parsed.data; void _omitId;
 
     // Get the existing meter reading row
     const existingReading = await prisma.meterReading.findUnique({
@@ -100,11 +101,12 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: unknown
 ) {
-  const { id } = await params;
+  const params = (context as { params?: { id?: string } })?.params ?? {};
+  const id = typeof params.id === "string" ? params.id : null;
 
-  if (!ObjectId.isValid(id)) {
+  if (!id || !ObjectId.isValid(id)) {
     return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
   }
 

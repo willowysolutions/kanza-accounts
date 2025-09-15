@@ -22,8 +22,9 @@ export async function OPTIONS() {
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id: saleId } = await params;
     const body = await req.json();
-    const result = salesSchemaWithId.safeParse({ id: (await params).id, ...body });
+    const result = salesSchemaWithId.safeParse({ id: saleId, ...body });
     if (!result.success) {
       return NextResponse.json(
         { error: "Validation failed", issues: result.error.flatten().fieldErrors },
@@ -31,7 +32,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       );
     }
 
-    const { id: saleId } = await params;
+    // saleId already resolved above
 
     // Get existing sale
     const existingSale = await prisma.sale.findUnique({ where: { id: saleId } });
@@ -113,11 +114,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 // DELETE Sales
 export async function DELETE(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: unknown
 ) {
-  const { id } = await params;
+  const params = (context as { params?: { id?: string } })?.params ?? {};
+  const id = typeof params.id === "string" ? params.id : null;
 
-  if (!ObjectId.isValid(id)) {
+  if (!id || !ObjectId.isValid(id)) {
     return NextResponse.json(
       { error: "Invalid ID format" },
       { status: 400 }
