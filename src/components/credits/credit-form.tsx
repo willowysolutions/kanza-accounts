@@ -256,7 +256,7 @@ export function CreditFormDialog({
             name="quantity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quantity (Optional)</FormLabel>
+                <FormLabel>Quantity (optional)</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
