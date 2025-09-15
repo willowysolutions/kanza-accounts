@@ -50,6 +50,8 @@ export function CreditFormDialog({
   open?: boolean;
   openChange?: (open: boolean) => void;
 }) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments:number; }[]>([]);
   const [products, setProducts] = useState<{id:string; productName :string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
@@ -86,8 +88,8 @@ export function CreditFormDialog({
     setIsSubmitting(true);
     try {
       const url = credits
-        ? `/api/credits/${credits.id}`
-        : "/api/credits/create";
+        ? `${baseUrl}/api/credits/${credits.id}`
+        : `${baseUrl}/api/credits/create`;
 
       const method = credits ? "PATCH" : "POST";
 

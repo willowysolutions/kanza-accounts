@@ -21,11 +21,12 @@ export const CreditDeleteDialog: FC<{
   open: boolean;
   setOpen: (open: boolean) => void;
 }> = ({ credits, open, setOpen }) => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`/api/credits/${credits?.id}`,{
+          await fetch(`${baseUrl}/api/credits/${credits?.id}`,{
               method:"DELETE"
             });
           toast.success(`Customers "${credits.customer.name}" deleted.`)
