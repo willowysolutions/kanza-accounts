@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { nozzleSchemaWithId } from "@/schemas/nozzle-schema";
 import { ObjectId } from "mongodb";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,

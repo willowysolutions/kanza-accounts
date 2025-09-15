@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { bankSchemaWithId } from "@/schemas/bank-schema";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,

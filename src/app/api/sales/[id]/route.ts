@@ -4,6 +4,10 @@ import { salesSchemaWithId } from "@/schemas/sales-schema";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
