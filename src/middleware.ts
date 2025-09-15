@@ -25,6 +25,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
+  console.log("REQUEST method:", request.method, "url:", request.url);
+
 
   return NextResponse.next();
 }
