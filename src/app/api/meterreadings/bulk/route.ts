@@ -6,14 +6,16 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-
+// -----------------------------
+// Zod schemas
+// -----------------------------
 const readingSchema = z.object({
   nozzleId: z.string(),
   machineId: z.string().optional(),
   fuelType: z.string(),
-  sale:z.coerce.number(),
+  sale: z.coerce.number(),
   fuelRate: z.coerce.number().optional(),
-  totalAmount:z.coerce.number(),
+  totalAmount: z.coerce.number(),
   openingReading: z.coerce.number(),
   closingReading: z.coerce.number(),
   date: z.coerce.date(),
@@ -23,6 +25,30 @@ const bulkSchema = z.object({
   items: z.array(readingSchema).min(1),
 });
 
+// -----------------------------
+// Helper: retry wrapper for P2034 deadlocks
+// -----------------------------
+async function runWithRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (
+      typeof e === "object" &&
+      e !== null &&
+      "code" in e &&
+      (e as { code?: string }).code === "P2034" &&
+      retries > 0
+    ) {
+      console.warn("Deadlock detected, retrying transaction...");
+      return runWithRetry(fn, retries - 1);
+    }
+    throw e;
+  }
+}
+
+// -----------------------------
+// Route handler
+// -----------------------------
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -39,11 +65,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create readings in bulk
+    // -----------------------------
+    // Prepare readings
+    // -----------------------------
     const readingsToCreate = parsed.data.items.map((reading) => {
       const difference = Number(
         (reading.closingReading - reading.openingReading).toFixed(2)
-      ); 
+      );
 
       const totalAmount =
         reading.fuelRate != null
@@ -53,123 +81,111 @@ export async function POST(req: Request) {
       return {
         ...reading,
         difference,
-        totalAmount,  
+        totalAmount,
         branchId,
       };
     });
 
-
-    // Before createMany
+    // -----------------------------
+    // Duplicate check (per nozzle per date)
+    // -----------------------------
     for (const reading of readingsToCreate) {
       const exists = await prisma.meterReading.findFirst({
         where: {
           nozzleId: reading.nozzleId,
           date: {
-            gte: new Date(new Date(reading.date).setHours(0,0,0,0)),
-            lt: new Date(new Date(reading.date).setHours(23,59,59,999))
+            gte: new Date(new Date(reading.date).setHours(0, 0, 0, 0)),
+            lt: new Date(new Date(reading.date).setHours(23, 59, 59, 999)),
           },
         },
       });
 
       if (exists) {
         return NextResponse.json(
-          { error: `Reading already exists.` },
+          { error: `Reading already exists for nozzle ${reading.nozzleId}` },
           { status: 400 }
         );
       }
     }
 
+    // -----------------------------
+    // 1. Insert all readings (bulk insert)
+    // -----------------------------
+    await prisma.meterReading.createMany({
+      data: readingsToCreate,
+    });
 
-    await prisma.$transaction(async (tx) => {
-      for (const reading of readingsToCreate) {
-        // 1. create meter reading
-        await tx.meterReading.create({
-          data: reading,
-        });
-
-        // 2. find nozzle + connected tank
-        const nozzleWithTank = await tx.nozzle.findUnique({
-          where: { id: reading.nozzleId },
-          include: {
-            machine: {
-              include: {
-                machineTanks: {
-                  include: { tank: true },
+    // -----------------------------
+    // 2. Process tanks & stocks with retry
+    // -----------------------------
+    for (const reading of readingsToCreate) {
+      await runWithRetry(async () => {
+        return prisma.$transaction(async (tx) => {
+          // Find nozzle and connected tank
+          const nozzleWithTank = await tx.nozzle.findUnique({
+            where: { id: reading.nozzleId },
+            include: {
+              machine: {
+                include: {
+                  machineTanks: { include: { tank: true } },
                 },
               },
             },
-          },
-        });
+          });
 
-        if (nozzleWithTank) {
-          const connectedTank = nozzleWithTank.machine?.machineTanks.find(
+          const connectedTank = nozzleWithTank?.machine?.machineTanks.find(
             (mt) => mt.tank?.fuelType === reading.fuelType
           )?.tank;
 
           if (connectedTank) {
             if (connectedTank.currentLevel - reading.difference < 0) {
-              throw new Error("Tank does not have sufficient current level"); 
+              throw new Error("Tank does not have sufficient current level");
             }
 
-            // 3. update tank
             await tx.tank.update({
               where: { id: connectedTank.id },
-              data: {
-                currentLevel: { decrement: reading.difference },
-              },
+              data: { currentLevel: { decrement: reading.difference } },
             });
 
-            // 4. update stock
             const stock = await tx.stock.findUnique({
               where: { item: reading.fuelType },
             });
 
-            if (!stock) {
-              throw new Error(`Stock not found for fuel type: ${reading.fuelType}`);
-            }
-
-            if (stock.quantity - reading.difference < 0) {
-              throw new Error("No stock available");
+            if (!stock || stock.quantity - reading.difference < 0) {
+              throw new Error("Stock not available");
             }
 
             await tx.stock.update({
               where: { item: reading.fuelType },
-              data: {
-                quantity: { decrement: reading.difference },
-              },
+              data: { quantity: { decrement: reading.difference } },
             });
           }
-        }
 
-        // 5. update nozzle openingReading
-        await tx.nozzle.update({
-          where: { id: reading.nozzleId },
-          data: {
-            openingReading: reading.closingReading,
-          },
+          // Always update nozzle last
+          await tx.nozzle.update({
+            where: { id: reading.nozzleId },
+            data: { openingReading: reading.closingReading },
+          });
         });
-      }
-    }, {
-      timeout: 50000 
-    });
+      });
+    }
 
+    // -----------------------------
+    // Revalidate cache
+    // -----------------------------
     revalidatePath("/meterreadings");
 
-
-    return NextResponse.json({ ok: true, count: readingsToCreate.length });
+    return NextResponse.json({
+      ok: true,
+      count: readingsToCreate.length,
+    });
   } catch (error) {
     console.error("Error creating batch Meter Readings:", error);
 
     if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
