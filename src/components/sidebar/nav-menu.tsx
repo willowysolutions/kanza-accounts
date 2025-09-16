@@ -26,7 +26,7 @@ export const NavMenu = ({ items, ...rest }: NavMenuProps) => (
         <SubMenu key={item.title} item={item} />
       ) : (
         <SidebarMenuItem key={item.url}>
-          <SidebarMenuButton asChild>
+          <SidebarMenuButton asChild className="text-primary-foreground hover:text-black">
             <Link href={item.url}>
               {item.icon && <item.icon />}
               <span>{item.title}</span>
@@ -42,7 +42,7 @@ const SubMenu = ({ item }: { item: NavItem }) => (
   <Collapsible key={item.title} className="group/collapsible">
     <SidebarMenuItem>
       <CollapsibleTrigger asChild>
-        <SidebarMenuButton>
+        <SidebarMenuButton className="text-primary-foreground hover:text-black">
           {item.icon && <item.icon />}
           <span>{item.title}</span>
           <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
@@ -59,7 +59,7 @@ const SubMenu = ({ item }: { item: NavItem }) => (
             </SidebarMenuSubItem>
           ) : (
             <SidebarMenuSubItem key={subItem.url}>
-              <SidebarMenuSubButton asChild>
+              <SidebarMenuSubButton asChild className="text-primary-foreground hover:text-black">
                 <Link href={subItem.url}>
                   {subItem.icon && <subItem.icon />}
                   <span>{subItem.title}</span>

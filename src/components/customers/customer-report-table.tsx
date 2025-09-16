@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
+import { CustomerReportExport } from "@/components/reports/customer-report-export";
 
 type Customer = {
   id: string;
@@ -46,12 +47,15 @@ export default function CustomerReportTable({ customers }: { customers: Customer
               Summary of all customer activity
             </p>
           </div>
-          <Input
-            placeholder="Search by name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
-          />
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="Search by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64"
+            />
+            <CustomerReportExport customers={filteredCustomers} />
+          </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>

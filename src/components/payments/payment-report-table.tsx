@@ -4,6 +4,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { PaymentReportExport } from "@/components/reports/payment-report-export";
 import { useState } from "react";
 
 export default function PaymentTable({
@@ -15,8 +16,8 @@ export default function PaymentTable({
     paidAmount: number;
     paymentMethod: string;
     paidOn: string | Date;
-    customer?: { name?: string };
-    supplier?: { name?: string };
+    customer?: { name?: string; outstandingPayments?: number };
+    supplier?: { name?: string; outstandingPayments?: number };
   }[];
   type: "customer" | "supplier";
 }) {
@@ -35,12 +36,15 @@ export default function PaymentTable({
           <h2 className="text-xl font-semibold">
             {type === "customer" ? "Customer" : "Supplier"} Payment History
           </h2>
-          <Input
-            placeholder={`Search ${type} name...`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-xs"
-          />
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder={`Search ${type} name...`}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-xs"
+            />
+            <PaymentReportExport rows={filteredRows} type={type} />
+          </div>
         </div>
 
         <Table>
@@ -50,6 +54,7 @@ export default function PaymentTable({
               <TableHead>Amount</TableHead>
               <TableHead>Method</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Outstanding Payments</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -64,6 +69,11 @@ export default function PaymentTable({
                   <TableCell>{p.paidAmount}</TableCell>
                   <TableCell>{p.paymentMethod}</TableCell>
                   <TableCell>{new Date(p.paidOn).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {type === "customer"
+                      ? p.customer?.outstandingPayments ?? 0
+                      : p.supplier?.outstandingPayments ?? 0}
+                  </TableCell>
                 </TableRow>
               ))
             ) : (

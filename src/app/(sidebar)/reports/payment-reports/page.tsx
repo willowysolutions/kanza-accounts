@@ -14,8 +14,29 @@ export default async function PaymentHistoryPage() {
     include: { customer: true, supplier: true },
   });
 
-  const customerPayments = paymentHistory.filter((p) => p.customerId);
-  const supplierPayments = paymentHistory.filter((p) => p.supplierId);
+  const customerPayments = paymentHistory
+    .filter((p) => p.customerId)
+    .map((p) => ({
+      id: p.id,
+      paidAmount: p.paidAmount,
+      paymentMethod: p.paymentMethod,
+      paidOn: p.paidOn,
+      customer: p.customer
+        ? { name: p.customer.name ?? undefined, outstandingPayments: p.customer.outstandingPayments }
+        : undefined,
+    }));
+
+  const supplierPayments = paymentHistory
+    .filter((p) => p.supplierId)
+    .map((p) => ({
+      id: p.id,
+      paidAmount: p.paidAmount,
+      paymentMethod: p.paymentMethod,
+      paidOn: p.paidOn,
+      supplier: p.supplier
+        ? { name: p.supplier.name ?? undefined, outstandingPayments: p.supplier.outstandingPayments }
+        : undefined,
+    }));
 
   return (
     <div className="p-6">

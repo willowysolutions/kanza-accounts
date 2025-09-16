@@ -14,6 +14,8 @@ interface Payment {
     paidAmount: number;
     paymentMethod: string;
     paidOn: string | Date;
+    customer?: { name?: string; outstandingPayments?: number };
+    supplier?: { name?: string; outstandingPayments?: number };
 }
 
 export default function PaymentTabs({
