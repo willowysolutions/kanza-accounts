@@ -27,7 +27,7 @@ export const ExpenseDeleteDialog:FC<{
           await fetch(`/api/expenses/${expense?.id}`,{
               method:"DELETE"
             });
-          toast.success(`Expense "${expense.title}" deleted.`)
+          toast.success(`Expense "${expense.amount}" deleted.`)
           setOpen(!open)
           router.refresh()
       }catch(error){
@@ -43,7 +43,7 @@ export const ExpenseDeleteDialog:FC<{
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete{" "}
-            <span className="font-bold">{expense.title}</span> expense
+            <span className="font-bold">{expense.amount}</span> expense
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
