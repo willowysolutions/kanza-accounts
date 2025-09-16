@@ -61,6 +61,9 @@ export async function GET(
     // Expense
     const expenses = await prisma.expense.findMany({
       where: { date: { gte: startOfDay, lte: endOfDay } },
+      include: {
+        category: true,
+      },
     });
 
 

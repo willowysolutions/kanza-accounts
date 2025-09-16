@@ -50,7 +50,7 @@ type ReportData = {
     fleetPayment: number;
     rate: number;
   }[];
-  expenses: { id: string; title: string; amount: number }[];
+  expenses: { id: string; category: { name: string }; amount: number }[];
   credits: {
     id: string;
     description: string;
@@ -259,7 +259,7 @@ if (report.oils.length > 0) {
     ...report.sales.map((s) => [{ content: "FLEET", colSpan: 2, styles: { fontStyle: "bold" } }, s.fleetPayment] as TableRowData),
     // Expenses
     ...report.credits.map((c) => [{ content: c.customer?.name, colSpan: 2, styles: { fontStyle: "bold" } }, c.amount] as TableRowData),
-    ...report.expenses.map((e) => [{ content: e.title, colSpan: 2, styles: { fontStyle: "bold" } }, e.amount] as TableRowData),
+    ...report.expenses.map((e) => [{ content: e.category.name, colSpan: 2, styles: { fontStyle: "bold" } }, e.amount] as TableRowData),
     [
       { content: "EXPENSES TOTAL", colSpan: 2, styles: { fontStyle: "bold" } },
       { content: report.totals.expenseSum.toFixed(2), styles: { fillColor: [253, 224, 71], fontStyle: "bold" } },
@@ -437,7 +437,7 @@ if (report.oils.length > 0) {
                   </TableRow>
                   {report.expenses.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell>{e.title}</TableCell>
+                      <TableCell>{e.category.name}</TableCell>
                       <TableCell className="text-right">{formatCurrency(e.amount)}</TableCell>
                     </TableRow>
                   ))}

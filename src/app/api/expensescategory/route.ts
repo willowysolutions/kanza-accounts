@@ -5,6 +5,7 @@ export async function GET() {
   try {
     const expenseCategory = await prisma.expenseCategory.findMany({
       orderBy: { name: "desc" },
+      include: {expenses:true}
     });
 
     return NextResponse.json({ data: expenseCategory }, { status: 200 });
