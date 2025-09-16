@@ -270,7 +270,6 @@ model PurchaseOrder {
 
 model Expense {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId
-  title             String
   description       String?
   amount            Int
   date              DateTime

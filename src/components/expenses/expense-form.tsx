@@ -49,7 +49,6 @@ export const ExpenseFormDialog = ({
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      title: expense?.title || "",
       description: expense?.description ?? "",
       amount: expense?.amount ?? undefined,
       date: expense?.date ? new Date(expense.date) : new Date(),
@@ -147,37 +146,6 @@ export const ExpenseFormDialog = ({
 
 
         {/* Title */}
-        <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Expense Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Description */}
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description (optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="description" {...field}/>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        </div>
-
         {/* Expense Category */}
         <div className="grid grid-cols-2 gap-4">
         <FormField
@@ -240,6 +208,26 @@ export const ExpenseFormDialog = ({
           return null;
         })()}
         </div>
+
+        <div className="w-full">
+
+            {/* Description */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="description" {...field}/>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+
 
         {/* Amount */}
         <div className="grid grid-cols-2 gap-4">

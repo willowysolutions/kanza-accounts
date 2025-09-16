@@ -10,9 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   Edit2,
   MoreHorizontal,
   Trash2,
@@ -24,27 +21,16 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const expenseColumns: ColumnDef<Expense>[] = [
   {
-    accessorKey: "title",
-    header: ({ column }) => {
-      const sort = column.getIsSorted();
-      const renderIcon = () => {
-        if (!sort) return <ArrowUpDown className="size-4" />;
-        if (sort === "asc") return <ArrowUp className="size-4" />;
-        if (sort === "desc") return <ArrowDown className="size-4" />;
-        return null;
-      };
-
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(sort === "asc")}
-        >
-          Title
-          {renderIcon()}
-        </Button>
-      );
-    },
-    cell: ({ row }) =>  <div className="px-3">{row.getValue('title') as string}</div>,
+    accessorKey: "category",
+    header: "Category",
+    cell: ({ row }) => {
+    const expenseCategory = row.original.category.name;
+        return (
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800`}>
+            {expenseCategory}
+        </span>
+        );
+    }
   },
   {
     accessorKey: "description",
@@ -69,19 +55,7 @@ export const expenseColumns: ColumnDef<Expense>[] = [
         </div>
         );
     },
-    },
-  {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => {
-    const expenseCategory = row.original.category.name;
-        return (
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800`}>
-            {expenseCategory}
-        </span>
-        );
-    }
-  },{
+    },{
     accessorKey: "amount",
     header: "Amount",
     cell: ({ row }) => {
