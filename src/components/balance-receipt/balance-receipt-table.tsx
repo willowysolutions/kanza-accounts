@@ -3,10 +3,12 @@
 import {
   flexRender,
   getCoreRowModel,
-  useReactTable,
   getFilteredRowModel,
-  SortingState,
   getSortedRowModel,
+  getPaginationRowModel,
+  SortingState,
+  PaginationState,
+  useReactTable,
 } from "@tanstack/react-table";
 
 import {
@@ -28,25 +30,30 @@ import {
 import { useState } from "react";
 import { BalanceReceiptTableProps } from "@/types/balance-receipt";
 import { DateEqualsFilter } from "../filters/date-equals-filter";
+import { Button } from "@/components/ui/button";
 
 export function BalanceReceiptTable<TValue>({
   columns,
   data,
 }: BalanceReceiptTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10, // default rows per page
+  });
 
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
-      globalFilter,
+      pagination,
     },
   });
 
@@ -54,10 +61,10 @@ export function BalanceReceiptTable<TValue>({
     <div className="flex flex-col gap-5">
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <CardTitle className="font-bold">Balance Receipt By Date</CardTitle>
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <CardTitle className="font-bold">Balance Receipt By Date</CardTitle>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <DateEqualsFilter table={table} columnId="date" />
-        </div>
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -111,6 +118,33 @@ export function BalanceReceiptTable<TValue>({
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

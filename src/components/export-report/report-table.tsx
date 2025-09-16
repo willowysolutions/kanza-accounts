@@ -5,8 +5,10 @@ import {
   getCoreRowModel,
   useReactTable,
   getFilteredRowModel,
-  SortingState,
   getSortedRowModel,
+  getPaginationRowModel,
+  SortingState,
+  PaginationState,
 } from "@tanstack/react-table";
 
 import {
@@ -38,17 +40,22 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 20, // default rows per page
+  });
 
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: (row, columnId, filterValue) => {
-      // 🔹 Filter by item name if you want to keep search later
       const item = row.getValue("item") as string;
       const filter = String(filterValue || "").toLowerCase();
       return item?.toLowerCase().includes(filter);
@@ -56,10 +63,11 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
     state: {
       sorting,
       globalFilter,
+      pagination,
     },
   });
 
-  // 🔹 Apply date filter on table rows
+  // 🔹 Apply date filter on paginated rows
   const filteredRows = selectedDate
     ? table.getRowModel().rows.filter((row) => {
         const rowDate = new Date(row.original.date); // assumes `date` exists in row data
@@ -110,7 +118,10 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
                     >
                       {header.isPlaceholder
                         ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -132,16 +143,39 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
                     No results.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+
+          {/* 🔹 Pagination Controls */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

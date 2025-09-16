@@ -170,8 +170,7 @@ export function OilFormModal({
                     {productOption
                       .filter(
                         (product) =>
-                          product.productName.toLowerCase().includes("oil") ||
-                          product.productName.toLowerCase().includes("gas")
+                          !["HSD-DIESEL", "MS-PETROL", "XG-DIESEL"].includes(product.productName)
                       )
                       .map((product) => (
                         <SelectItem key={product.id} value={product.productName}>
@@ -179,6 +178,8 @@ export function OilFormModal({
                         </SelectItem>
                       ))}
                   </SelectContent>
+
+
                 </Select>
                 <FormMessage />
               </FormItem>
