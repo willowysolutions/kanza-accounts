@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Sales extends PrismaSales {
   nozzle: { nozzleNumber: string; fuelType:string};
+  branch: { name: string };
 }
 
 export interface SalesTableProps<TValue> {

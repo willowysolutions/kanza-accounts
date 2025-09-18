@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Credit extends PrismaCredit {
   customer: { name: string };
+  branch: { name: string };
 }
 
 export interface CreditTableProps<TValue> {

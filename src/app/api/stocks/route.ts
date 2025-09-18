@@ -13,7 +13,7 @@ export async function GET() {
     const stocks = await prisma.stock.findMany({
       where: whereClause,
       orderBy: { item: "desc" },
-      include:{supplier:true}
+      include:{supplier:true, branch:true}
     });
 
     return NextResponse.json({ data: stocks }, { status: 200 });

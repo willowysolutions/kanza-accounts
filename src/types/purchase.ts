@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Purchase extends PrismaPurchase {
   supplier: { name: string };
+  branch: { name: string };
 }
 
 export interface PurchaseTableProps<TValue> {

@@ -4,10 +4,12 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  useReactTable,
   getFilteredRowModel,
-  SortingState,
   getSortedRowModel,
+  getPaginationRowModel,
+  SortingState,
+  PaginationState,
+  useReactTable,
 } from "@tanstack/react-table";
 
 import {
@@ -27,46 +29,77 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { Customer } from "@prisma/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { Customer } from "@/types/customer";
 
 interface CustomerTableProps<TValue> {
   columns: ColumnDef<Customer, TValue>[];
   data: Customer[];
 }
 
-export function CustomerTable<TValue>({ columns, data }: CustomerTableProps<TValue>) {
+export function CustomerTable<TValue>({
+  columns,
+  data,
+}: CustomerTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 15, // 👈 adjust page size here
+  });
 
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
       globalFilter,
+      pagination,
+    },
+    globalFilterFn: (row, columnId, filterValue) => {
+      const value = String(row.getValue(columnId) ?? "").toLowerCase();
+      return value.includes(String(filterValue ?? "").toLowerCase());
     },
   });
 
   return (
     <div className="flex flex-col gap-5">
       <Card>
-        <CardHeader>
-          <CardTitle>Customers</CardTitle>
-          <CardDescription>A list of all customers</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          {/* Left side */}
+          <div>
+            <CardTitle>Customers</CardTitle>
+            <CardDescription>A list of all customers</CardDescription>
+          </div>
+
+          {/* 🔍 Search bar */}
+          <Input
+            placeholder="Search customers..."
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="w-64"
+          />
         </CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}  className="bg-primary text-primary-foreground font-black">
+                    <TableHead
+                      key={header.id}
+                      className="bg-primary text-primary-foreground font-black"
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -78,6 +111,7 @@ export function CustomerTable<TValue>({ columns, data }: CustomerTableProps<TVal
                 </TableRow>
               ))}
             </TableHeader>
+
             <TableBody>
               {table.getRowModel().rows.length ? (
                 table.getRowModel().rows.map((row) => (
@@ -94,13 +128,43 @@ export function CustomerTable<TValue>({ columns, data }: CustomerTableProps<TVal
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
                     No results.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+
+          {/* 🔹 Pagination Controls */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

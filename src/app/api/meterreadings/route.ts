@@ -13,7 +13,7 @@ export async function GET() {
     const readings = await prisma.meterReading.findMany({
       where: whereClause,
       orderBy: { date: "desc" },
-      include: { nozzle: true }
+      include: { nozzle: true, branch: true }
     });
 
     // Calculate difference

@@ -1,6 +1,5 @@
 "use client";
 
-import { Customer } from "@prisma/client";
 import { CustomerFormDialog } from "./customer-form";
 import { CustomerDeleteDialog } from "./customer-delete-dailog";
 import { ColumnDef } from "@tanstack/react-table";
@@ -19,12 +18,34 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { CustomerHistoryModal } from "./customer -history-modal";
+import { Customer } from "@/types/customer";
 
 export const customerColumns: ColumnDef<Customer>[] = [
   {
     accessorKey: "name",
     header: "Name",
-  },
+    cell: function NameCell({ row }) {
+      const customer = row.original;
+      const [openHistory, setOpenHistory] = useState(false);
+
+      return (
+        <>
+          <button
+            className="text-blue-600 hover:underline cursor-pointer"
+            onClick={() => setOpenHistory(true)}
+          >
+            {customer.name}
+          </button>
+  
+          <CustomerHistoryModal
+            customerId={customer.id}
+            open={openHistory}
+            onOpenChange={setOpenHistory}
+          />
+        </>
+      );
+    },
+  },  
   {
     accessorKey: "openingBalance",
     header: "Opening",
@@ -55,6 +76,14 @@ export const customerColumns: ColumnDef<Customer>[] = [
     cell: ({ row }) => {
       const address = row.getValue("address");
       return <div className="px-3">{address ? String(address) : "..."}</div>;
+    },
+  },
+  {
+    accessorKey: "branchId",
+    header: "Branch",
+    cell: ({ row }) => {
+      const branch = row.original.branch.name;
+      return <div>{branch ? String(branch) : "..."}</div>;
     },
   },
   {

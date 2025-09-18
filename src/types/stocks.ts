@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Stock extends PrismaStock {
   supplier: { name: string };
+  branch: { name: string };
 }
 
 export interface StockTableProps<TValue> {

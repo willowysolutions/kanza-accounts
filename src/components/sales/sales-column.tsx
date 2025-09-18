@@ -27,6 +27,14 @@ export const salesColumns: ColumnDef<Sales>[] = [
     }
   },
   {
+    accessorKey: "branchId",
+    header: "Branch",
+    cell: ({ row }) => {
+      const branch = row.original.branch.name;
+      return <div>{branch ? String(branch) : "..."}</div>;
+    },
+  },
+  {
     accessorKey:"cashPayment",
     header:"Cash Payment",
     cell: ({row}) => {

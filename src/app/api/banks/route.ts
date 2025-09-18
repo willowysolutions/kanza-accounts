@@ -13,6 +13,7 @@ export async function GET() {
     const banks = await prisma.bank.findMany({
       where : whereClause,
       orderBy: { bankName: "asc" },
+      include: { branch: true },
     });
 
     return NextResponse.json({ banks }, { status: 200 });

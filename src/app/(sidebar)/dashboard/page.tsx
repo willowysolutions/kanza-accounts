@@ -237,16 +237,15 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
         ))}
       </TabsList>
 
-      {summaries.map(({ branchId, rows, name }) => (
+      {summaries.map(({ branchId, rows }) => (
         <TabsContent key={branchId} value={branchId} className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
             <tr className="text-left border-b">
                 <th>Date</th>
-                <th>Branch</th>
                 <th>Total Sale</th>
-                <th>Total Purchase</th>
                 <th>Total Expense</th>
+                <th>Total Credits</th>
                 <th>Balance Receipt (Yday)</th>
                 <th>Cash Balance</th>
               </tr>
@@ -255,10 +254,9 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
               {rows.map(({ date, totals }) => (
                 <tr key={date} className="border-b hover:bg-muted">
                   <td>{new Date(date).toLocaleDateString()}</td>
-                  <td>{name}</td>
                   <td>₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
-                  <td>₹{totals.totalPurchase?.toFixed(2) ?? '0.00'}</td>
                   <td>₹{totals.totalExpense?.toFixed(2) ?? '0.00'}</td>
+                  <td>₹{totals.totalCredit?.toFixed(2) ?? '0.00'}</td>
                   <td>₹{totals.totalBalanceReceipt?.toFixed(2) ?? '0.00'}</td>
                   <td>₹{totals.cashBalance?.toFixed(2) ?? '0.00'}</td>
                 </tr>

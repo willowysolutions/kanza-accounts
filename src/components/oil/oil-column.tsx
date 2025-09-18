@@ -1,6 +1,5 @@
 "use client";
 
-import { Oil } from "@prisma/client";
 import { OilFormModal } from "./oil-form";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -19,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { OilDeleteDialog } from "./oil-delete-dialog";
 import { formatDate } from "@/lib/utils";
+import { Oil } from "@/types/oils";
 
 export const oilColumns: ColumnDef<Oil>[] = [
   {
@@ -30,6 +30,14 @@ export const oilColumns: ColumnDef<Oil>[] = [
             <div>{formatDate(date)}</div>
         )
     }
+  },
+  {
+    accessorKey: "branchId",
+    header: "Branch",
+    cell: ({ row }) => {
+      const branch = row.original.branch.name;
+      return <div>{branch ? String(branch) : "..."}</div>;
+    },
   },
   {
     accessorKey: "productType",

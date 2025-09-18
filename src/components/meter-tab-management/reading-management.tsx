@@ -6,13 +6,13 @@ import { meterReadinColumns } from "../meter-reading/meter-reading-column";
 import { MeterReading } from "@/types/meter-reading";
 import { useState } from "react";
 import { MeterReadingFormSheet } from "../meter-reading/meter-reading-form";
-import { Oil } from "@prisma/client";
 import { oilColumns } from "../oil/oil-column";
 import { OilTable } from "../oil/oil-table";
 import { OilFormModal } from "../oil/oil-form";
 import { Sales } from "@/types/sales";
 import { ReportTable } from "../export-report/report-table";
 import { reportColumns } from "../export-report/report-column";
+import { Oil } from "@/types/oils";
 
 type MeterTabManagementProps = {
   meterReading: MeterReading[];

@@ -12,7 +12,7 @@ export async function GET() {
     const bankDeposite = await prisma.bankDeposite.findMany({
       where: whereClause,
       orderBy: { bankId: "desc" },
-      include:{bank:true}
+      include:{bank:true, branch:true}
     });
 
     return NextResponse.json({ bankDeposite }, { status: 200 });

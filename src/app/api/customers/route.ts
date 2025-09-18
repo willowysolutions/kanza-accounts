@@ -13,6 +13,7 @@ export async function GET() {
     const customers = await prisma.customer.findMany({
       where: whereClause,
       orderBy: { name: "desc" },
+      include: { branch: true },
     });
 
     return NextResponse.json({ data: customers }, { status: 200 });

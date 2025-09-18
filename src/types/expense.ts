@@ -3,6 +3,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Expense extends PrismaExpense {
   category: { name: string };
+  branch: { name: string };
 }
 
 export interface ExpenseFormProps {

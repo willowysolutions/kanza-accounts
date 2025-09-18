@@ -12,7 +12,7 @@ export async function GET() {
     const credits = await prisma.credit.findMany({
       where: whereClause,
       orderBy: { createdAt: "desc" },
-      include: {customer:true}
+      include: {customer:true, branch:true}
     });
 
     return NextResponse.json({ data: credits }, { status: 200 });

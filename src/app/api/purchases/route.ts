@@ -13,7 +13,7 @@ export async function GET() {
     const purchase = await prisma.purchase.findMany({
       where: whereClause,
       orderBy: { createdAt: "desc" },
-      include:{supplier:true}
+      include:{supplier:true, branch:true}
     });
     
     return NextResponse.json({ purchase }, { status: 200 });

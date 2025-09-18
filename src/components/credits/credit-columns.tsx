@@ -21,12 +21,19 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const creditColumns: ColumnDef<Credit>[] = [
   {
-  accessorFn: (row) => row.customer?.name ?? "",
-  id: "customerName",
-  header: "Customer",
-  cell: ({ getValue }) => <div>{getValue<string>()}</div>,
-},
-
+    accessorFn: (row) => row.customer?.name ?? "",
+    id: "customerName",
+    header: "Customer",
+    cell: ({ getValue }) => <div>{getValue<string>()}</div>,
+  },
+  {
+    accessorKey: "branchId",
+    header: "Branch",
+    cell: ({ row }) => {
+      const branch = row.original.branch.name;
+      return <div>{branch ? String(branch) : "..."}</div>;
+    },
+  },
   {
     accessorKey: "fuelType",
     header: "Fuel Type",

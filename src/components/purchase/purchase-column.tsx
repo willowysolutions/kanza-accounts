@@ -17,6 +17,14 @@ import { formatCurrency, formatDate} from "@/lib/utils"
 
 export const purchaseColumns: ColumnDef<Purchase>[] = [
   {
+    accessorKey: "branchId",
+    header: "Branch",
+    cell: ({ row }) => {
+      const branch = row.original.branch.name;
+      return <div>{branch ? String(branch) : "..."}</div>;
+    },
+  },
+  {
       accessorKey: "date",
       header: "Date & Time",
       cell:({row}) => {

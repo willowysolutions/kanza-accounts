@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface MeterReading extends PrismaMeterReading {
   nozzle: { nozzleNumber: string };
+  branch: { name: string };
 }
 
 export interface MeterReadingTableProps<TValue> {

@@ -31,7 +31,7 @@ import {
 type HistoryItem = {
   id: string;
   customer: string;
-  type: "credit" | "payment";
+  type: "credit" | "payment"; // credit = debit, payment = credit
   amount: number;
   method?: string;
   date: string;
@@ -62,9 +62,7 @@ export function CustomerHistoryModal({
       });
   }, [open, customerId]);
 
-  console.log(history);
-  
-
+  // Filter by date range
   const filteredHistory = useMemo(() => {
     const now = new Date();
     return history.filter((item) => {
@@ -96,17 +94,34 @@ export function CustomerHistoryModal({
     });
   }, [filter, history]);
 
-  // Final total
-  const total = filteredHistory.reduce((sum, item) => {
-    return item.type === "credit" ? sum - item.amount : sum + item.amount;
-  }, 0);
+  // Sort by date (oldest first) and calculate running balance
+  const historyWithBalance = useMemo(() => {
+    const sorted = [...filteredHistory].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    let runningBalance = 0;
+    return sorted.map((item) => {
+      if (item.type === "credit") {
+        runningBalance += item.amount; // debit increases balance
+      } else {
+        runningBalance -= item.amount; // payment decreases balance
+      }
+      return { ...item, balance: runningBalance };
+    });
+  }, [filteredHistory]);
+
+  // Final total = last balance
+  const total =
+    historyWithBalance.length > 0
+      ? historyWithBalance[historyWithBalance.length - 1].balance
+      : 0;
 
   // Get customer name from the first history item, if available
   const customerName = history[0]?.customer;
 
   // Export PDF
   const handleExportPDF = () => {
-    if (!filteredHistory.length) return;
+    if (!historyWithBalance.length) return;
 
     const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
     doc.setFontSize(14);
@@ -118,13 +133,14 @@ export function CustomerHistoryModal({
 
     autoTable(doc, {
       startY: 70,
-      head: [["Date", "Fuel Type", "Quantity", "Debit", "Credit"]],
-      body: filteredHistory.map((h) => [
+      head: [["Date", "Fuel Type", "Quantity", "Debit", "Credit", "Balance"]],
+      body: historyWithBalance.map((h) => [
         new Date(h.date).toLocaleDateString(),
         h.fuelType || "-",
         h.quantity || "-",
         h.type === "credit" ? `${h.amount}` : "-",
         h.type === "payment" ? `${h.amount}` : "-",
+        `${h.balance.toLocaleString()}`,
       ]),
       theme: "grid",
       styles: { fontSize: 10, cellPadding: 3 },
@@ -132,7 +148,7 @@ export function CustomerHistoryModal({
       margin: { left: 40, right: 40 },
       foot: [
         [
-          { content: "Final Total", colSpan: 4, styles: { halign: "right" } },
+          { content: "Final Total", colSpan: 5, styles: { halign: "right" } },
           { content: `${total.toLocaleString()}`, styles: { halign: "right" } },
         ],
       ],
@@ -177,20 +193,21 @@ export function CustomerHistoryModal({
                 <TableHead>Quantity</TableHead>
                 <TableHead className="text-right">Debit</TableHead>
                 <TableHead className="text-right">Credit</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredHistory.length === 0 && (
+              {historyWithBalance.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="text-center text-muted-foreground"
                   >
                     No records found.
                   </TableCell>
                 </TableRow>
               )}
-              {filteredHistory.map((item) => (
+              {historyWithBalance.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
                     {new Date(item.date).toLocaleDateString()}
@@ -203,14 +220,17 @@ export function CustomerHistoryModal({
                   <TableCell className="text-right text-green-600">
                     {item.type === "payment" ? `₹${item.amount}` : "-"}
                   </TableCell>
+                  <TableCell className="text-right font-medium">
+                    ₹{item.balance.toLocaleString()}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
 
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={4} className="text-right font-bold">
-                  Final Total
+                <TableCell colSpan={5} className="text-right font-bold">
+                  Pending Total
                 </TableCell>
                 <TableCell className="text-right font-bold">
                   ₹{total.toLocaleString()}

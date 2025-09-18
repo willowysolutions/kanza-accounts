@@ -12,6 +12,7 @@ export async function GET() {
     const oils = await prisma.oil.findMany({
       where: whereClause,
       orderBy: { productType: "desc" },
+      include: { branch: true },
     });
 
     return NextResponse.json({ oils }, { status: 200 });
