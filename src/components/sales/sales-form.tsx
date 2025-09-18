@@ -21,17 +21,16 @@ import {
 import { DialogClose } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Plus, Pencil } from "lucide-react";
-import { salesSchema } from "@/schemas/sales-schema";
+import { SalesFormValues, salesSchema } from "@/schemas/sales-schema";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Sales } from "@/types/sales";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useEffect, useState } from "react";
+import { parseProducts } from "@/lib/product-utils";
 
-type SalesFormValues = z.infer<typeof salesSchema>;
 
 export function SalesFormModal({
   sales,
@@ -63,22 +62,21 @@ export function SalesFormModal({
 
   const router = useRouter();
 
-  const form = useForm<SalesFormValues>({
-    resolver: zodResolver(salesSchema),
-    defaultValues: {
-      date: sales?.date || new Date(),
-      rate: sales?.rate || undefined,
-      oilT2Total: sales?.oilT2Total || undefined,
-      gasTotal: sales?.gasTotal || undefined,
-      xgDieselTotal:sales?.xgDieselTotal || undefined,
-      hsdDieselTotal:sales?.hsdDieselTotal || undefined,
-      msPetrolTotal:sales?.msPetrolTotal || undefined,
-      cashPayment: sales?.cashPayment || undefined,
-      atmPayment: sales?.atmPayment || undefined,
-      paytmPayment: sales?.paytmPayment || undefined,
-      fleetPayment: sales?.fleetPayment || undefined,
-    },
-  });
+const form = useForm<SalesFormValues>({
+  resolver: zodResolver(salesSchema),
+  defaultValues: {
+    date: sales?.date ? new Date(sales.date) : new Date(),
+    rate: sales?.rate ?? undefined,
+    products: parseProducts(sales?.products),
+    xgDieselTotal: sales?.xgDieselTotal ?? undefined,
+    hsdDieselTotal: sales?.hsdDieselTotal ?? undefined,
+    msPetrolTotal: sales?.msPetrolTotal ?? undefined,
+    cashPayment: sales?.cashPayment ?? undefined,
+    atmPayment: sales?.atmPayment || undefined,
+    paytmPayment: sales?.paytmPayment || undefined,
+    fleetPayment: sales?.fleetPayment || undefined,
+  },
+});
 
 
   const handleSubmit = async (
@@ -153,61 +151,68 @@ const selectedDate = form.watch("date");
 const atmPayment = form.watch("atmPayment");
 const paytmPayment = form.watch("paytmPayment");
 const fleetPayment = form.watch("fleetPayment");
-const oilT2 = form.watch("oilT2Total");
 
 
 useEffect(() => {
   if (selectedDate) {
     const formattedDate = new Date(selectedDate).toLocaleDateString();
 
-    // --- Fuel Sales (meter readings) ---
+    // --- Fuel Sales ---
     const matchingReadings = meterReading.filter(
       (reading) =>
         new Date(reading.date).toLocaleDateString() === formattedDate
     );
 
-
     const xgDieselTotal = Math.round(
       matchingReadings
         .filter((p) => p.fuelType === "XG-DIESEL")
-        .reduce((sum, reading) => sum + (reading.fuelRate || 0) * (reading.sale || 0), 0)
+        .reduce(
+          (sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0),
+          0
+        )
     );
 
     const msPetrolTotal = Math.round(
       matchingReadings
         .filter((p) => p.fuelType === "MS-PETROL")
-        .reduce((sum, reading) => sum + (reading.fuelRate || 0) * (reading.sale || 0), 0)
+        .reduce(
+          (sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0),
+          0
+        )
     );
-
 
     const hsdTotal = Math.round(
       matchingReadings
         .filter((p) => p.fuelType === "HSD-DIESEL")
-        .reduce((sum, reading) => sum + (reading.fuelRate || 0) * (reading.sale || 0), 0)
+        .reduce(
+          (sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0),
+          0
+        )
     );
 
     const fuelTotal = msPetrolTotal + xgDieselTotal + hsdTotal;
 
-
-    // --- Oil & Gas Sales ---
+    // --- Oil & Gas Sales (Dynamic products) ---
     const matchingOils = oilSales.filter(
-      (item) => new Date(item.date).toLocaleDateString() === formattedDate
+      (item) =>
+        new Date(item.date).toLocaleDateString() === formattedDate
     );
 
-    const oilTotal = matchingOils
-      .filter((item) =>
-        item.productType?.toLowerCase().includes("oil")
-      )
-      .reduce((sum, oil) => sum + Number(oil.price || 0), 0);
+    const productsObj: Record<string, number> = {};
+    matchingOils.forEach((o) => {
+      const key = o.productType?.toUpperCase() || "UNKNOWN";
+      const amount = Number(o.quantity || 0) * Number(o.price || 0);
+      productsObj[key] = (productsObj[key] || 0) + Math.round(amount);
+    });
 
-    const gasTotal = matchingOils
-      .filter((item) =>
-        item.productType?.toLowerCase().includes("gas")
-      )
-      .reduce((sum, gas) => sum + Number(gas.price || 0), 0);
+    form.setValue("products", productsObj);
 
     // --- Grand Total ---
-    const total = fuelTotal + oilTotal + gasTotal;
+    const dynamicProductsTotal = Object.values(productsObj).reduce(
+      (s, n) => s + (Number(n) || 0),
+      0
+    );
+    const total = fuelTotal + dynamicProductsTotal;
 
     // --- Payments ---
     const totalPayments =
@@ -222,8 +227,6 @@ useEffect(() => {
     form.setValue("hsdDieselTotal", hsdTotal);
     form.setValue("xgDieselTotal", xgDieselTotal);
     form.setValue("msPetrolTotal", msPetrolTotal);
-    form.setValue("oilT2Total", oilTotal);
-    form.setValue("gasTotal", gasTotal); // 👈 new
     form.setValue("cashPayment", cashPayment);
   }
 }, [
@@ -231,11 +234,11 @@ useEffect(() => {
   meterReading,
   oilSales,
   atmPayment,
-  oilT2,
   paytmPayment,
   fleetPayment,
   form,
 ]);
+
 
   return (
     <FormDialog
@@ -380,45 +383,30 @@ useEffect(() => {
             )}
           />
 
-
-          <FormField
-            control={form.control}
-            name="oilT2Total"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>2T-OIL</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter amount"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Dynamic Oil/Gas products (readonly amounts) */}
+          {Array.from(
+            new Set(
+              oilSales
+                .filter(o => new Date(o.date).toLocaleDateString() === new Date(selectedDate).toLocaleDateString())
+                .map(o => (o.productType || '').toUpperCase())
+            )
+          ).map((product) => (
+            <FormField
+              key={product}
+              control={form.control}
+              name={`products.${product}` as `products.${string}`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{product}</FormLabel>
+                  <FormControl>
+                    <Input type="number" readOnly value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ))}
         </div>
-
-        <FormField
-            control={form.control}
-            name="gasTotal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>GAS</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter amount"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
@@ -429,6 +417,7 @@ useEffect(() => {
                 <FormLabel>XG-DIESEL</FormLabel>
                 <FormControl>
                   <Input
+                    disabled
                     type="number"
                     placeholder="Enter amount"
                     {...field}
@@ -448,6 +437,7 @@ useEffect(() => {
                 <FormLabel>HSD-DIESEL</FormLabel>
                 <FormControl>
                   <Input
+                    disabled
                     type="number"
                     placeholder="Enter amount"
                     {...field}
@@ -471,6 +461,7 @@ useEffect(() => {
                 <FormLabel>MS-PETROL</FormLabel>
                 <FormControl>
                   <Input
+                    disabled
                     type="number"
                     placeholder="Enter amount"
                     {...field}
@@ -490,6 +481,7 @@ useEffect(() => {
                 <FormLabel>Amount (Rs)</FormLabel>
                 <FormControl>
                   <Input
+                    disabled
                     type="number"
                     placeholder="Enter amount"
                     {...field}

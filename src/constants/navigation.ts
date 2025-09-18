@@ -91,18 +91,9 @@ export const SIDEBAR_DATA: SidebarData = {
       url: '/balance-receipt',
       icon: IconCashBanknote,
     }, 
-  ],
-
-  // only admin can see this navigation
-  admin: [
-    {
-      title: 'Products',
-      url: '/admin/products',
-      icon: IconBrandProducthunt
-    },
     {
       title: "Reports",
-      url: "/admin/reports",
+      url: "/reports",
       icon: IconFileText,
       children: [
         {
@@ -130,6 +121,16 @@ export const SIDEBAR_DATA: SidebarData = {
           url: "/reports/general-reports",
         },
       ],
+    },
+
+  ],
+
+  // only admin can see this navigation
+  admin: [
+    {
+      title: 'Products',
+      url: '/admin/products',
+      icon: IconBrandProducthunt
     },
     {
       title: "Users",

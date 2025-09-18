@@ -6,12 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coins, CoinsIcon } from "lucide-react";
 import { salesColumns } from "@/components/sales/sales-column";
 import { Sales } from "@/types/sales";
+import { headers, cookies } from "next/headers";
 
 
 export default async function SalesPage() {
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/sales`, {
+    const hdrs = await headers();
+    const host = hdrs.get("host");
+    const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+    const cookie = (await cookies()).toString();
+    const res = await fetch(`${proto}://${host}/api/sales`, {
       cache: "no-store",
+      headers: { cookie },
     });
     const { sales } = await res.json();
 

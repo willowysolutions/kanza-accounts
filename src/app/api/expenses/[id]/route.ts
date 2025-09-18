@@ -38,15 +38,12 @@ export async function PATCH(
 
     const { id: _omitId, ...data } = parsed.data; void _omitId;
 
-    const oldExpense = await prisma.expense.findUnique({
-      where: { id },
-    });
-
+    const oldExpense = await prisma.expense.findUnique({ where: { id } });
     if (!oldExpense) {
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
-    const amountDiff = data.amount - oldExpense.amount;
+    const amountDiff = data.amount - oldExpense.amount; // positive = increase, negative = decrease
     const expenseDate = new Date(oldExpense.date);
 
     const [updatedExpense] = await prisma.$transaction(async (tx) => {
@@ -56,12 +53,21 @@ export async function PATCH(
         data,
       });
 
-      // 2. Adjust Bank
-      if (oldExpense.bankId) {
-        await tx.bank.update({
-          where: { id: oldExpense.bankId },
-          data: { balanceAmount: { decrement: amountDiff } }, // mirror bank deposit logic
-        });
+      // 2. Adjust Bank balance
+      if (oldExpense.bankId && amountDiff !== 0) {
+        if (amountDiff > 0) {
+          // expense increased → reduce bank balance
+          await tx.bank.update({
+            where: { id: oldExpense.bankId },
+            data: { balanceAmount: { decrement: amountDiff } },
+          });
+        } else {
+          // expense decreased → restore bank balance
+          await tx.bank.update({
+            where: { id: oldExpense.bankId },
+            data: { balanceAmount: { increment: Math.abs(amountDiff) } },
+          });
+        }
       }
 
       // 3. Adjust BalanceReceipt
@@ -75,11 +81,20 @@ export async function PATCH(
         },
       });
 
-      if (existingReceipt) {
-        await tx.balanceReceipt.update({
-          where: { id: existingReceipt.id },
-          data: { amount: { decrement: amountDiff } }, // expense → reduce cash
-        });
+      if (existingReceipt && amountDiff !== 0) {
+        if (amountDiff > 0) {
+          // expense increased → reduce cash
+          await tx.balanceReceipt.update({
+            where: { id: existingReceipt.id },
+            data: { amount: { decrement: amountDiff } },
+          });
+        } else {
+          // expense decreased → restore cash
+          await tx.balanceReceipt.update({
+            where: { id: existingReceipt.id },
+            data: { amount: { increment: Math.abs(amountDiff) } },
+          });
+        }
       }
 
       // 4. Adjust Sale (if required)
@@ -91,9 +106,15 @@ export async function PATCH(
       });
 
       if (sale && amountDiff !== 0) {
+        // Assuming "rate" reflects available cash
         await tx.sale.update({
           where: { id: sale.id },
-          data: { rate: { decrement: amountDiff } },
+          data: {
+            rate:
+              amountDiff > 0
+                ? { decrement: amountDiff }
+                : { increment: Math.abs(amountDiff) },
+          },
         });
       }
 

@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/utils";
 import { FilterSelect } from "@/components/filters/filter-select";
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
 import { GeneralReportExport } from "@/components/reports/general-report-export";
+import { headers, cookies } from "next/headers";
 
 type Rows = {
   date: Date;
@@ -39,10 +40,14 @@ export default async function GeneralReportPage({
   if (from) query.set("from", from.toISOString());
   if (to) query.set("to", to.toISOString());
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+  const cookie = (await cookies()).toString();
 
-  const res = await fetch(`${baseUrl}/api/reports/general?${query.toString()}`, {
+  const res = await fetch(`${proto}://${host}/api/reports/general?${query.toString()}`, {
     cache: "no-store",
+    headers: { cookie },
   });
 
   const { rows, totals } = await res.json();

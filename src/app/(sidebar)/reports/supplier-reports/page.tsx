@@ -10,10 +10,18 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { formatCurrency } from "@/lib/utils";
 
 export default async function SupplierReportPage() {
-  const suppliers = await prisma.supplier.findMany();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const branchId = session?.user?.branch;
+  const branchClause = session?.user?.role === "admin" ? {} : { branchId };
+
+  const suppliers = await prisma.supplier.findMany({
+    where: branchClause,
+  });
 
   return (
     <div>

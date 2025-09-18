@@ -3,12 +3,17 @@ export const dynamic = "force-dynamic";
 import { BalanceReceiptFormDialog } from "@/components/balance-receipt/balance-receipt-form";
 import { BalanceReceiptTable } from "@/components/balance-receipt/balance-receipt-table";
 import { balanceReceiptColumn } from "@/components/balance-receipt/balance-receipt-column";
+import { headers, cookies } from "next/headers";
 
 export default async function SupplierPage() {
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const hdrs = await headers();
+const host = hdrs.get("host");
+const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+const cookie = (await cookies()).toString();
 
-const res = await fetch(`${baseUrl}/api/balance-receipts`, {
+const res = await fetch(`${proto}://${host}/api/balance-receipts`, {
   cache: "no-store",
+  headers: { cookie },
 });
 
 const { balanceReceipts } = await res.json();

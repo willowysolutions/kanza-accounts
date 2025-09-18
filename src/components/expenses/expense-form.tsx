@@ -120,7 +120,6 @@ export const ExpenseFormDialog = ({
   
       fetchBanks();
     }, []);
-    console.log(bankList);
     
   return (
     <FormDialog

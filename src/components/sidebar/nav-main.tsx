@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types/navigation';
 import { navigation } from '@/config/app';
+import { NavMenu } from './nav-menu';
 
 interface NavMainProps {
   items: NavItem[];
@@ -41,6 +42,13 @@ export function NavMain({ items }: NavMainProps) {
         <SidebarMenu>
           {items.map((item) => {
             const isActive = pathname === item.url;
+            if (item.children && item.children.length > 0) {
+              return (
+                <SidebarMenuItem key={item.title} className="px-0">
+                  <NavMenu items={[item]} />
+                </SidebarMenuItem>
+              );
+            }
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton

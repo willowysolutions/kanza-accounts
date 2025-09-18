@@ -42,18 +42,6 @@ export const reportColumns: ColumnDef<Sales>[] = [
     header:"Fleet Payment"
   },
   {
-    accessorKey:"oilT2Total",
-    header:"2T-OIL",
-    cell: ({row}) => {
-      const oilT2Total = row.original.oilT2Total
-      return (
-        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-black text-white`}>
-        {formatCurrency(oilT2Total)}
-        </div>
-      )
-    }
-  },
-  {
     accessorKey:"hsdDieselTotal",
     header:"HSD-DIESEL",
     cell: ({row}) => {

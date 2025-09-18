@@ -30,7 +30,7 @@ export default function MeterTabManagement({ meterReading,oil,sales }: MeterTabM
             <h1 className="text-2xl font-bold tracking-tight">Meter Reading</h1>
             <p className="text-muted-foreground">Track daily meter readings for all nozzles</p>
           </div>
-          {activeTab === "meter-reading" ? <MeterReadingFormSheet /> : activeTab === "oil" ? <OilFormModal /> : ""}
+          {activeTab === "meter-reading" ? <MeterReadingFormSheet /> : activeTab === "other-Products" ? <OilFormModal /> : ""}
         </div>
 
         <Tabs
@@ -40,7 +40,7 @@ export default function MeterTabManagement({ meterReading,oil,sales }: MeterTabM
         >
           <TabsList>
             <TabsTrigger value="meter-reading">Meter Reading</TabsTrigger>
-            <TabsTrigger value="oil">Oil & Gas</TabsTrigger>
+            <TabsTrigger value="other-Products">Other Products</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
           </TabsList>
 
@@ -48,7 +48,7 @@ export default function MeterTabManagement({ meterReading,oil,sales }: MeterTabM
             <MeterReadingTable data={meterReading} columns={meterReadinColumns}/>
           </TabsContent>
 
-          <TabsContent value="oil">
+          <TabsContent value="other-Products">
             <OilTable data={oil} columns={oilColumns}/>
           </TabsContent>
 

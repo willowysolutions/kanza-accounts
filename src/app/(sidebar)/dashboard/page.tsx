@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getDashboardData } from '@/lib/actions/dashboard';
 import { ChartAreaInteractive } from '@/components/dashboard/chart';
@@ -11,8 +11,16 @@ import {
 } from '@tabler/icons-react';
 import { Fuel } from 'lucide-react';
 import DashboardCharts from '@/components/graphs/sales-purchase-graph';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { prisma } from '@/lib/prisma';
 
-export default async function Dashboard() {
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const page = Number(params.page ?? 0) || 0;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -22,13 +30,14 @@ export default async function Dashboard() {
   }
 
   const dashboardData = await getDashboardData();
+  const branches = await prisma.branch.findMany({ orderBy: { name: 'asc' } });
 
   const {
     todaysRate,
     monthlySales,
     monthlyPurchases,
     stocks,
-    recentSales,
+    // recentSales,
   } = dashboardData;
 
   // Generic groupByMonth function
@@ -124,6 +133,21 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
           </Card>
         </div>
 
+        {/* Branch Daily Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Branch Daily Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BranchSummaryTabs
+              branches={branches}
+              role={session.user.role}
+              userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
+              page={page}
+            />
+          </CardContent>
+        </Card>
+
         <ChartAreaInteractive />
 
         <div className="col-span-2">
@@ -147,37 +171,118 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
           </CardContent>
         </Card>
 
-        {/* Recent Sales */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left">
-                  <th>Date</th>
-                  <th>HSD-DIESEL</th>
-                  <th>XG-DIESEL</th>
-                  <th>MS-PETROL</th>
-                  <th>Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentSales.map((sale) => (
-                  <tr key={sale.id}>
-                    <td>{new Date(sale.date).toLocaleDateString()}</td>
-                    <td>₹{sale.hsdDieselTotal.toFixed(2)}</td>
-                    <td>₹{sale.xgDieselTotal.toFixed(2)}</td>
-                    <td>₹{sale.msPetrolTotal.toFixed(2)}</td>
-                    <td>₹{sale.rate.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+        
       </div>
     </div>
+  );
+}
+
+async function fetchBranchDailySummary(branchId?: string, dateStr?: string) {
+  const hdrs = await headers();
+  const host = hdrs.get('host');
+  const proto = hdrs.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  const cookie = (await cookies()).toString();
+  const date = dateStr ?? new Date().toISOString().split('T')[0];
+  const url = branchId ? `${proto}://${host}/api/reports/${date}?branchId=${branchId}` : `${proto}://${host}/api/reports/${date}`;
+  const res = await fetch(url, { cache: 'no-store', headers: { cookie } });
+  const json = await res.json();
+  return json?.totals as {
+    totalPurchase: number;
+    totalSale: number;
+    totalExpense: number;
+    totalCredit: number;
+    salesAndExpense: number;
+    totalBalanceReceipt: number;
+    salesAndBalaceReceipt: number;
+    expenseSum: number;
+    cashBalance: number;
+  };
+}
+
+async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { branches: { id: string; name: string }[]; role?: string | null; userBranchId?: string | undefined; page?: number; }) {
+  const isAdmin = (role ?? '').toLowerCase() === 'admin';
+  const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
+
+  // build a rolling list of past dates (latest first)
+  const totalDays = 30;
+  const pageSize = 5;
+  const startIndex = Math.max(page, 0) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const dates: string[] = Array.from({ length: totalDays }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return d.toISOString().split('T')[0];
+  });
+  const pageDates = dates.slice(startIndex, endIndex);
+
+  // prefetch summaries for each branch x date on this page
+  const summaries = await Promise.all(
+    visibleBranches.map(async (b) => ({
+      branchId: b.id,
+      name: b.name,
+      rows: await Promise.all(
+        pageDates.map(async (date) => ({
+          date,
+          totals: await fetchBranchDailySummary(isAdmin ? b.id : undefined, date),
+        }))
+      ),
+    }))
+  );
+
+  return (
+    <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">
+      <TabsList className="mb-4 flex flex-wrap gap-2">
+        {visibleBranches.map((b) => (
+          <TabsTrigger key={b.id} value={b.id}>{b.name}</TabsTrigger>
+        ))}
+      </TabsList>
+
+      {summaries.map(({ branchId, rows, name }) => (
+        <TabsContent key={branchId} value={branchId} className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+            <tr className="text-left border-b">
+                <th>Date</th>
+                <th>Branch</th>
+                <th>Total Sale</th>
+                <th>Total Purchase</th>
+                <th>Total Expense</th>
+                <th>Balance Receipt (Yday)</th>
+                <th>Cash Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ date, totals }) => (
+                <tr key={date} className="border-b hover:bg-muted">
+                  <td>{new Date(date).toLocaleDateString()}</td>
+                  <td>{name}</td>
+                  <td>₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
+                  <td>₹{totals.totalPurchase?.toFixed(2) ?? '0.00'}</td>
+                  <td>₹{totals.totalExpense?.toFixed(2) ?? '0.00'}</td>
+                  <td>₹{totals.totalBalanceReceipt?.toFixed(2) ?? '0.00'}</td>
+                  <td>₹{totals.cashBalance?.toFixed(2) ?? '0.00'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <a
+              href={`?page=${Math.max(page - 1, 0)}`}
+              className="inline-flex items-center rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              aria-disabled={page <= 0}
+            >
+              Previous
+            </a>
+            <a
+              href={`?page=${page + 1}`}
+              className="inline-flex items-center rounded-md border px-3 py-1 text-sm"
+            >
+              Next
+            </a>
+          </div>
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }

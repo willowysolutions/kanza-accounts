@@ -36,35 +36,44 @@ export async function PATCH(
       );
     }
 
-    const { id: _omitId, ...data } = parsed.data; void _omitId;
+    const { id: _omitId, ...data } = parsed.data;
+    void _omitId;
 
-    const existingCredit = await prisma.credit.findUnique({
-      where: { id },
-    });
-
+    const existingCredit = await prisma.credit.findUnique({ where: { id } });
     if (!existingCredit) {
       return NextResponse.json({ error: "Credit not found" }, { status: 404 });
     }
 
     const oldAmount = existingCredit.amount;
     const newAmount = data.amount;
-    const difference = newAmount - oldAmount;
+    const difference = newAmount - oldAmount; // +ve = credit increased, -ve = credit decreased
     const creditDate = new Date(existingCredit.date);
 
     const [updatedCredit] = await prisma.$transaction(async (tx) => {
-      // 1. Update credit
+      // 1. Update credit record
       const updated = await tx.credit.update({
         where: { id },
         data,
       });
 
       // 2. Adjust customer outstanding
-      await tx.customer.update({
-        where: { id: existingCredit.customerId },
-        data: { outstandingPayments: { increment: difference } },
-      });
+      if (difference !== 0) {
+        if (difference > 0) {
+          // credit increased → customer owes more
+          await tx.customer.update({
+            where: { id: existingCredit.customerId },
+            data: { outstandingPayments: { increment: difference } },
+          });
+        } else {
+          // credit decreased → reduce customer outstanding
+          await tx.customer.update({
+            where: { id: existingCredit.customerId },
+            data: { outstandingPayments: { decrement: Math.abs(difference) } },
+          });
+        }
+      }
 
-      // 3. Adjust BalanceReceipt
+      // 3. Adjust BalanceReceipt (cash effect)
       const existingReceipt = await tx.balanceReceipt.findFirst({
         where: {
           branchId: existingCredit.branchId,
@@ -75,11 +84,20 @@ export async function PATCH(
         },
       });
 
-      if (existingReceipt) {
-        await tx.balanceReceipt.update({
-          where: { id: existingReceipt.id },
-          data: { amount: { decrement: difference } }, // mirror logic from POST
-        });
+      if (existingReceipt && difference !== 0) {
+        if (difference > 0) {
+          // more credit → branch cash decreases
+          await tx.balanceReceipt.update({
+            where: { id: existingReceipt.id },
+            data: { amount: { decrement: difference } },
+          });
+        } else {
+          // less credit → branch cash increases
+          await tx.balanceReceipt.update({
+            where: { id: existingReceipt.id },
+            data: { amount: { increment: Math.abs(difference) } },
+          });
+        }
       }
 
       return [updated];
@@ -88,10 +106,12 @@ export async function PATCH(
     return NextResponse.json({ data: updatedCredit }, { status: 200 });
   } catch (error) {
     console.error("Error updating credit:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
-
 
 //DELETE
 export async function DELETE(

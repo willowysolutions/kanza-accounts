@@ -2,11 +2,16 @@ export const dynamic = "force-dynamic";
 
 import { StockTable } from "@/components/stocks/stock-table";
 import { stockColumns } from "@/components/stocks/stock-column";
+import { headers, cookies } from "next/headers";
 
 export default async function StocksPage() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/stocks`, {
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+  const cookie = (await cookies()).toString();
+  const res = await fetch(`${proto}://${host}/api/stocks`, {
     cache: "no-store",
+    headers: { cookie },
   });
   const { data } = await res.json();
 

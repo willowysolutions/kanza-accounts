@@ -2,12 +2,23 @@ export const dynamic = "force-dynamic";
 
 import { TankFormDialog } from "@/components/tank/tank-form";
 import { TankCard } from "@/components/tank/tank-card";
+import { headers, cookies } from "next/headers";
 
 export default async function TankPage() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/tanks`, { cache: "no-store" });
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  const cookie = (await cookies()).toString();
+  
+  // 🔹 Tanks
+  const res = await fetch(`${proto}://${host}/api/tanks`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
   const { data } = await res.json();
-
+  
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">

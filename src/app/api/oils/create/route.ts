@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { oilSchema } from "@/schemas/oil-schema";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +18,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    const branchId = session?.user?.branch;
+
+
     const { productType, quantity, ...rest } = result.data;
 
     // create oil record
@@ -23,6 +32,7 @@ export async function POST(req: NextRequest) {
       data: {
         productType,
         quantity,
+        branchId,
         ...rest,
       },
     });

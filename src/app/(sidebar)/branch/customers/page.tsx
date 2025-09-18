@@ -1,18 +1,25 @@
 import { customerColumns } from "@/components/customers/customer-columns";
 import { CustomerFormDialog } from "@/components/customers/customer-form";
 import { CustomerTable } from "@/components/customers/customer-table";
-
+import { headers, cookies } from "next/headers";
 export const dynamic = "force-dynamic";
 
 
 export default async function CustomerPage() {
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-const res = await fetch(`${baseUrl}/api/customers`, {
-  cache: "no-store",
-});
-const { data } = await res.json();
-
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  const cookie = (await cookies()).toString();
+  
+  // 🔹 Customers
+  const res = await fetch(`${proto}://${host}/api/customers`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+  const { data } = await res.json();
+  
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">

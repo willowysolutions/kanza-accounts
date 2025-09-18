@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function GET() {
   try {
+    await auth.api.getSession({ headers: await headers() });
+
     const expenseCategory = await prisma.expenseCategory.findMany({
       orderBy: { name: "desc" },
       include: {expenses:true}

@@ -11,7 +11,7 @@ export async function GET() {
       
     const credits = await prisma.credit.findMany({
       where: whereClause,
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       include: {customer:true}
     });
 

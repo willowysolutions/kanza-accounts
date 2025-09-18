@@ -2,12 +2,17 @@ export const dynamic = "force-dynamic";
 import { expenseColumns } from "@/components/expenses/expense-colums";
 import { ExpenseTable } from "@/components/expenses/expense-table";
 import { ExpenseFormDialog } from "@/components/expenses/expense-form";
+import { headers, cookies } from "next/headers";
 
 export default async function ExpensePage() {
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const hdrs = await headers();
+const host = hdrs.get("host");
+const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+const cookie = (await cookies()).toString();
 
-const res = await fetch(`${baseUrl}/api/expenses`, {
+const res = await fetch(`${proto}://${host}/api/expenses`, {
   cache: "no-store",
+  headers: { cookie },
 });
 
 const { data } = await res.json();

@@ -3,12 +3,17 @@ export const dynamic = "force-dynamic";
 import { BankDepositeTable } from "@/components/banks-deposite/banks-deposite-table";
 import { bankDepositeColumns } from "@/components/banks-deposite/banks-deposite-colums";
 import { BankDepositeFormDialog } from "@/components/banks-deposite/banks-deposite-form";
+import { headers, cookies } from "next/headers";
 
 export default async function BankDepositePage() {
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const hdrs = await headers();
+const host = hdrs.get("host");
+const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+const cookie = (await cookies()).toString();
 
-const resDeposite = await fetch(`${baseUrl}/api/bank-deposite`, {
+const resDeposite = await fetch(`${proto}://${host}/api/bank-deposite`, {
   cache: "no-store",
+  headers: { cookie },
 });
 
 const { bankDeposite } = await resDeposite.json();

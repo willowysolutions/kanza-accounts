@@ -27,10 +27,7 @@ export async function PATCH(
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Invalid ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
     }
 
     const body = await req.json();
@@ -43,20 +40,17 @@ export async function PATCH(
       );
     }
 
-    const { id: idFromBody, ...data } = parsed.data;
-    void idFromBody;
+    const { id: _omitId, ...data } = parsed.data;
+    void _omitId;
 
-    const existingDeposite = await prisma.bankDeposite.findUnique({
-      where: { id },
-    });
-
+    const existingDeposite = await prisma.bankDeposite.findUnique({ where: { id } });
     if (!existingDeposite) {
       return NextResponse.json({ error: "Deposit not found" }, { status: 404 });
     }
 
     const oldAmount = existingDeposite.amount;
     const newAmount = data.amount;
-    const difference = newAmount - oldAmount;
+    const difference = newAmount - oldAmount; // +ve = deposit increased, -ve = deposit decreased
 
     const depositDate = new Date(existingDeposite.date);
 
@@ -68,12 +62,23 @@ export async function PATCH(
       });
 
       // 2. Update bank balance
-      await tx.bank.update({
-        where: { id: existingDeposite.bankId },
-        data: { balanceAmount: { increment: difference } },
-      });
+      if (difference !== 0) {
+        if (difference > 0) {
+          // deposit increased → bank balance up
+          await tx.bank.update({
+            where: { id: existingDeposite.bankId },
+            data: { balanceAmount: { increment: difference } },
+          });
+        } else {
+          // deposit decreased → bank balance down
+          await tx.bank.update({
+            where: { id: existingDeposite.bankId },
+            data: { balanceAmount: { decrement: Math.abs(difference) } },
+          });
+        }
+      }
 
-      // 3. Adjust BalanceReceipt (reverse since deposits reduce branch cash)
+      // 3. Adjust BalanceReceipt (reverse logic: deposit reduces branch cash)
       const existingReceipt = await tx.balanceReceipt.findFirst({
         where: {
           branchId: existingDeposite.branchId,
@@ -84,11 +89,20 @@ export async function PATCH(
         },
       });
 
-      if (existingReceipt) {
-        await tx.balanceReceipt.update({
-          where: { id: existingReceipt.id },
-          data: { amount: { decrement: difference } }, 
-        });
+      if (existingReceipt && difference !== 0) {
+        if (difference > 0) {
+          // deposit increased → reduce branch cash
+          await tx.balanceReceipt.update({
+            where: { id: existingReceipt.id },
+            data: { amount: { decrement: difference } },
+          });
+        } else {
+          // deposit decreased → restore branch cash
+          await tx.balanceReceipt.update({
+            where: { id: existingReceipt.id },
+            data: { amount: { increment: Math.abs(difference) } },
+          });
+        }
       }
 
       return [updatedDeposit];

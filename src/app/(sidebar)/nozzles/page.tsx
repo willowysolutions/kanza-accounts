@@ -6,15 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Fuel, FuelIcon } from "lucide-react";
 import { nozzleColumns } from "@/components/nozzles/nozzle-column";
 import { Nozzle } from "@/types/nozzle";
+import { cookies, headers } from "next/headers";
 
 export default async function NozzlePage() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-  const res = await fetch(`${baseUrl}/api/nozzles`, {
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  const cookie = (await cookies()).toString();
+  
+  // 🔹 Nozzles
+  const res = await fetch(`${proto}://${host}/api/nozzles`, {
     cache: "no-store",
+    headers: { cookie },
   });
   const { data } = await res.json();
-
+  
   const noOfNozzles = data.length;
 
     const xpNozzleCount = data.filter(

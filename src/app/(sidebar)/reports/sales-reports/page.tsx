@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { formatCurrency } from "@/lib/utils";
 import { FilterSelect } from "@/components/filters/filter-select"
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
@@ -65,9 +67,13 @@ export default async function SalesReportPage({
   const to = params.to ? new Date(params.to as string) : undefined;
 
   const { start, end } = getDateRange(filter, from, to);
+  const session = await auth.api.getSession({ headers: await headers() });
+  const branchId = session?.user?.branch;
+  const branchClause = session?.user?.role === "admin" ? {} : { branchId };
 
   const sales = await prisma.sale.findMany({
     where: {
+      ...branchClause,
       date: {
         gte: start,
         lte: end,

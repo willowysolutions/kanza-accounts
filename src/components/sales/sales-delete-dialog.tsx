@@ -28,7 +28,7 @@ export const SalesDeleteDialog: FC<{
           await fetch(`/api/sales/${sales?.id}`,{
               method:"DELETE"
             });
-          toast.success(`Sales "${sales.date}" deleted.`)
+          toast.success(`Sales "${sales.rate}" deleted.`)
           setOpen(!open)
           router.refresh()
       }catch(error){

@@ -133,7 +133,7 @@ model Product {
 }
 
 model Sale {
-  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
 
   date            DateTime
   rate            Float
@@ -141,8 +141,9 @@ model Sale {
   atmPayment      Float
   paytmPayment    Float
   fleetPayment    Float
-  oilT2Total      Float
-  gasTotal        Float
+
+  products        Json     // 👈 stores { "2T-OIL": 123, "ADBLUE": 456 }
+
   xgDieselTotal   Float
   hsdDieselTotal  Float
   msPetrolTotal   Float
@@ -342,6 +343,8 @@ model Oil {
   productType   String
   quantity      Float
   price         Float
+  branchId      String?  @db.ObjectId
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -358,6 +361,10 @@ model Supplier {
   outstandingPayments Float 
 
   address             String?
+
+  branchId      String?   @db.ObjectId
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+
 
   purchase            Purchase[]
   stock               Stock[]
@@ -447,6 +454,8 @@ model Branch {
   supplierPayment     SupplierPayment[]
   balanceReceipt      BalanceReceipt[]
   bankDeposite       BankDeposite[]
+  oil                 Oil[]
+  supplier            Supplier[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

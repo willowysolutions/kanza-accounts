@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
         where: { id: existingStock.id },
         data: {
           quantity: existingStock.quantity + purchase.quantity,
+          branchId,
         },
       });
     } else {
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
           item: purchase.productType,
           quantity: purchase.quantity,
           supplierId: purchase.supplierId,
+          branchId,
         },
       });
     }

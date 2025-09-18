@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { formatCurrency } from "@/lib/utils";
 import { FilterSelect } from "@/components/filters/filter-select";
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
@@ -67,9 +69,13 @@ export default async function PurchaseReportPage({
 
 
   const { start, end } = getDateRange(filter);
+  const session = await auth.api.getSession({ headers: await headers() });
+  const branchId = session?.user?.branch;
+  const branchClause = session?.user?.role === "admin" ? {} : { branchId };
 
   const purchases = await prisma.purchase.findMany({
     where: {
+      ...branchClause,
       date: {
         gte: start,
         lte: end,

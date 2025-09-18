@@ -4,23 +4,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {  Fuel, Truck, } from "lucide-react";
 import { Purchase } from "@/types/purchase";
 import PurchaseManagement from "@/components/purchase/purchase-management";
+import { headers, cookies } from "next/headers";
 
 export default async function PurchasePage() {
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-// Purchases
-const purchaseRes = await fetch(`${baseUrl}/api/purchases`, {
-  cache: "no-store",
-});
-const { purchase = [] } = await purchaseRes.json();
-console.log(purchase);
-
-// Purchase Orders
-const orderRes = await fetch(`${baseUrl}/api/purchase-order`, {
-  cache: "no-store",
-});
-const { purchaseOrder } = await orderRes.json();
-
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  const cookie = (await cookies()).toString();
+  
+  const purchaseRes = await fetch(`${proto}://${host}/api/purchases`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+  const { purchase = [] } = await purchaseRes.json();
+  console.log(purchase);
+  
+  const orderRes = await fetch(`${proto}://${host}/api/purchase-order`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+  const { purchaseOrder } = await orderRes.json();
+  
     const xpTotal = purchase.filter((purchase: Purchase) => purchase.productType === "XP-DIESEL")
                       .reduce((sum: number, purchase: Purchase) => sum + purchase.quantity, 0) ?? 0;
 
