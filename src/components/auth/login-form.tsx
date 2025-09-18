@@ -26,6 +26,7 @@ import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginData } from "@/types/auth";
 import { IconLogout } from "@tabler/icons-react";
+import { toast } from "sonner";
 
 export function LoginForm({
   className,
@@ -46,7 +47,7 @@ export function LoginForm({
   const onSubmit = async (data: LoginData) => {
     setIsExecuting(true);
     setErrorMessage(null);
-
+  
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -55,17 +56,28 @@ export function LoginForm({
         },
         body: JSON.stringify(data),
       });
-
+  
       const result = await res.json();
-
+  
       if (!res.ok) {
         setErrorMessage(result.error || "Login failed");
+        toast.error(result.error || "Login failed");
       } else {
+        // ✅ Show success toast
+        toast.success("Login successful");
+  
+        // ✅ First navigate
         router.replace(result.redirectTo || "/dashboard");
+  
+        // ✅ Then force reload so session cookie is read fresh
+        setTimeout(() => {
+          window.location.href = result.redirectTo || "/dashboard";
+        }, 100);
       }
     } catch (error) {
       console.error("Login error:", error);
       setErrorMessage("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsExecuting(false);
     }
