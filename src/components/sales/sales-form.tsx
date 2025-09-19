@@ -163,34 +163,19 @@ useEffect(() => {
         new Date(reading.date).toLocaleDateString() === formattedDate
     );
 
-    const xgDieselTotal = Math.round(
-      matchingReadings
-        .filter((p) => p.fuelType === "XG-DIESEL")
-        .reduce(
-          (sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0),
-          0
-        )
-    );
+    const xgDieselTotal = matchingReadings
+      .filter((p) => p.fuelType === "XG-DIESEL")
+      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
 
-    const msPetrolTotal = Math.round(
-      matchingReadings
-        .filter((p) => p.fuelType === "MS-PETROL")
-        .reduce(
-          (sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0),
-          0
-        )
-    );
+    const msPetrolTotal = matchingReadings
+      .filter((p) => p.fuelType === "MS-PETROL")
+      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
 
-    const hsdTotal = Math.round(
-      matchingReadings
-        .filter((p) => p.fuelType === "HSD-DIESEL")
-        .reduce(
-          (sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0),
-          0
-        )
-    );
+    const hsdTotal = matchingReadings
+      .filter((p) => p.fuelType === "HSD-DIESEL")
+      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
 
-    const fuelTotal = msPetrolTotal + xgDieselTotal + hsdTotal;
+    const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
 
     // --- Oil & Gas Sales (Dynamic products) ---
     const matchingOils = oilSales.filter(
@@ -201,8 +186,8 @@ useEffect(() => {
     const productsObj: Record<string, number> = {};
     matchingOils.forEach((o) => {
       const key = o.productType?.toUpperCase() || "UNKNOWN";
-      const amount = Number(o.quantity || 0) * Number(o.price || 0);
-      productsObj[key] = (productsObj[key] || 0) + Math.round(amount);
+      const amount = Number(o.price || 0);
+      productsObj[key] = (productsObj[key] || 0) + amount;
     });
 
     form.setValue("products", productsObj);
@@ -212,7 +197,9 @@ useEffect(() => {
       (s, n) => s + (Number(n) || 0),
       0
     );
+
     const total = fuelTotal + dynamicProductsTotal;
+    const roundedTotal = Math.round(total);
 
     // --- Payments ---
     const totalPayments =
@@ -220,13 +207,13 @@ useEffect(() => {
       (Number(paytmPayment) || 0) +
       (Number(fleetPayment) || 0);
 
-    const cashPayment = total - totalPayments;
+    const cashPayment = roundedTotal - totalPayments;
 
     // --- Auto-fill form fields ---
-    form.setValue("rate", total);
-    form.setValue("hsdDieselTotal", hsdTotal);
-    form.setValue("xgDieselTotal", xgDieselTotal);
-    form.setValue("msPetrolTotal", msPetrolTotal);
+    form.setValue("rate", roundedTotal);
+    form.setValue("hsdDieselTotal", Math.round(hsdTotal));
+    form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
+    form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
     form.setValue("cashPayment", cashPayment);
   }
 }, [
@@ -238,7 +225,6 @@ useEffect(() => {
   fleetPayment,
   form,
 ]);
-
 
   return (
     <FormDialog

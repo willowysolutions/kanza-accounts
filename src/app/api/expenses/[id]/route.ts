@@ -19,7 +19,7 @@ export async function OPTIONS() {
   });
 }
 
-// PATCH - Update Expense and adjust bank + sale
+// PATCH - Update Expense and adjust bank + sale + receipts
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -43,8 +43,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
+    const oldDate = new Date(oldExpense.date);
+    const newDate = new Date(data.date);
     const amountDiff = data.amount - oldExpense.amount; // positive = increase, negative = decrease
-    const expenseDate = new Date(oldExpense.date);
 
     const [updatedExpense] = await prisma.$transaction(async (tx) => {
       // 1. Update expense
@@ -56,13 +57,11 @@ export async function PATCH(
       // 2. Adjust Bank balance
       if (oldExpense.bankId && amountDiff !== 0) {
         if (amountDiff > 0) {
-          // expense increased → reduce bank balance
           await tx.bank.update({
             where: { id: oldExpense.bankId },
             data: { balanceAmount: { decrement: amountDiff } },
           });
         } else {
-          // expense decreased → restore bank balance
           await tx.bank.update({
             where: { id: oldExpense.bankId },
             data: { balanceAmount: { increment: Math.abs(amountDiff) } },
@@ -71,42 +70,77 @@ export async function PATCH(
       }
 
       // 3. Adjust BalanceReceipt
-      const existingReceipt = await tx.balanceReceipt.findFirst({
-        where: {
-          branchId: oldExpense.branchId,
-          date: {
-            gte: new Date(expenseDate.setHours(0, 0, 0, 0)),
-            lte: new Date(expenseDate.setHours(23, 59, 59, 999)),
+      if (oldDate.toDateString() === newDate.toDateString()) {
+        // same date → just apply diff
+        const receipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: oldExpense.branchId,
+            date: {
+              gte: new Date(oldDate.setHours(0, 0, 0, 0)),
+              lte: new Date(oldDate.setHours(23, 59, 59, 999)),
+            },
           },
-        },
-      });
+        });
 
-      if (existingReceipt && amountDiff !== 0) {
-        if (amountDiff > 0) {
-          // expense increased → reduce cash
+        if (receipt && amountDiff !== 0) {
           await tx.balanceReceipt.update({
-            where: { id: existingReceipt.id },
-            data: { amount: { decrement: amountDiff } },
+            where: { id: receipt.id },
+            data: {
+              amount:
+                amountDiff > 0
+                  ? { decrement: amountDiff }
+                  : { increment: Math.abs(amountDiff) },
+            },
           });
-        } else {
-          // expense decreased → restore cash
+        }
+      } else {
+        // date changed → reverse from old receipt, apply to new receipt
+        const oldReceipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: oldExpense.branchId,
+            date: {
+              gte: new Date(oldDate.setHours(0, 0, 0, 0)),
+              lte: new Date(oldDate.setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        const newReceipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: oldExpense.branchId,
+            date: {
+              gte: new Date(newDate.setHours(0, 0, 0, 0)),
+              lte: new Date(newDate.setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        // 3a. Restore old receipt with full old amount
+        if (oldReceipt) {
           await tx.balanceReceipt.update({
-            where: { id: existingReceipt.id },
-            data: { amount: { increment: Math.abs(amountDiff) } },
+            where: { id: oldReceipt.id },
+            data: { amount: { increment: oldExpense.amount } },
+          });
+        }
+
+        // 3b. Deduct new amount from new receipt
+        if (newReceipt) {
+          await tx.balanceReceipt.update({
+            where: { id: newReceipt.id },
+            data: { amount: { decrement: data.amount } },
           });
         }
       }
 
-      // 4. Adjust Sale (if required)
+      // 4. Adjust Sale if required (same-date only, optional)
       const sale = await tx.sale.findFirst({
         where: {
-          date: new Date(oldExpense.date),
+          date: newDate,
           branchId: oldExpense.branchId,
         },
       });
 
-      if (sale && amountDiff !== 0) {
-        // Assuming "rate" reflects available cash
+      if (sale && amountDiff !== 0 && oldDate.toDateString() === newDate.toDateString()) {
         await tx.sale.update({
           where: { id: sale.id },
           data: {

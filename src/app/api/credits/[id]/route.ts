@@ -47,7 +47,9 @@ export async function PATCH(
     const oldAmount = existingCredit.amount;
     const newAmount = data.amount;
     const difference = newAmount - oldAmount; // +ve = credit increased, -ve = credit decreased
-    const creditDate = new Date(existingCredit.date);
+
+    const oldDate = new Date(existingCredit.date);
+    const newDate = new Date(data.date);
 
     const [updatedCredit] = await prisma.$transaction(async (tx) => {
       // 1. Update credit record
@@ -59,13 +61,11 @@ export async function PATCH(
       // 2. Adjust customer outstanding
       if (difference !== 0) {
         if (difference > 0) {
-          // credit increased → customer owes more
           await tx.customer.update({
             where: { id: existingCredit.customerId },
             data: { outstandingPayments: { increment: difference } },
           });
         } else {
-          // credit decreased → reduce customer outstanding
           await tx.customer.update({
             where: { id: existingCredit.customerId },
             data: { outstandingPayments: { decrement: Math.abs(difference) } },
@@ -73,29 +73,65 @@ export async function PATCH(
         }
       }
 
-      // 3. Adjust BalanceReceipt (cash effect)
-      const existingReceipt = await tx.balanceReceipt.findFirst({
-        where: {
-          branchId: existingCredit.branchId,
-          date: {
-            gte: new Date(creditDate.setHours(0, 0, 0, 0)),
-            lte: new Date(creditDate.setHours(23, 59, 59, 999)),
+      // 3. Adjust BalanceReceipt
+      if (oldDate.toDateString() === newDate.toDateString()) {
+        // Same date → just apply diff
+        const receipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: existingCredit.branchId,
+            date: {
+              gte: new Date(oldDate.setHours(0, 0, 0, 0)),
+              lte: new Date(oldDate.setHours(23, 59, 59, 999)),
+            },
           },
-        },
-      });
+        });
 
-      if (existingReceipt && difference !== 0) {
-        if (difference > 0) {
-          // more credit → branch cash decreases
+        if (receipt && difference !== 0) {
           await tx.balanceReceipt.update({
-            where: { id: existingReceipt.id },
-            data: { amount: { decrement: difference } },
+            where: { id: receipt.id },
+            data: {
+              amount:
+                difference > 0
+                  ? { decrement: difference } // more credit → reduce cash
+                  : { increment: Math.abs(difference) }, // less credit → add cash
+            },
           });
-        } else {
-          // less credit → branch cash increases
+        }
+      } else {
+        // Date changed → restore old, apply new
+        const oldReceipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: existingCredit.branchId,
+            date: {
+              gte: new Date(oldDate.setHours(0, 0, 0, 0)),
+              lte: new Date(oldDate.setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        const newReceipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: existingCredit.branchId,
+            date: {
+              gte: new Date(newDate.setHours(0, 0, 0, 0)),
+              lte: new Date(newDate.setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        // Restore old receipt (give back old credit amount)
+        if (oldReceipt) {
           await tx.balanceReceipt.update({
-            where: { id: existingReceipt.id },
-            data: { amount: { increment: Math.abs(difference) } },
+            where: { id: oldReceipt.id },
+            data: { amount: { increment: oldAmount } },
+          });
+        }
+
+        // Apply new receipt (deduct new credit amount)
+        if (newReceipt) {
+          await tx.balanceReceipt.update({
+            where: { id: newReceipt.id },
+            data: { amount: { decrement: newAmount } },
           });
         }
       }

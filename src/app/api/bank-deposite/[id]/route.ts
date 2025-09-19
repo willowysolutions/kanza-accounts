@@ -43,16 +43,20 @@ export async function PATCH(
     const { id: _omitId, ...data } = parsed.data;
     void _omitId;
 
-    const existingDeposite = await prisma.bankDeposite.findUnique({ where: { id } });
+    const existingDeposite = await prisma.bankDeposite.findUnique({
+      where: { id },
+    });
+
     if (!existingDeposite) {
       return NextResponse.json({ error: "Deposit not found" }, { status: 404 });
     }
 
     const oldAmount = existingDeposite.amount;
     const newAmount = data.amount;
-    const difference = newAmount - oldAmount; // +ve = deposit increased, -ve = deposit decreased
+    const difference = newAmount - oldAmount;
 
-    const depositDate = new Date(existingDeposite.date);
+    const oldDate = new Date(existingDeposite.date);
+    const newDate = new Date(data.date);
 
     const [bankDeposite] = await prisma.$transaction(async (tx) => {
       // 1. Update deposit
@@ -64,13 +68,11 @@ export async function PATCH(
       // 2. Update bank balance
       if (difference !== 0) {
         if (difference > 0) {
-          // deposit increased → bank balance up
           await tx.bank.update({
             where: { id: existingDeposite.bankId },
             data: { balanceAmount: { increment: difference } },
           });
         } else {
-          // deposit decreased → bank balance down
           await tx.bank.update({
             where: { id: existingDeposite.bankId },
             data: { balanceAmount: { decrement: Math.abs(difference) } },
@@ -78,29 +80,65 @@ export async function PATCH(
         }
       }
 
-      // 3. Adjust BalanceReceipt (reverse logic: deposit reduces branch cash)
-      const existingReceipt = await tx.balanceReceipt.findFirst({
-        where: {
-          branchId: existingDeposite.branchId,
-          date: {
-            gte: new Date(depositDate.setHours(0, 0, 0, 0)),
-            lte: new Date(depositDate.setHours(23, 59, 59, 999)),
+      // 3. Adjust BalanceReceipt
+      if (oldDate.toDateString() === newDate.toDateString()) {
+        // Same date → adjust only by difference
+        const receipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: existingDeposite.branchId,
+            date: {
+              gte: new Date(oldDate.setHours(0, 0, 0, 0)),
+              lte: new Date(oldDate.setHours(23, 59, 59, 999)),
+            },
           },
-        },
-      });
+        });
 
-      if (existingReceipt && difference !== 0) {
-        if (difference > 0) {
-          // deposit increased → reduce branch cash
+        if (receipt && difference !== 0) {
           await tx.balanceReceipt.update({
-            where: { id: existingReceipt.id },
-            data: { amount: { decrement: difference } },
+            where: { id: receipt.id },
+            data: {
+              amount:
+                difference > 0
+                  ? { decrement: difference } // deposit ↑ → cash ↓
+                  : { increment: Math.abs(difference) }, // deposit ↓ → cash ↑
+            },
           });
-        } else {
-          // deposit decreased → restore branch cash
+        }
+      } else {
+        // Date changed → restore old, apply new
+        const oldReceipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: existingDeposite.branchId,
+            date: {
+              gte: new Date(oldDate.setHours(0, 0, 0, 0)),
+              lte: new Date(oldDate.setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        const newReceipt = await tx.balanceReceipt.findFirst({
+          where: {
+            branchId: existingDeposite.branchId,
+            date: {
+              gte: new Date(newDate.setHours(0, 0, 0, 0)),
+              lte: new Date(newDate.setHours(23, 59, 59, 999)),
+            },
+          },
+        });
+
+        // Restore old receipt (add back old deposit amount)
+        if (oldReceipt) {
           await tx.balanceReceipt.update({
-            where: { id: existingReceipt.id },
-            data: { amount: { increment: Math.abs(difference) } },
+            where: { id: oldReceipt.id },
+            data: { amount: { increment: oldAmount } },
+          });
+        }
+
+        // Apply new receipt (reduce by new deposit amount)
+        if (newReceipt) {
+          await tx.balanceReceipt.update({
+            where: { id: newReceipt.id },
+            data: { amount: { decrement: newAmount } },
           });
         }
       }
@@ -111,7 +149,10 @@ export async function PATCH(
     return NextResponse.json({ data: bankDeposite }, { status: 200 });
   } catch (error) {
     console.error("Error updating bank deposit:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
