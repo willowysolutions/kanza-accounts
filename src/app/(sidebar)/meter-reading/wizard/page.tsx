@@ -54,7 +54,7 @@ export default function WizardPage() {
 
   const handleComplete = () => {
     // Redirect to the Report tab in Meter Reading
-    router.push('/meter-reading');
+    router.push('/meter-reading?tab=report');
   };
 
   const handleStepChange = () => {

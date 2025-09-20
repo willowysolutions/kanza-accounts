@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { prisma } from '@/lib/prisma';
 import { formatDate } from '@/lib/utils';
 import { Customer } from '@/types/customer';
+import { DownloadReportButton } from '@/components/dashboard/download-report-button';
 
 export default async function Dashboard({
   searchParams,
@@ -139,13 +140,12 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
             </CardContent>
           </Card>
         </div>
-    
-        {/* Branch Sales Report */}
+
+        {/* Branch Daily Summary */}
         <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-              {/* Left side */}
-            <CardTitle>Branch Sales Report</CardTitle>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Branch Daily Summary</CardTitle>
               {/* Right side */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -162,6 +162,23 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
             </div>
           </CardHeader>
           <CardContent>
+            <BranchSummaryTabs
+              branches={branches}
+              role={session.user.role}
+              userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
+              page={page}
+            />
+          </CardContent>
+        </Card>
+        
+    
+        {/* Branch Sales Report */}
+        <Card>
+        <CardHeader>
+              {/* Left side */}
+            <CardTitle>Branch Sales Report</CardTitle>
+          </CardHeader>
+          <CardContent>
             <BranchSalesTabs
               branches={branches}
               allSales={allSales}
@@ -173,20 +190,6 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
         </Card>
 
 
-        {/* Branch Daily Summary */}
-        <Card>
-          <CardHeader>
-              <CardTitle>Branch Daily Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BranchSummaryTabs
-              branches={branches}
-              role={session.user.role}
-              userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
-              page={page}
-            />
-          </CardContent>
-        </Card>
 
         {/* Customer Details */}
         <CustomerDetailsCard 
@@ -476,6 +479,7 @@ async function BranchSalesTabs({
                 <th className="p-2">XG-DIESEL</th>
                 <th className="p-2">MS-PETROL</th>
                 <th className="p-2">Total Amount</th>
+                <th className="p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -490,6 +494,9 @@ async function BranchSalesTabs({
                   <td className="p-2 text-blue-600">₹{sales.xgDieselTotal.toFixed(2)}</td>
                   <td className="p-2 text-red-600">₹{sales.msPetrolTotal.toFixed(2)}</td>
                   <td className="p-2 font-bold">₹{sales.totalAmount.toFixed(2)}</td>
+                  <td className="p-2">
+                    <DownloadReportButton date={date} branchId={branchId} />
+                  </td>
                 </tr>
               ))}
             </tbody>

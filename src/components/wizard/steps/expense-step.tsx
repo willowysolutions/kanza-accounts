@@ -494,7 +494,7 @@ export const ExpenseStep: React.FC = () => {
                       : parseFloat(expense.amount || "0").toFixed(2)}
                   </td>
                   <td className="p-2 text-center">
-                    {new Date(expense.date).toISOString().split("T")[0]}
+                    {new Date(expense.date).toLocaleDateString('en-CA')}
                   </td>
                   <td className="p-2 text-center">
                     <div className="flex gap-2 justify-center">

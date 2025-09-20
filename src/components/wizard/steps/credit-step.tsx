@@ -522,7 +522,7 @@ export const CreditStep: React.FC = () => {
                       : parseFloat(credit.amount || "0").toFixed(2)}
                   </td>
                   <td className="p-2 text-center">
-                    {new Date(credit.date).toISOString().split("T")[0]}
+                    {new Date(credit.date).toLocaleDateString('en-CA')}
                   </td>
                   <td className="p-2 text-center">
                     <div className="flex gap-2 justify-center">

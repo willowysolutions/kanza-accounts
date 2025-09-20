@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MeterReadingTable } from "../meter-reading/meter-reading-table";
 import { meterReadinColumns } from "../meter-reading/meter-reading-column";
 import { MeterReading } from "@/types/meter-reading";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MeterReadingFormSheet } from "../meter-reading/meter-reading-form";
 import { oilColumns } from "../oil/oil-column";
 import { OilTable } from "../oil/oil-table";
@@ -14,7 +14,7 @@ import { ReportTable } from "../export-report/report-table";
 import { reportColumns } from "../export-report/report-column";
 import { Oil } from "@/types/oils";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 
 type MeterTabManagementProps = {
@@ -24,8 +24,17 @@ type MeterTabManagementProps = {
 };
 
 export default function MeterTabManagement({ meterReading,oil,sales }: MeterTabManagementProps) {
-    const [activeTab, setActiveTab] = useState("purchase");
+    const [activeTab, setActiveTab] = useState("meter-reading");
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Check for tab parameter in URL and set active tab
+    useEffect(() => {
+      const tabParam = searchParams.get('tab');
+      if (tabParam && ['meter-reading', 'other-Products', 'report'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }, [searchParams]);
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -45,7 +54,7 @@ export default function MeterTabManagement({ meterReading,oil,sales }: MeterTabM
         </div>
 
         <Tabs
-          defaultValue="meter-reading"
+          value={activeTab}
           className="w-full"
           onValueChange={(value) => setActiveTab(value)}
         >

@@ -465,7 +465,7 @@ export const ProductsStep: React.FC = () => {
                         <div className="font-medium">₹{typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(product.price || '0').toFixed(2)}</div>
                       </td>
                       <td className="p-2 text-center">
-                        <div className="text-sm">{new Date(product.date).toISOString().split('T')[0]}</div>
+                        <div className="text-sm">{new Date(product.date).toLocaleDateString('en-CA')}</div>
                       </td>
                       <td className="p-2 text-center">
                         <div className="flex gap-2 justify-center">

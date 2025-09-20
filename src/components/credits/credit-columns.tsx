@@ -41,7 +41,7 @@ export const creditColumns: ColumnDef<Credit>[] = [
   {
     accessorKey: "quantity",
     header: "Quantity",
-    cell: ({ row }) => <div className="px-3">{row.getValue("quantity")}</div>,
+    cell: ({ row }) => <div className="px-3">{row.getValue("quantity") ?? "..."}</div>,
   },
   {
     accessorKey: "amount",

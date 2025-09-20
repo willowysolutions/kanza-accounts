@@ -61,6 +61,7 @@ export function MeterReadingFormSheet({
   const [machines, setMachines] = useState<MachineWithNozzles[]>([]);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<ProductType[]>([]);
+  const [tankLevels, setTankLevels] = useState<Record<string, { currentLevel: number; tankName: string; fuelType: string }>>({});
 
   const form = useForm<BulkForm>({
     resolver: zodResolver(bulkSchema),
@@ -78,15 +79,47 @@ export function MeterReadingFormSheet({
     return m;
   }, [machines]);
 
+  // Function to validate tank level
+  const validateTankLevel = (nozzleId: string, closingValue: number, openingValue: number) => {
+    const tankInfo = tankLevels[nozzleId];
+    if (!tankInfo) return {
+      isValid: false,
+      message: "insufficient level"
+    };
+
+    const difference = closingValue - openingValue;
+    if (difference < 0) return null; // Invalid reading (closing < opening)
+
+    const remainingLevel = tankInfo.currentLevel - difference;
+    if (remainingLevel < 0) {
+      return {
+        isValid: false,
+        message: "insufficient level"
+      };
+    }
+
+    return {
+      isValid: true,
+      message: `remaining (${tankInfo.currentLevel.toFixed(2)})`
+    };
+  };
+
 useEffect(() => {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/machines/with-nozzles');
-      const json = await res.json();
+      // Fetch machines and tank levels in parallel
+      const [machinesRes, tankLevelsRes] = await Promise.all([
+        fetch('/api/machines/with-nozzles'),
+        fetch('/api/tanks/current-levels')
+      ]);
 
-      const data: MachineWithNozzles[] = json.data ?? [];
+      const machinesJson = await machinesRes.json();
+      const tankLevelsJson = await tankLevelsRes.json();
+
+      const data: MachineWithNozzles[] = machinesJson.data ?? [];
       setMachines(data);
+      setTankLevels(tankLevelsJson.data ?? {});
 
       const priceMap = new Map(
         products.map(p => [p.productName, p.sellingPrice])
@@ -285,14 +318,14 @@ return (
                     {machine.machineName}
                   </div>
 
-                  <div className="hidden sm:grid sm:grid-cols-16 gap-2 px-2 text-xs text-muted-foreground">
-                    <div className="col-span-3">Nozzle</div>
+                  <div className="hidden sm:grid sm:grid-cols-20 gap-1 px-2 text-xs text-muted-foreground">
+                    <div className="col-span-4">Nozzle</div>
                     <div className="col-span-2 text-right">Fuel</div>
-                    <div className="col-span-2 text-right">Opening</div>
-                    <div className="col-span-2 text-right">Closing</div>
+                    <div className="col-span-3 text-right">Opening</div>
+                    <div className="col-span-3 text-right">Closing</div>
                     <div className="col-span-2 text-right">Sale</div>
                     <div className="col-span-2 text-right">Price</div>
-                    <div className="col-span-3 text-right">Total</div>
+                    <div className="col-span-4 text-right">Total</div>
                   </div>
 
                   {machine.nozzles.map((n) => {
@@ -301,9 +334,9 @@ return (
                       return (
                         <div
                           key={n.id}
-                          className="grid grid-cols-2 sm:grid-cols-16 gap-3 items-center px-2 py-2"
+                          className="grid grid-cols-2 sm:grid-cols-20 gap-1 items-center px-2 py-2"
                         >
-                          <div className="col-span-2 sm:col-span-3 font-medium">
+                          <div className="col-span-2 sm:col-span-4 font-medium">
                             <div className="font-medium">{n.nozzleNumber}</div>
                           </div>
 
@@ -312,7 +345,7 @@ return (
                           </div>
 
                           {/* Opening */}
-                          <div className="col-span-1 sm:col-span-2">
+                          <div className="col-span-1 sm:col-span-3">
                             <FormField
                               control={form.control}
                               name={`rows.${idx}.opening`}
@@ -337,49 +370,63 @@ return (
                           </div>
 
                           {/* Closing */}
-                          <div className="col-span-1 sm:col-span-2">
+                          <div className="col-span-1 sm:col-span-3">
                             <FormField
                             control={form.control}
                             name={`rows.${idx}.closing`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="closing"
-                                    value={field.value ?? ""}
-                                    onChange={(e) => {
-                                      const closingValue =
-                                        e.target.value === ""
-                                          ? undefined
-                                          : Number(e.target.value);
+                            render={({ field }) => {
+                              const openingValue = form.getValues(`rows.${idx}.opening`);
+                              const closingValue = field.value;
+                              const validation = closingValue != null && openingValue != null 
+                                ? validateTankLevel(n.id, closingValue, openingValue) 
+                                : null;
 
-                                      field.onChange(closingValue);
+                              return (
+                                <FormItem>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="closing"
+                                      value={field.value ?? ""}
+                                      className={validation && !validation.isValid ? "border-red-500" : ""}
+                                      onChange={(e) => {
+                                        const newClosingValue =
+                                          e.target.value === ""
+                                            ? undefined
+                                            : Number(e.target.value);
 
-                                      const openingValue = form.getValues(`rows.${idx}.opening`);
-                                      const fuelRate = form.getValues(`rows.${idx}.fuelRate`);
+                                        field.onChange(newClosingValue);
 
-                                      if (openingValue != null && closingValue != null) {
-                                        // calculate sale
-                                        const sale = closingValue - openingValue;
-                                        form.setValue(`rows.${idx}.sale`, sale);
+                                        const openingValue = form.getValues(`rows.${idx}.opening`);
+                                        const fuelRate = form.getValues(`rows.${idx}.fuelRate`);
 
-                                        // calculate total amount
-                                        if (fuelRate != null) {
-                                          const amount = sale * fuelRate;
-                                          form.setValue(`rows.${idx}.totalAmount`, amount);
+                                        if (openingValue != null && newClosingValue != null) {
+                                          // calculate sale
+                                          const sale = newClosingValue - openingValue;
+                                          form.setValue(`rows.${idx}.sale`, sale);
+
+                                          // calculate total amount
+                                          if (fuelRate != null) {
+                                            const amount = sale * fuelRate;
+                                            form.setValue(`rows.${idx}.totalAmount`, amount);
+                                          } else {
+                                            form.setValue(`rows.${idx}.totalAmount`, undefined);
+                                          }
                                         } else {
+                                          form.setValue(`rows.${idx}.sale`, undefined);
                                           form.setValue(`rows.${idx}.totalAmount`, undefined);
                                         }
-                                      } else {
-                                        form.setValue(`rows.${idx}.sale`, undefined);
-                                        form.setValue(`rows.${idx}.totalAmount`, undefined);
-                                      }
-                                    }}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
+                                      }}
+                                    />
+                                  </FormControl>
+                                  {validation && (
+                                    <div className={`text-xs mt-1 ${validation.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                                      {validation.message}
+                                    </div>
+                                  )}
+                                </FormItem>
+                              );
+                            }}
                           />
 
                           </div>
@@ -435,7 +482,7 @@ return (
                           </div>
 
                           {/* Total */}
-                          <div className="col-span-1 sm:col-span-3">
+                          <div className="col-span-1 sm:col-span-4">
                             <FormField
                               control={form.control}
                               name={`rows.${idx}.totalAmount`}
