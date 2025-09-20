@@ -62,21 +62,6 @@ export const SIDEBAR_DATA: SidebarData = {
       icon: IconCash,
     },
     {
-      title: 'Stocks',
-      url: '/stocks',
-      icon: IconBox,
-    },
-     {
-      title: 'Purchase',
-      url: '/purchase',
-      icon: IconShoppingBagPlus,
-    },
-    {
-      title: 'Balance Receipt',
-      url: '/balance-receipt',
-      icon: IconCashBanknote,
-    }, 
-    {
       title: 'Customer',
       url: '/customers',
       icon: IconUser,
@@ -133,6 +118,16 @@ export const SIDEBAR_DATA: SidebarData = {
       icon: IconGasStation,
     }, 
     {
+      title: 'Stocks',
+      url: '/admin/stocks',
+      icon: IconBox,
+    },
+     {
+      title: 'Purchase',
+      url: '/admin/purchase',
+      icon: IconShoppingBagPlus,
+    },
+    {
       title: 'Products',
       url: '/admin/products',
       icon: IconBrandProducthunt
@@ -146,27 +141,34 @@ export const SIDEBAR_DATA: SidebarData = {
       title: 'Branch',
       url: '/admin/branches',
       icon: IconBuildingPlus,
-    }
-  ],
-
-  // only branch can see this navigation
-  branch: [
+    },
+    {
+      title: 'Balance Receipt',
+      url: '/admin/balance-receipt',
+      icon: IconCashBanknote,
+    }, 
     {
       title: 'Branch',
-      url: '/branch/staffs',
+      url: '/admin/staffs',
       icon: IconUserPlus,
     },
     {
       title: 'Bank',
-      url: '/branch/banks',
+      url: '/admin/banks',
       icon: IconBuildingBank,
     },
     
     {
       title: 'Supplier',
-      url: '/branch/suppliers',
+      url: '/admin/suppliers',
       icon: IconUserPlus,
     },
+
+  ],
+
+  // only branch can see this navigation
+  branch: [
+    
     {
       title: 'Expense Category',
       url: '/branch/expensescategory',

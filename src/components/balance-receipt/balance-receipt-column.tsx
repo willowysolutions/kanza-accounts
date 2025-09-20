@@ -51,11 +51,6 @@ export const balanceReceiptColumn: ColumnDef<BalanceReceipt>[] = [
       return <span>{formatCurrency(amount)}</span>;
     },
   },
-  {
-      id: "action",
-      cell: ({ row }) =>
-        row.original && <BalanceReceiptDropdownMenu balanceReceipt={row.original} />,
-    },
 ];
 
 export const BalanceReceiptDropdownMenu = ({ balanceReceipt }: { balanceReceipt: BalanceReceipt }) => {
