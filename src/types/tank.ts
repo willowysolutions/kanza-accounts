@@ -6,6 +6,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Tank extends PrismaTank {
   supplier: { name: string };
+  branch: { name: string };
 }
 
 export interface MeterReadingTableProps<TValue> {

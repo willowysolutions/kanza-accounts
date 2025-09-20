@@ -17,7 +17,7 @@ export async function GET() {
         include:{
           tank:true
         }
-      }}
+      }, branch:true}
     });
 
     return NextResponse.json({ data: machine }, { status: 200 });

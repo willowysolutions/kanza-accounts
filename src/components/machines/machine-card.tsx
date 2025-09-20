@@ -53,6 +53,10 @@ export function Machinecard({ data }: Props) {
                     <p className="text-muted-foreground">Nozzles</p>
                     <p className="font-medium">{machine.noOfNozzles}</p>
                   </div>
+                  <div>
+                    <p className="text-muted-foreground">Branch</p>
+                    <p className="font-medium">{machine?.branch?.name ? machine?.branch?.name : "..."}</p>
+                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-2 pt-2">

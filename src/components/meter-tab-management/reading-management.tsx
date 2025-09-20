@@ -13,6 +13,9 @@ import { Sales } from "@/types/sales";
 import { ReportTable } from "../export-report/report-table";
 import { reportColumns } from "../export-report/report-column";
 import { Oil } from "@/types/oils";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 
 type MeterTabManagementProps = {
   meterReading: MeterReading[];
@@ -22,6 +25,7 @@ type MeterTabManagementProps = {
 
 export default function MeterTabManagement({ meterReading,oil,sales }: MeterTabManagementProps) {
     const [activeTab, setActiveTab] = useState("purchase");
+    const router = useRouter();
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -30,7 +34,14 @@ export default function MeterTabManagement({ meterReading,oil,sales }: MeterTabM
             <h1 className="text-2xl font-bold tracking-tight">Meter Reading</h1>
             <p className="text-muted-foreground">Track daily meter readings for all nozzles</p>
           </div>
-          {activeTab === "meter-reading" ? <MeterReadingFormSheet /> : activeTab === "other-Products" ? <OilFormModal /> : ""}
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => router.push('/meter-reading/wizard')}>
+              <Plus className="w-4 h-4 mr-2" />
+              All Records
+            </Button>
+            {activeTab === "meter-reading" ? <MeterReadingFormSheet /> : activeTab === "other-Products" ? <OilFormModal /> : ""}
+          </div>
         </div>
 
         <Tabs

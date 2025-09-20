@@ -84,8 +84,8 @@ export function TankCard({ tanks }: TankCardProps) {
                     <p className="font-medium">{formatDate(tank?.lastFilled)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Supplier</p>
-                    <p className="font-medium">{tank?.supplier?.name ? tank?.supplier?.name : "..."}</p>
+                    <p className="text-muted-foreground">Branch</p>
+                    <p className="font-medium">{tank?.branch?.name ? tank?.branch?.name : "..."}</p>
                   </div>
                 </div>
 

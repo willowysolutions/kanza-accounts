@@ -4,15 +4,19 @@ import { redirect } from 'next/navigation';
 import { getDashboardData } from '@/lib/actions/dashboard';
 import { ChartAreaInteractive } from '@/components/dashboard/chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { WizardButton } from '@/components/dashboard/wizard-button';
+import { CustomerDetailsCard } from '@/components/dashboard/customer-details-card';
 
 import {
   IconBottle,
   IconCurrencyDollar,
 } from '@tabler/icons-react';
-import { Fuel } from 'lucide-react';
+import { Fuel, Calendar } from 'lucide-react';
 import DashboardCharts from '@/components/graphs/sales-purchase-graph';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { prisma } from '@/lib/prisma';
+import { formatDate } from '@/lib/utils';
+import { Customer } from '@/types/customer';
 
 export default async function Dashboard({
   searchParams,
@@ -37,6 +41,9 @@ export default async function Dashboard({
     monthlySales,
     monthlyPurchases,
     stocks,
+    lastMeterReadingDate,
+    allSales,
+    customers,
     // recentSales,
   } = dashboardData;
 
@@ -132,11 +139,44 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
             </CardContent>
           </Card>
         </div>
+    
+        {/* Branch Sales Report */}
+        <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+              {/* Left side */}
+            <CardTitle>Branch Sales Report</CardTitle>
+              {/* Right side */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4 text-red-500" />
+                  <span className='text-red-500'>
+                    Last added meter reading: {lastMeterReadingDate 
+                      ? formatDate(lastMeterReadingDate)
+                      : 'No readings yet'
+                    }
+                  </span>
+                </div>
+                <WizardButton />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <BranchSalesTabs
+              branches={branches}
+              allSales={allSales}
+              role={session.user.role}
+              userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
+              page={page}
+            />
+          </CardContent>
+        </Card>
+
 
         {/* Branch Daily Summary */}
         <Card>
           <CardHeader>
-            <CardTitle>Branch Daily Summary</CardTitle>
+              <CardTitle>Branch Daily Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <BranchSummaryTabs
@@ -147,6 +187,15 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
             />
           </CardContent>
         </Card>
+
+        {/* Customer Details */}
+        <CustomerDetailsCard 
+          customers={customers as Customer[]}
+          branches={branches}
+          role={session.user.role}
+          userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
+          page={page}
+        />
 
         <ChartAreaInteractive />
 
@@ -242,23 +291,205 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
           <table className="w-full text-sm border-collapse">
             <thead>
             <tr className="text-left border-b">
-                <th>Date</th>
-                <th>Total Sale</th>
-                <th>Total Expense</th>
-                <th>Total Credits</th>
-                <th>Balance Receipt (Yday)</th>
-                <th>Cash Balance</th>
+                <th className="p-2">Date</th>
+                <th className="p-2">Total Sale</th>
+                <th className="p-2">Total Expense</th>
+                <th className="p-2">Total Credits</th>
+                <th className="p-2">Balance Receipt (Yday)</th>
+                <th className="p-2">Cash Balance</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(({ date, totals }) => (
                 <tr key={date} className="border-b hover:bg-muted">
-                  <td>{new Date(date).toLocaleDateString()}</td>
-                  <td>₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
-                  <td>₹{totals.totalExpense?.toFixed(2) ?? '0.00'}</td>
-                  <td>₹{totals.totalCredit?.toFixed(2) ?? '0.00'}</td>
-                  <td>₹{totals.totalBalanceReceipt?.toFixed(2) ?? '0.00'}</td>
-                  <td>₹{totals.cashBalance?.toFixed(2) ?? '0.00'}</td>
+                  <td className="p-2">{formatDate(date)}</td>
+                  <td className="p-2">₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
+                  <td className="p-2">₹{totals.totalExpense?.toFixed(2) ?? '0.00'}</td>
+                  <td className="p-2">₹{totals.totalCredit?.toFixed(2) ?? '0.00'}</td>
+                  <td className="p-2">₹{totals.totalBalanceReceipt?.toFixed(2) ?? '0.00'}</td>
+                  <td className="p-2">₹{totals.cashBalance?.toFixed(2) ?? '0.00'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <a
+              href={`?page=${Math.max(page - 1, 0)}`}
+              className="inline-flex items-center rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+              aria-disabled={page <= 0}
+            >
+              Previous
+            </a>
+            <a
+              href={`?page=${page + 1}`}
+              className="inline-flex items-center rounded-md border px-3 py-1 text-sm"
+            >
+              Next
+            </a>
+          </div>
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
+async function BranchSalesTabs({ 
+  branches, 
+  allSales, 
+  role, 
+  userBranchId, 
+  page = 0 
+}: { 
+  branches: { id: string; name: string }[]; 
+  allSales: {
+    id: string;
+    date: Date;
+    rate: number;
+    cashPayment: number;
+    atmPayment: number;
+    paytmPayment: number;
+    fleetPayment: number;
+    hsdDieselTotal: number;
+    xgDieselTotal: number;
+    msPetrolTotal: number;
+    branchId: string | null;
+    branch: { name: string } | null;
+  }[];
+  role?: string | null; 
+  userBranchId?: string | undefined; 
+  page?: number; 
+}) {
+  const isAdmin = (role ?? '').toLowerCase() === 'admin';
+  const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
+
+  // Pagination settings
+  const totalDays = 30;
+  const pageSize = 5;
+  const startIndex = Math.max(page, 0) * pageSize;
+  const endIndex = startIndex + pageSize;
+
+  // Group sales by branch and date
+  const branchSalesMap = new Map<string, Map<string, {
+    cashPayment: number;
+    atmPayment: number;
+    paytmPayment: number;
+    fleetPayment: number;
+    hsdDieselTotal: number;
+    xgDieselTotal: number;
+    msPetrolTotal: number;
+    totalAmount: number;
+  }>>();
+
+  // Filter sales for visible branches
+  const filteredSales = allSales.filter(sale => {
+    if (isAdmin) return true;
+    return sale.branchId === userBranchId;
+  });
+
+  // Group sales by branch and date
+  filteredSales.forEach(sale => {
+    const branchId = sale.branchId || 'no-branch';
+    const dateKey = sale.date.toLocaleDateString("en-CA"); 
+// "YYYY-MM-DD" in local timezone
+
+    
+    if (!branchSalesMap.has(branchId)) {
+      branchSalesMap.set(branchId, new Map());
+    }
+    
+    const branchMap = branchSalesMap.get(branchId)!;
+    const existing = branchMap.get(dateKey) || {
+      cashPayment: 0,
+      atmPayment: 0,
+      paytmPayment: 0,
+      fleetPayment: 0,
+      hsdDieselTotal: 0,
+      xgDieselTotal: 0,
+      msPetrolTotal: 0,
+      totalAmount: 0,
+    };
+
+    branchMap.set(dateKey, {
+      cashPayment: existing.cashPayment + (sale.cashPayment || 0),
+      atmPayment: existing.atmPayment + (sale.atmPayment || 0),
+      paytmPayment: existing.paytmPayment + (sale.paytmPayment || 0),
+      fleetPayment: existing.fleetPayment + (sale.fleetPayment || 0),
+      hsdDieselTotal: existing.hsdDieselTotal + (sale.hsdDieselTotal || 0),
+      xgDieselTotal: existing.xgDieselTotal + (sale.xgDieselTotal || 0),
+      msPetrolTotal: existing.msPetrolTotal + (sale.msPetrolTotal || 0),
+      totalAmount: existing.totalAmount + (sale.rate || 0),
+    });
+  });
+
+  // Create date range for pagination
+  const dates: string[] = Array.from({ length: totalDays }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return d.toISOString().split('T')[0];
+  });
+  const pageDates = dates.slice(startIndex, endIndex);
+
+  // Prepare data for each branch
+  const branchData = visibleBranches.map(branch => ({
+    branchId: branch.id,
+    name: branch.name,
+    rows: pageDates.map(date => {
+      const branchMap = branchSalesMap.get(branch.id);
+      const salesData = branchMap?.get(date) || {
+        cashPayment: 0,
+        atmPayment: 0,
+        paytmPayment: 0,
+        fleetPayment: 0,
+        hsdDieselTotal: 0,
+        xgDieselTotal: 0,
+        msPetrolTotal: 0,
+        totalAmount: 0,
+      };
+      
+      return {
+        date,
+        sales: salesData,
+      };
+    }),
+  }));
+
+  return (
+    <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">
+      <TabsList className="mb-4 flex flex-wrap gap-2">
+        {visibleBranches.map((b) => (
+          <TabsTrigger key={b.id} value={b.id}>{b.name}</TabsTrigger>
+        ))}
+      </TabsList>
+
+      {branchData.map(({ branchId, rows }) => (
+        <TabsContent key={branchId} value={branchId} className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="p-2">Date</th>
+                <th className="p-2">Cash Payment</th>
+                <th className="p-2">ATM Payment</th>
+                <th className="p-2">Paytm Payment</th>
+                <th className="p-2">Fleet Payment</th>
+                <th className="p-2">HSD-DIESEL</th>
+                <th className="p-2">XG-DIESEL</th>
+                <th className="p-2">MS-PETROL</th>
+                <th className="p-2">Total Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ date, sales }) => (
+                <tr key={date} className="border-b hover:bg-muted">
+                  <td className="p-2">{formatDate(date)}</td>
+                  <td className="p-2">₹{sales.cashPayment.toFixed(2)}</td>
+                  <td className="p-2">₹{sales.atmPayment.toFixed(2)}</td>
+                  <td className="p-2">₹{sales.paytmPayment.toFixed(2)}</td>
+                  <td className="p-2">₹{sales.fleetPayment.toFixed(2)}</td>
+                  <td className="p-2 text-blue-600">₹{sales.hsdDieselTotal.toFixed(2)}</td>
+                  <td className="p-2 text-blue-600">₹{sales.xgDieselTotal.toFixed(2)}</td>
+                  <td className="p-2 text-red-600">₹{sales.msPetrolTotal.toFixed(2)}</td>
+                  <td className="p-2 font-bold">₹{sales.totalAmount.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

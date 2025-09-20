@@ -74,6 +74,28 @@ export async function getDashboardData() {
     },
   });
 
+  // Last meter reading date
+  const lastMeterReading = await prisma.meterReading.findFirst({
+    orderBy: { date: "desc" },
+    select: { date: true },
+  });
+
+  // Get all sales data (will be paginated in the component)
+  const allSales = await prisma.sale.findMany({
+    include: {
+      branch: true,
+    },
+    orderBy: { date: "desc" },
+  });
+
+  // Get all customer data for dashboard (will be paginated in the component)
+  const customers = await prisma.customer.findMany({
+    include: {
+      branch: true,
+    },
+    orderBy: { name: "asc" },
+  });
+
   return {
     todaysSales,
     todaysRate,
@@ -83,5 +105,8 @@ export async function getDashboardData() {
     stocks,
     outstanding: outstanding._sum.openingBalance || 0,
     recentSales,
+    lastMeterReadingDate: lastMeterReading?.date,
+    allSales,
+    customers,
   };
 }

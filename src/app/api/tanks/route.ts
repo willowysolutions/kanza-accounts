@@ -14,7 +14,7 @@ export async function GET() {
     const tank = await prisma.tank.findMany({
       where: whereClause,
       orderBy: { tankName: "asc" },
-      include:{supplier:true}
+      include:{supplier:true, branch:true}
     });
 
     return NextResponse.json({ data: tank }, { status: 200 });

@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Machine extends PrismaMachine {
  machineTanks: (MachineTank & { tank: Tank })[];
+ branch: { name: string };
 }
 
 export interface MeterReadingTableProps<TValue> {

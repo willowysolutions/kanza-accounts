@@ -72,21 +72,6 @@ export const SIDEBAR_DATA: SidebarData = {
       icon: IconShoppingBagPlus,
     },
     {
-      title: 'Tank',
-      url: '/tanks',
-      icon: IconCylinder,
-    },
-    {
-      title: 'Machine',
-      url: '/machines',
-      icon: IconSettingsCog,
-    },
-    {
-      title: 'Nozzle',
-      url: '/nozzles',
-      icon: IconGasStation,
-    }, 
-    {
       title: 'Balance Receipt',
       url: '/balance-receipt',
       icon: IconCashBanknote,
@@ -132,6 +117,21 @@ export const SIDEBAR_DATA: SidebarData = {
 
   // only admin can see this navigation
   admin: [
+    {
+      title: 'Tank',
+      url: '/admin/tanks',
+      icon: IconCylinder,
+    },
+    {
+      title: 'Machine',
+      url: '/admin/machines',
+      icon: IconSettingsCog,
+    },
+    {
+      title: 'Nozzle',
+      url: '/admin/nozzles',
+      icon: IconGasStation,
+    }, 
     {
       title: 'Products',
       url: '/admin/products',
