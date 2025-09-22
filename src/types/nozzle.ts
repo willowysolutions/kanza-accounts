@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export interface Nozzle extends PrismaNozzle {
   machine: { machineName: string };
+  branch: { name: string };
 }
 
 export interface NozzleTableProps<TValue> {

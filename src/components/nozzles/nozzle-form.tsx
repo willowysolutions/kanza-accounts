@@ -54,6 +54,7 @@ export function NozzleFormModal({
     id: string;
     currentPrice:number;
     productUnit:string }[]>([]);
+  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
 
 
   const form = useForm<NozzleFormValues>({
@@ -63,6 +64,7 @@ export function NozzleFormModal({
       machineId: nozzle?.machineId || "",
       fuelType: nozzle?.fuelType || "",
       openingReading: nozzle?.openingReading || 0,
+      branchId: nozzle?.branchId || undefined,
     },
   });
 
@@ -115,13 +117,38 @@ export function NozzleFormModal({
       try {
         const res = await fetch("/api/products");
         const json = await res.json();
-        setProductOptions(json.data || []);
+        
+        // Deduplicate products by name, keeping the first occurrence
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
+          const existingProduct = acc.find(p => p.productName === product.productName);
+          if (!existingProduct) {
+            acc.push(product);
+          }
+          return acc;
+        }, []) || [];
+        
+        setProductOptions(uniqueProducts);
       } catch (error) {
         console.error("Failed to fetch products", error);
       }
     };
 
     fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch("/api/branch");
+        const json = await res.json();
+        setBranchOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch branches", error);
+      }
+    };
+
+    fetchBranches();
   }, []);
 
   return (
@@ -213,6 +240,7 @@ export function NozzleFormModal({
         />
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="openingReading"
@@ -227,6 +255,32 @@ export function NozzleFormModal({
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        </div>
+        
         <FormDialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">

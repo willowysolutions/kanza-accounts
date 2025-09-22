@@ -64,14 +64,6 @@ export const expenseColumns: ColumnDef<Expense>[] = [
     }
   },
   {
-    accessorKey: "branchId",
-    header: "Branch",
-    cell: ({ row }) => {
-      const branch = row.original.branch.name;
-      return <div>{branch ? String(branch) : "..."}</div>;
-    },
-  },
-  {
     id: "action",
     cell: ({ row }) =>
       row.original && <ExpenseDropdeownMenu expense={row.original} />,

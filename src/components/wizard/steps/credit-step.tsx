@@ -23,6 +23,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 export const CreditStep: React.FC = () => {
   const { 
     markStepCompleted, 
+    markCurrentStepCompleted,
     currentStep, 
     setOnSaveAndNext,
     addedCredits,
@@ -30,7 +31,7 @@ export const CreditStep: React.FC = () => {
     savedRecords,
     setSavedRecords
   } = useWizard();
-  const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments: number; }[]>([]);
+  const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments: number; limit?: number; }[]>([]);
   const [products, setProducts] = useState<{id: string; productName: string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -44,6 +45,7 @@ export const CreditStep: React.FC = () => {
       quantity: undefined,
       amount: undefined,
       date: new Date(),
+      reason: "",
     },
   });
 
@@ -60,7 +62,16 @@ export const CreditStep: React.FC = () => {
   const displayBalance =
     (selectedCustomer?.outstandingPayments ?? 0) + Number(enteredAmount || 0);
 
+  // Check if outstanding + entered amount exceeds customer limit
+  const exceedsLimit = selectedCustomer?.limit && displayBalance > selectedCustomer.limit;
+
   const handleSubmit = useCallback(async (values: z.infer<typeof creditSchema>): Promise<boolean> => {
+    // Validate reason when limit is exceeded
+    if (exceedsLimit && (!values.reason || values.reason.trim() === "")) {
+      toast.error("Reason is required when outstanding + credit amount exceeds customer limit");
+      return false;
+    }
+
     try {
       // If we're editing, use PUT/PATCH, otherwise use POST
       if (editingIndex !== null) {
@@ -89,6 +100,7 @@ export const CreditStep: React.FC = () => {
             quantity: undefined,
             amount: undefined,
             date: new Date(),
+            reason: "",
           });
           return true;
         } else {
@@ -130,6 +142,7 @@ export const CreditStep: React.FC = () => {
             quantity: undefined,
             amount: undefined,
             date: new Date(),
+            reason: "",
           });
           router.refresh();
           return true;
@@ -170,7 +183,7 @@ export const CreditStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedCredits, form, setAddedCredits, setSavedRecords]);
+  }, [router, editingIndex, addedCredits, form, setAddedCredits, setSavedRecords, exceedsLimit]);
 
   const handleAddAnother = async () => {
     const values = form.getValues();
@@ -182,6 +195,7 @@ export const CreditStep: React.FC = () => {
         quantity: undefined,
         amount: undefined,
         date: values.date,
+        reason: "",
       });
       setEditingIndex(null);
     }
@@ -196,6 +210,7 @@ export const CreditStep: React.FC = () => {
       quantity: credit.quantity,
       amount: credit.amount,
       date: credit.date,
+      reason: (credit as { reason?: string })?.reason || "",
     });
     setEditingIndex(index);
   };
@@ -432,6 +447,26 @@ export const CreditStep: React.FC = () => {
           />
         </div>
 
+        {/* Reason field - only show when outstanding + credit amount exceeds limit */}
+        {exceedsLimit && (
+          <FormField
+            control={form.control}
+            name="reason"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reason (Required - Outstanding + Credit exceeds limit)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter reason for exceeding customer limit"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         {/* Buttons */}
         <div className="flex justify-end gap-3 pt-4">
           {editingIndex !== null ? (
@@ -453,6 +488,7 @@ export const CreditStep: React.FC = () => {
                     quantity: undefined,
                     amount: undefined,
                     date: new Date(),
+                    reason: "",
                   });
                 }}
               >
@@ -470,9 +506,9 @@ export const CreditStep: React.FC = () => {
               <Button 
                 type="button"
                 variant="outline" 
-                onClick={() => markStepCompleted(currentStep)}
+                onClick={markCurrentStepCompleted}
               >
-                Skip Step
+                Complete
               </Button>
             </>
           )}

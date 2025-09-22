@@ -1,18 +1,41 @@
+import { supplierColumns } from "@/components/suppliers/supplier-columns";
+import { SupplierFormDialog } from "@/components/suppliers/supplier-form";
+import { SupplierTable } from "@/components/suppliers/supplier-table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { headers, cookies } from "next/headers";
 export const dynamic = "force-dynamic";
 
-import { supplierColumns } from "@/components/suppliers/supplier-columns";
-import { SupplierTable } from "@/components/suppliers/supplier-table";
-import { SupplierFormDialog } from "@/components/suppliers/supplier-form";
 
 export default async function SupplierPage() {
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  const cookie = (await cookies()).toString();
+  
+  // Fetch suppliers and branches
+  const [suppliersRes, branchesRes] = await Promise.all([
+    fetch(`${proto}://${host}/api/suppliers`, {
+      cache: "no-store",
+      headers: { cookie },
+    }),
+    fetch(`${proto}://${host}/api/branch`, {
+      cache: "no-store",
+      headers: { cookie },
+    })
+  ]);
+  
+  const { data: suppliers } = await suppliersRes.json();
+  const { data: branches } = await branchesRes.json();
 
-const res = await fetch(`${baseUrl}/api/suppliers`, {
-  cache: "no-store",
-});
-
-const { data } = await res.json();
-
+  // Group suppliers by branch
+  const suppliersByBranch = branches.map((branch: { id: string; name: string }) => ({
+    branchId: branch.id,
+    branchName: branch.name,
+    suppliers: suppliers.filter((supplier: { branchId: string | null }) => supplier.branchId === branch.id)
+  }));
+  
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">
@@ -20,12 +43,33 @@ const { data } = await res.json();
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Suppliers</h1>
-              <p className="text-muted-foreground">Manage your Suppliers</p>
+              <p className="text-muted-foreground">Manage your Suppliers by branch</p>
             </div>
             <SupplierFormDialog />
           </div>
 
-          <SupplierTable data={data} columns={supplierColumns} />
+          <Tabs defaultValue={branches[0]?.id} className="w-full">
+            <TabsList className="mb-4 flex flex-wrap gap-2">
+              {branches.map((branch: { id: string; name: string }) => (
+                <TabsTrigger key={branch.id} value={branch.id}>
+                  {branch.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {suppliersByBranch.map(({ branchId, branchName, suppliers }: { branchId: string; branchName: string; suppliers: any[] }) => (
+              <TabsContent key={branchId} value={branchId}>
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold">{branchName} Suppliers</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {suppliers.length} supplier{suppliers.length !== 1 ? 's' : ''} in this branch
+                  </p>
+                </div>
+                <SupplierTable data={suppliers} columns={supplierColumns} />
+              </TabsContent>
+            ))}
+          </Tabs>
         </div>
       </div>
     </div>

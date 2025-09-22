@@ -12,7 +12,7 @@ export async function GET() {
     const suppliers = await prisma.nozzle.findMany({
       where: whereClause,
       orderBy: { nozzleNumber: "asc" },
-      include:{machine:true}
+      include:{machine:true,branch:true}
     });
 
     return NextResponse.json({ data: suppliers }, { status: 200 });

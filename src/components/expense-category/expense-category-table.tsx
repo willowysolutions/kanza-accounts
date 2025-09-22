@@ -32,12 +32,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { ExpenseCategory } from "@prisma/client";
+import { ExpenseCategory, Expense } from "@prisma/client";
 import { useState } from "react";
 
+type ExpenseCategoryWithExpenses = ExpenseCategory & {
+  expenses: Expense[];
+};
+
 interface ExpenseCategoryTableProps<TValue> {
-  columns: ColumnDef<ExpenseCategory, TValue>[];
-  data: ExpenseCategory[];
+  columns: ColumnDef<ExpenseCategoryWithExpenses, TValue>[];
+  data: ExpenseCategoryWithExpenses[];
 }
 
 export function ExpenseTable<TValue>({

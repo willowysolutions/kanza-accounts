@@ -5,6 +5,7 @@ export const nozzleSchema = z.object({
   machineId: z.string().min(1),
   fuelType: z.string().min(1),
   openingReading: z.coerce.number().min(0),
+  branchId: z.string().optional(),
 });
 
 export const nozzleSchemaWithId = nozzleSchema.extend({

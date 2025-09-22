@@ -23,6 +23,7 @@ type OilFormValues = z.infer<typeof oilSchema>;
 export const ProductsStep: React.FC = () => {
   const { 
     markStepCompleted, 
+    markCurrentStepCompleted,
     currentStep, 
     setOnSaveAndNext,
     addedProducts,
@@ -385,7 +386,7 @@ export const ProductsStep: React.FC = () => {
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2 pt-4">
+            <div className="flex justify-end gap-3 pt-4">
               {editingIndex !== null ? (
                 <>
                   <Button 
@@ -413,12 +414,21 @@ export const ProductsStep: React.FC = () => {
                   </Button>
                 </>
               ) : (
+                <>
                 <Button 
                   type="button" 
                   onClick={handleAddAnother}
                 >
                   Add Another Product
                 </Button>
+                <Button 
+                type="button" 
+                variant="outline"
+                onClick={markCurrentStepCompleted}
+              >
+                Complete
+              </Button>
+              </>
               )}
             </div>
 

@@ -10,6 +10,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   FormDialog,
   FormDialogContent,
   FormDialogDescription,
@@ -45,6 +52,7 @@ export function MachineFormModal({
   machine?:Machine;
 }) {
     const [supplierOptions, setSupplierOptions] = useState<{ tankName: string; id: string; fuelType:string}[]>([]);
+    const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
     const router = useRouter();
     
 
@@ -56,6 +64,7 @@ export function MachineFormModal({
         serialNumber: machine?.serialNumber || "",
         machineTanks: machine?.machineTanks?.map(mt => mt.tankId) || [],
         noOfNozzles: machine?.noOfNozzles || 0,
+        branchId: machine?.branchId || undefined,
       },
     });
 
@@ -106,8 +115,22 @@ export function MachineFormModal({
             console.error("Failed to fetch tanks", error);
           }
         };
-      
+
         fetchSuppliers();
+      }, []);
+
+      useEffect(() => {
+        const fetchBranches = async () => {
+          try {
+            const res = await fetch("/api/branch");
+            const json = await res.json();
+            setBranchOptions(json.data || []);
+          } catch (error) {
+            console.error("Failed to fetch branches", error);
+          }
+        };
+
+        fetchBranches();
       }, []);
 
   return (
@@ -243,6 +266,7 @@ export function MachineFormModal({
             }}
           />
 
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="noOfNozzles"
@@ -256,6 +280,32 @@ export function MachineFormModal({
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
         <FormDialogFooter>
           <DialogClose asChild>

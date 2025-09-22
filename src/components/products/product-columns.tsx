@@ -1,6 +1,6 @@
 "use client";
 
-import { Product } from "@prisma/client";
+import { Product } from "@/types/product";
 import { ProductFormDialog } from "./product-form";
 import { ProductDeleteDialog } from "./product-delete-dailog";
 import { ColumnDef } from "@tanstack/react-table";

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { machineSchema } from "@/schemas/machine-schema";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 //create new machine
 
@@ -18,19 +16,10 @@ export async function POST(req: NextRequest) {
       );
     }    
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    const branchId = session?.user?.branch;
 
     const machine = await prisma.machine.create({
     data: {
-      machineName: result.data.machineName,
-      model: result.data.model,
-      serialNumber: result.data.serialNumber,
-      noOfNozzles: result.data.noOfNozzles,
-      branchId:branchId,
+      ...result.data,
       machineTanks: {
         create: result.data.machineTanks.map(tankId => ({
           tank: { connect: { id: tankId } },

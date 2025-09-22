@@ -43,6 +43,7 @@ export const ExpenseCategoryFormDialog = ({
     resolver: zodResolver(expenseCategorySchema),
     defaultValues: {
       name: expenseCategory?.name || "",
+      limit: expenseCategory?.limit || undefined,
     },
   });
 
@@ -110,6 +111,7 @@ export const ExpenseCategoryFormDialog = ({
           </FormDialogDescription>
         </FormDialogHeader>
 
+        
         {/* Name */}
         <FormField
           control={form.control}
@@ -119,6 +121,25 @@ export const ExpenseCategoryFormDialog = ({
               <FormLabel>Expense Category Name</FormLabel>
               <FormControl>
                 <Input placeholder="Expense Category Name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="limit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Limit</FormLabel>
+              <FormControl>
+              <Input
+                  type="number"
+                  {...field}
+                  value={field.value ?? ""}
+                  placeholder="Amount"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

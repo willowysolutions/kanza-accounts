@@ -117,7 +117,18 @@ export function PurchaseOrderFormModal({
     try {
       const res = await fetch("/api/products");
       const json = await res.json();
-      setProductOptions(json.data || []);
+      
+      // Deduplicate products by name, keeping the first occurrence
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
+        const existingProduct = acc.find(p => p.productName === product.productName);
+        if (!existingProduct) {
+          acc.push(product);
+        }
+        return acc;
+      }, []) || [];
+      
+      setProductOptions(uniqueProducts);
     } catch (error) {
       console.error("Failed to fetch products", error);
     }

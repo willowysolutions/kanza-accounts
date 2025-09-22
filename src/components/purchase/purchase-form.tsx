@@ -56,6 +56,7 @@ export function PurchaseFormModal({
   purchasePrice:number;
   sellingPrice:number;
   productUnit:string }[]>([]);
+  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [purchasePrice, setPurchasePrice] = useState<number>(0);
 
@@ -71,6 +72,7 @@ export function PurchaseFormModal({
       date:purchase?.date || new Date(),
       purchasePrice:purchase?.purchasePrice || undefined,
       paidAmount:purchase?.paidAmount || undefined,
+      branchId: purchase?.branchId ?? undefined,
     },
   });
 
@@ -127,13 +129,38 @@ export function PurchaseFormModal({
     try {
       const res = await fetch("/api/products");
       const json = await res.json();
-      setProductOptions(json.data || []);
+      
+      // Deduplicate products by name, keeping the first occurrence
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
+        const existingProduct = acc.find(p => p.productName === product.productName);
+        if (!existingProduct) {
+          acc.push(product);
+        }
+        return acc;
+      }, []) || [];
+      
+      setProductOptions(uniqueProducts);
     } catch (error) {
       console.error("Failed to fetch products", error);
     }
   };
 
   fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch("/api/branch");
+        const json = await res.json();
+        setBranchOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch branches", error);
+      }
+    };
+
+    fetchBranches();
   }, []);
 
   useEffect(() => {
@@ -224,7 +251,7 @@ export function PurchaseFormModal({
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contact Number</FormLabel>
+                <FormLabel>Contact Number (Optional)</FormLabel>
                 <FormControl>
                   <Input placeholder="+91 XXXXX XXXXX" {...field} />
                 </FormControl>
@@ -353,6 +380,30 @@ export function PurchaseFormModal({
             )}
           />
 
+        <FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormDialogFooter>
           <DialogClose asChild>

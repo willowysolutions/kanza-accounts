@@ -27,14 +27,6 @@ export const meterReadinColumns: ColumnDef<MeterReading>[] = [
     }
   },
   {
-    accessorKey: "branchId",
-    header: "Branch",
-    cell: ({ row }) => {
-      const branch = row.original.branch.name;
-      return <div>{branch ? String(branch) : "..."}</div>;
-    },
-  },
-  {
     accessorKey: "nozzleId",
     header: "Nozzle",
     cell: ({row}) => {

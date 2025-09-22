@@ -23,6 +23,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 export const ExpenseStep: React.FC = () => {
   const { 
     markStepCompleted, 
+    markCurrentStepCompleted,
     currentStep, 
     setOnSaveAndNext,
     addedExpenses,
@@ -30,7 +31,7 @@ export const ExpenseStep: React.FC = () => {
     savedRecords,
     setSavedRecords
   } = useWizard();
-  const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string }[]>([]);
+  const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string; limit?: number }[]>([]);
   const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -44,10 +45,29 @@ export const ExpenseStep: React.FC = () => {
       date: new Date(),
       expenseCategoryId: "",
       bankId: undefined,
+      reason: "",
     },
   });
 
+  // Watch fields
+  const selectedCategoryId = form.watch("expenseCategoryId");
+  const enteredAmount = form.watch("amount") ?? 0;
+
+  // Find selected category
+  const selectedCategory = expenseCategoryList.find(
+    (c) => c.id === selectedCategoryId
+  );
+
+  // Check if expense amount exceeds TA category limit
+  const exceedsLimit = selectedCategory?.limit && selectedCategory.name === "TA" && Number(enteredAmount || 0) > selectedCategory.limit;
+
   const handleSubmit = useCallback(async (values: z.infer<typeof expenseSchema>): Promise<boolean> => {
+    // Validate reason when limit is exceeded
+    if (exceedsLimit && (!values.reason || values.reason.trim() === "")) {
+      toast.error("Reason is required when expense amount exceeds TA category limit");
+      return false;
+    }
+
     try {
       // If we're editing, use PUT/PATCH, otherwise use POST
       if (editingIndex !== null) {
@@ -76,6 +96,7 @@ export const ExpenseStep: React.FC = () => {
             date: new Date(),
             expenseCategoryId: "",
             bankId: undefined,
+            reason: "",
           });
           return true;
         } else {
@@ -117,6 +138,7 @@ export const ExpenseStep: React.FC = () => {
             date: new Date(),
             expenseCategoryId: "",
             bankId: undefined,
+            reason: "",
           });
           router.refresh();
           return true;
@@ -157,7 +179,7 @@ export const ExpenseStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedExpenses, form, setAddedExpenses, setSavedRecords]);
+  }, [router, editingIndex, addedExpenses, form, setAddedExpenses, setSavedRecords, exceedsLimit]);
 
   const handleAddAnother = async () => {
     const values = form.getValues();
@@ -169,6 +191,7 @@ export const ExpenseStep: React.FC = () => {
         date: values.date,
         expenseCategoryId: "",
         bankId: undefined,
+        reason: "",
       });
       setEditingIndex(null);
     }
@@ -183,6 +206,7 @@ export const ExpenseStep: React.FC = () => {
       date: expense.date,
       expenseCategoryId: expense.expenseCategoryId,
       bankId: expense.bankId,
+      reason: (expense as { reason?: string })?.reason || "",
     });
     setEditingIndex(index);
   };
@@ -407,6 +431,26 @@ export const ExpenseStep: React.FC = () => {
             )}
           />
         </div>
+
+        {/* Reason field - only show when TA expense amount exceeds limit */}
+        {exceedsLimit && (
+          <FormField
+            control={form.control}
+            name="reason"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reason (Required - TA expense exceeds limit)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter reason for exceeding TA category limit"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         
         {/* Buttons */}
         <div className="flex justify-end gap-3 pt-4">
@@ -429,6 +473,7 @@ export const ExpenseStep: React.FC = () => {
                     date: new Date(),
                     expenseCategoryId: "",
                     bankId: undefined,
+                    reason: "",
                   });
                 }}
               >
@@ -446,9 +491,9 @@ export const ExpenseStep: React.FC = () => {
               <Button 
                 type="button" 
                 variant="outline"
-                onClick={() => markStepCompleted(currentStep)}
+                onClick={markCurrentStepCompleted}
               >
-                Skip Step
+                Complete
               </Button>
             </>
           )}

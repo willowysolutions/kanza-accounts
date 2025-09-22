@@ -40,7 +40,7 @@ export const ExpenseFormDialog = ({
   open,
   openChange,
 }: ExpenseFormProps) => {
-  const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string }[]>([])
+  const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string; limit?: number }[]>([])
   const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -54,13 +54,32 @@ export const ExpenseFormDialog = ({
       date: expense?.date ? new Date(expense.date) : new Date(),
       expenseCategoryId: expense?.expenseCategoryId || "",
       bankId:expense?.bankId || undefined,
+      reason: (expense as { reason?: string })?.reason || "",
     },
   });
+
+  // Watch fields
+  const selectedCategoryId = form.watch("expenseCategoryId");
+  const enteredAmount = form.watch("amount") ?? 0;
+
+  // Find selected category
+  const selectedCategory = expenseCategoryList.find(
+    (c) => c.id === selectedCategoryId
+  );
+
+  // Check if total expenses + new amount exceeds category limit
+  const exceedsLimit = selectedCategory?.limit && selectedCategory.name === "TA" && Number(enteredAmount || 0) > selectedCategory.limit;
 
   const handleSubmit = async (
     values: z.infer<typeof expenseSchema>,
     close: () => void
   ) => {
+    // Validate reason when limit is exceeded
+    if (exceedsLimit && (!values.reason || values.reason.trim() === "")) {
+      toast.error("Reason is required when expense amount exceeds TA category limit");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const url = expense
@@ -149,6 +168,43 @@ export const ExpenseFormDialog = ({
         <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick a date"}
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Calendar
+                    mode="single"
+                    selected={field.value ? new Date(field.value) : undefined}
+                    onSelect={field.onChange}
+                    captionLayout="dropdown"
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+
+        <FormField
+          control={form.control}
           name="expenseCategoryId"
           render={({ field }) => (
             <FormItem>
@@ -208,27 +264,6 @@ export const ExpenseFormDialog = ({
         })()}
         </div>
 
-        <div className="w-full">
-
-            {/* Description */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="description" {...field}/>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-
-
-        {/* Amount */}
         <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
@@ -250,44 +285,52 @@ export const ExpenseFormDialog = ({
         />
 
         {/* Date */}
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value
-                        ? new Date(field.value).toLocaleDateString()
-                        : "Pick a date"}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent>
-                  <Calendar
-                    mode="single"
-                    selected={field.value ? new Date(field.value) : undefined}
-                    onSelect={field.onChange}
-                    captionLayout="dropdown"
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         </div>
 
+
+
+        <div className="w-full">
+
+            {/* Description */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="description" {...field}/>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+
+
+        {/* Amount */}
         
+
+        {/* Reason field - only show when TA expense amount exceeds limit */}
+        {exceedsLimit && (
+          <FormField
+            control={form.control}
+            name="reason"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reason (Required - TA expense exceeds limit)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter reason for exceeding TA category limit"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormDialogFooter>
           <DialogClose asChild>

@@ -5,7 +5,8 @@ export const tankSchema = z.object({
   fuelType: z.string().min(1, "Fuel Type is required"),
   capacity: z.coerce.number().min(1),
   minLevel: z.coerce.number().min(0),
-  supplierId: z.string().optional()
+  supplierId: z.string().optional(),
+  branchId: z.string().optional(),
 });
 
 export const tankSchemaWithId = tankSchema.extend({

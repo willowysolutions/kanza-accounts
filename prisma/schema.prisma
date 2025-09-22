@@ -123,10 +123,12 @@ model Nozzle {
 model Product {
   id            String @id @default(auto()) @map("_id") @db.ObjectId
 
-  productName   String @unique
+  productName   String 
   productUnit   String
   purchasePrice Float
   sellingPrice  Float
+  branchId        String?   @db.ObjectId
+  branch          Branch?   @relation(fields: [branchId], references: [id])
 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -168,6 +170,7 @@ model Credit {
 
   amount         Float
   date           DateTime
+  reason         String?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -183,6 +186,7 @@ model CustomerPayment {
   branchId       String?   @db.ObjectId
   branch         Branch?   @relation(fields: [branchId], references: [id])
 
+  reason        String?
   amount        Float
   paymentMethod String
   paidOn        DateTime
@@ -238,7 +242,7 @@ model Purchase {
   branchId       String?   @db.ObjectId
   branch         Branch?   @relation(fields: [branchId], references: [id])
   
-  phone         String 
+  phone         String? 
   productType   String
   date          DateTime
   quantity      Float
@@ -275,9 +279,11 @@ model Expense {
   amount            Int
   date              DateTime
   expenseCategoryId String    @db.ObjectId
+  reason            String?
 
   branchId          String?   @db.ObjectId   
   branch            Branch?   @relation(fields: [branchId], references: [id])
+  
 
   category          ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
   bankId            String?   @db.ObjectId
@@ -290,6 +296,7 @@ model Expense {
 model ExpenseCategory {
   id       String    @id @default(auto()) @map("_id") @db.ObjectId
   name     String    @unique
+  limit    Float?
   expenses Expense[]
 }
 
@@ -384,7 +391,8 @@ model Customer {
   email               String? 
   phone               String? 
   openingBalance      Float  
-  outstandingPayments Float 
+  outstandingPayments Float
+  limit               Float?
   address             String?
 
   branchId            String?   @db.ObjectId
@@ -456,6 +464,7 @@ model Branch {
   bankDeposite       BankDeposite[]
   oil                 Oil[]
   supplier            Supplier[]
+  product             Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -8,6 +8,8 @@ export async function GET(
 ) {
   try {
     const { date } = await params;
+    const { searchParams } = new URL(req.url);
+    const branchId = searchParams.get('branchId');
     const selectedDate = new Date(date);
 
     // create start & end of the day range
@@ -19,7 +21,10 @@ export async function GET(
 
     // Purchase
     const purchases = await prisma.purchase.findMany({
-      where: { date: { gte: startOfDay, lte: endOfDay } },
+      where: { 
+        date: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
     });
     const totalPurchase = purchases.reduce(
       (sum, p) => sum + (p.purchasePrice || 0),
@@ -28,7 +33,17 @@ export async function GET(
 
     // Sale
     const sales = await prisma.sale.findMany({
-      where: { date: { gte: startOfDay, lte: endOfDay } },
+      where: { 
+        date: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
+      include: {
+        branch: {
+          select: {
+            name: true
+          }
+        }
+      }
     });
     const totalSale = sales.reduce(
       (sum, s) =>
@@ -60,7 +75,10 @@ export async function GET(
 
     // Expense
     const expenses = await prisma.expense.findMany({
-      where: { date: { gte: startOfDay, lte: endOfDay } },
+      where: { 
+        date: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
       include: {
         category: true,
       },
@@ -78,7 +96,10 @@ export async function GET(
 
     // Credit
     const credits = await prisma.credit.findMany({
-      where: { date: { gte: startOfDay, lte: endOfDay } },
+      where: { 
+        date: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
       include:{customer:true},
     });
     const totalCredit = credits.reduce(
@@ -88,16 +109,25 @@ export async function GET(
 
     // Meter Readings
     const meterReadings = await prisma.meterReading.findMany({
-      where: { date: { gte: startOfDay, lte: endOfDay } },
+      where: { 
+        date: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
       include: { nozzle: true, machine: true },
     });
 
     const oils = await prisma.oil.findMany({
-      where: { date: { gte: startOfDay, lte: endOfDay } },
+      where: { 
+        date: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
     });
 
     const bankDeposite = await prisma.bankDeposite.findMany({
-      where: { date: { gte: startOfDay, lte: endOfDay } },
+      where: { 
+        date: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
       include: {bank:true}
     });
 
@@ -121,6 +151,7 @@ export async function GET(
           gte: yesterdayStart,
           lte: yesterdayEnd,
         },
+        ...(branchId && { branchId })
       },
     });
 
@@ -137,8 +168,23 @@ export async function GET(
 
     const cashBalance = salesAndBalaceReceipt - expenseSum - bankDepositTotal;
 
+    // Get branch name
+    let branchName = "COCO KONDOTTY"; // default
+    if (branchId) {
+      // If branchId is provided, fetch the branch name
+      const branch = await prisma.branch.findUnique({
+        where: { id: branchId },
+        select: { name: true }
+      });
+      branchName = branch?.name || "COCO KONDOTTY";
+    } else if (sales.length > 0 && sales[0].branch?.name) {
+      // Fallback to first sale's branch name
+      branchName = sales[0].branch.name;
+    }
+
     return NextResponse.json({
       date,
+      branchName,
       totals: {
         totalPurchase,
         totalSale,

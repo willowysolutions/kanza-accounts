@@ -6,6 +6,7 @@ export const machineSchema = z.object({
   serialNumber: z.string().min(1, "Serial number is required"),
   machineTanks: z.array(z.string().min(1, "Tank ID is required")).min(1, "Select at least one tank"), 
   noOfNozzles: z.coerce.number(),
+  branchId: z.string().optional(),
 });
 
 export const machineSchemaWithId = machineSchema.extend({

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { purchaseSchema } from "@/schemas/purchase-schema";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,11 +15,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    const branchId = session?.user?.branch;
 
     const purchasePrice = result.data.purchasePrice
 
@@ -35,7 +28,7 @@ export async function POST(req: NextRequest) {
       data: {
         ...result.data,
         pendingAmount,
-        branchId
+        phone: result.data.phone || "",
       },
     });
 
@@ -59,7 +52,7 @@ export async function POST(req: NextRequest) {
         where: { id: existingStock.id },
         data: {
           quantity: existingStock.quantity + purchase.quantity,
-          branchId,
+          branchId: result.data.branchId,
         },
       });
     } else {
@@ -69,7 +62,7 @@ export async function POST(req: NextRequest) {
           item: purchase.productType,
           quantity: purchase.quantity,
           supplierId: purchase.supplierId,
-          branchId,
+          branchId: result.data.branchId,
         },
       });
     }

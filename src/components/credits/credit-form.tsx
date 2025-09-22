@@ -53,7 +53,7 @@ export function CreditFormDialog({
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments:number; }[]>([]);
+  const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments:number; limit?: number; }[]>([]);
   const [products, setProducts] = useState<{id:string; productName :string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
   const router = useRouter();
 
@@ -65,6 +65,7 @@ export function CreditFormDialog({
       quantity:credits?.quantity || undefined,
       amount: credits?.amount || undefined,
       date: credits?.date || new Date(),
+      reason: (credits as { reason?: string })?.reason || "",
     },
   });
 
@@ -81,10 +82,19 @@ export function CreditFormDialog({
   const displayBalance =
     (selectedCustomer?.outstandingPayments ?? 0) + Number(enteredAmount || 0);
 
+  // Check if outstanding + entered amount exceeds customer limit
+  const exceedsLimit = selectedCustomer?.limit && displayBalance > selectedCustomer.limit;
+
   const handleSubmit = async (
     values: z.infer<typeof creditSchema>,
     close: () => void
   ) => {
+    // Validate reason when limit is exceeded
+    if (exceedsLimit && (!values.reason || values.reason.trim() === "")) {
+      toast.error("Reason is required when outstanding + credit amount exceeds customer limit");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const url = credits
@@ -328,6 +338,26 @@ export function CreditFormDialog({
             )}
           />
         </div>
+
+        {/* Reason field - only show when credit amount exceeds limit */}
+        {exceedsLimit && (
+          <FormField
+            control={form.control}
+            name="reason"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reason (Required - Outstanding + Credit exceeds limit)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter reason for exceeding customer limit"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormDialogFooter>
           <DialogClose asChild>

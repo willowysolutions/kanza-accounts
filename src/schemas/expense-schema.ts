@@ -5,7 +5,8 @@ export const expenseSchema = z.object({
   amount: z.coerce.number({ required_error: "Amount is required" }).min(0),
   date: z.coerce.date(),
   expenseCategoryId: z.string().min(1),
-  bankId:z.string().optional()
+  bankId:z.string().optional(),
+  reason: z.string().optional()
 });
 
 export const expenseSchemaWithId = expenseSchema.extend({

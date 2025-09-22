@@ -64,6 +64,7 @@ interface WizardContextType {
   goToPrevious: () => void;
   goToStep: (step: number) => void;
   markStepCompleted: (stepIndex: number) => void;
+  markCurrentStepCompleted: () => void;
   isStepCompleted: (stepIndex: number) => boolean;
   canGoNext: boolean;
   canGoPrevious: boolean;
@@ -71,6 +72,10 @@ interface WizardContextType {
   isFirstStep: boolean;
   onSaveAndNext: (() => (() => Promise<boolean>)) | null;
   setOnSaveAndNext: (handler: (() => (() => Promise<boolean>)) | null) => void;
+  isStepDisabled: boolean;
+  setIsStepDisabled: (disabled: boolean) => void;
+  isCurrentStepCompleted: boolean;
+  setIsCurrentStepCompleted: (completed: boolean) => void;
   // Persistent data across steps
   addedExpenses: AddedExpense[];
   setAddedExpenses: React.Dispatch<React.SetStateAction<AddedExpense[]>>;
@@ -112,6 +117,8 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [onSaveAndNext, setOnSaveAndNext] = useState<(() => (() => Promise<boolean>)) | null>(null);
+  const [isStepDisabled, setIsStepDisabled] = useState(false);
+  const [isCurrentStepCompleted, setIsCurrentStepCompleted] = useState(false);
   
   // Persistent data across all steps
   const [addedExpenses, setAddedExpenses] = useState<AddedExpense[]>([]);
@@ -129,6 +136,19 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
   const isLastStep = currentStep === totalSteps - 1;
   const isFirstStep = currentStep === 0;
 
+  const isStepCompleted = useCallback((stepIndex: number) => {
+    return completedSteps.has(stepIndex);
+  }, [completedSteps]);
+
+  const markStepCompleted = useCallback((stepIndex: number) => {
+    setCompletedSteps(prev => new Set([...prev, stepIndex]));
+  }, []);
+
+  const markCurrentStepCompleted = useCallback(() => {
+    setIsCurrentStepCompleted(true);
+    markStepCompleted(currentStep);
+  }, [currentStep, markStepCompleted]);
+
   const goToNext = useCallback(async () => {
     if (onSaveAndNext) {
       const saveHandler = onSaveAndNext();
@@ -143,34 +163,29 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     if (currentStep < totalSteps - 1) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
+      setIsCurrentStepCompleted(isStepCompleted(nextStep));
       onStepChange?.(nextStep);
     } else {
       onComplete?.();
     }
-  }, [currentStep, totalSteps, onComplete, onStepChange, onSaveAndNext]);
+  }, [currentStep, totalSteps, onComplete, onStepChange, onSaveAndNext, isStepCompleted]);
 
   const goToPrevious = useCallback(() => {
     if (currentStep > 0) {
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
+      setIsCurrentStepCompleted(isStepCompleted(prevStep));
       onStepChange?.(prevStep);
     }
-  }, [currentStep, onStepChange]);
+  }, [currentStep, onStepChange, isStepCompleted]);
 
   const goToStep = useCallback((step: number) => {
     if (step >= 0 && step < totalSteps) {
       setCurrentStep(step);
+      setIsCurrentStepCompleted(isStepCompleted(step));
       onStepChange?.(step);
     }
-  }, [totalSteps, onStepChange]);
-
-  const markStepCompleted = useCallback((stepIndex: number) => {
-    setCompletedSteps(prev => new Set([...prev, stepIndex]));
-  }, []);
-
-  const isStepCompleted = useCallback((stepIndex: number) => {
-    return completedSteps.has(stepIndex);
-  }, [completedSteps]);
+  }, [totalSteps, onStepChange, isStepCompleted]);
 
   const canGoNext = currentStep < totalSteps - 1;
   const canGoPrevious = currentStep > 0;
@@ -183,6 +198,7 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     goToPrevious,
     goToStep,
     markStepCompleted,
+    markCurrentStepCompleted,
     isStepCompleted,
     canGoNext,
     canGoPrevious,
@@ -190,6 +206,10 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     isFirstStep,
     onSaveAndNext,
     setOnSaveAndNext,
+    isStepDisabled,
+    setIsStepDisabled,
+    isCurrentStepCompleted,
+    setIsCurrentStepCompleted,
     // Persistent data
     addedExpenses,
     setAddedExpenses,
@@ -291,7 +311,9 @@ const WizardNavigation: React.FC<WizardNavigationProps> = ({
     goToNext, 
     goToPrevious, 
     isLastStep, 
-    isFirstStep 
+    isFirstStep,
+    isStepDisabled,
+    isCurrentStepCompleted
   } = useWizard();
 
   const currentStepData = steps[currentStep];
@@ -328,14 +350,14 @@ const WizardNavigation: React.FC<WizardNavigationProps> = ({
       <Button
         type="button"
         onClick={handleNext}
-        disabled={isLoading}
+        disabled={isLoading || isStepDisabled || !isCurrentStepCompleted}
         className="flex items-center gap-2"
       >
         {isLoading ? (
           "Saving..."
         ) : (
           <>
-            {nextButtonText || (isLastStep ? "Complete" : "Save & Next")}
+            {nextButtonText || (isLastStep ? "Finish" : "Save & Next")}
             {!isLastStep && <ChevronRight className="w-4 h-4" />}
           </>
         )}

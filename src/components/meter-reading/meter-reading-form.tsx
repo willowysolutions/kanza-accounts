@@ -98,10 +98,6 @@ export function MeterReadingFormSheet({
       };
     }
 
-    return {
-      isValid: true,
-      message: `remaining (${tankInfo.currentLevel.toFixed(2)})`
-    };
   };
 
 useEffect(() => {

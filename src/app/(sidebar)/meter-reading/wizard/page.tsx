@@ -24,16 +24,16 @@ const wizardSteps: WizardStep[] = [
     component: ProductsStep,
   },
   {
-    id: 'expense',
-    title: 'Expense',
-    description: 'Record daily expenses',
-    component: ExpenseStep,
-  },
-  {
     id: 'credit',
     title: 'Credit',
     description: 'Record credit transactions',
     component: CreditStep,
+  },
+  {
+    id: 'expense',
+    title: 'Expense',
+    description: 'Record daily expenses',
+    component: ExpenseStep,
   },
   {
     id: 'bank-deposit',

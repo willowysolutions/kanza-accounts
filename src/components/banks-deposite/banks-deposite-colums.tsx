@@ -41,14 +41,6 @@ export const bankDepositeColumns: ColumnDef<BankDeposite>[] = [
     }
   },
   {
-    accessorKey: "branchId",
-    header: "Branch",
-    cell: ({ row }) => {
-      const branch = row.original.branch.name;
-      return <div>{branch ? String(branch) : "..."}</div>;
-    },
-  },
-  {
     accessorKey: "amount",
     header: "Amount",
   },

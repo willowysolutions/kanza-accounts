@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 // import { parseProducts } from '@/lib/product-utils'; // Unused import removed
 
 export const SalesStep: React.FC = () => {
-  const { markStepCompleted, currentStep, setOnSaveAndNext } = useWizard();
+  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext } = useWizard();
   const [meterReading, setMeterReading] = useState<{ 
     totalAmount: number;
     id: string;
@@ -442,6 +442,17 @@ export const SalesStep: React.FC = () => {
               />
             </div>
           </form>
+
+          {/* Complete Button */}
+          <div className="flex justify-end pt-4 border-t">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={markCurrentStepCompleted}
+            >
+              Complete
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </FormProvider>

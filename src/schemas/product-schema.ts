@@ -5,6 +5,7 @@ export const productSchema = z.object({
   productUnit: z.string().min(1),
   purchasePrice: z.coerce.number().min(1),
   sellingPrice: z.coerce.number().min(1),
+  branchId: z.string().min(1),
 });
 
 export const productSchemaWithId = productSchema.extend({

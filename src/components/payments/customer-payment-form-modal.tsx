@@ -180,6 +180,8 @@ export function PaymentFormDialog({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank">Bank</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
                     <SelectItem value="card">Card</SelectItem>
                     <SelectItem value="upi">UPI</SelectItem>
                     <SelectItem value="other">Other</SelectItem>

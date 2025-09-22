@@ -31,6 +31,7 @@ type ReportModalProps = {
 
 type ReportData = {
   date: string;
+  branchName: string;
   totals: {
     totalPurchase: number;
     totalSale: number;
@@ -115,7 +116,7 @@ doc.text("IBP AUTO SERVICES", pageWidth / 2, 50, { align: "center" });
 // Subtitle
 doc.setFontSize(12);
 doc.setFont("helvetica", "normal");
-doc.text("COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
+doc.text(report.branchName || "COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
 
 // Date (right aligned with table edge)
 doc.setFontSize(11);

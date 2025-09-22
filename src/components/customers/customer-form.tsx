@@ -51,6 +51,7 @@ export function CustomerFormDialog({
       email: customers?.email || "",
       address: customers?.address || "",
       openingBalance: customers?.openingBalance || undefined,
+      limit: customers?.limit || undefined,
     },
   });
 
@@ -174,6 +175,8 @@ export function CustomerFormDialog({
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+
         <FormField
           control={form.control}
           name="openingBalance"
@@ -182,6 +185,7 @@ export function CustomerFormDialog({
               <FormLabel>Opening Balance</FormLabel>
               <FormControl>
                 <Input type="number" 
+                placeholder="000.00"
                 {...field} 
                 value={field.value ?? ""}
                 />
@@ -190,6 +194,27 @@ export function CustomerFormDialog({
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="limit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Limit</FormLabel>
+              <FormControl>
+                <Input type="number" 
+                placeholder="000.00"
+                {...field} 
+                value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+
+        </div>
 
         <FormDialogFooter>
           <DialogClose asChild>

@@ -52,9 +52,9 @@ export function AppSidebar({ user,...props }: AppSidebarProps) {
         {user?.role === "admin" && (
           <NavGroup label="Admin Area" items={SIDEBAR_DATA.admin} />
         )}
-        {user?.role === "branch" && (
+        {/* {user?.role === "branch" && (
           <NavGroup label="Branch Area" items={SIDEBAR_DATA.branch} />
-        )}
+        )} */}
         {user?.role === "staff" && (
           <NavGroup label="Staff Area" items={SIDEBAR_DATA.staff} />
         )}

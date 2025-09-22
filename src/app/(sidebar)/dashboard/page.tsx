@@ -141,6 +141,15 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
           </Card>
         </div>
 
+        {/* Customer Details */}
+        <CustomerDetailsCard 
+          customers={customers as Customer[]}
+          branches={branches}
+          role={session.user.role}
+          userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
+          page={page}
+        />
+
         {/* Branch Daily Summary */}
         <Card>
           <CardHeader>
@@ -191,14 +200,7 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
 
 
 
-        {/* Customer Details */}
-        <CustomerDetailsCard 
-          customers={customers as Customer[]}
-          branches={branches}
-          role={session.user.role}
-          userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
-          page={page}
-        />
+        
 
         <ChartAreaInteractive />
 
@@ -275,7 +277,7 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
       rows: await Promise.all(
         pageDates.map(async (date) => ({
           date,
-          totals: await fetchBranchDailySummary(isAdmin ? b.id : undefined, date),
+          totals: await fetchBranchDailySummary(b.id, date),
         }))
       ),
     }))
@@ -303,7 +305,18 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ date, totals }) => (
+              {rows
+                .filter(({ totals }) => {
+                  // Filter out rows where all values are 0
+                  const totalSale = totals.totalSale ?? 0;
+                  const totalExpense = totals.totalExpense ?? 0;
+                  const totalCredit = totals.totalCredit ?? 0;
+                  const totalBalanceReceipt = totals.totalBalanceReceipt ?? 0;
+                  const cashBalance = totals.cashBalance ?? 0;
+                  
+                  return totalSale > 0 || totalExpense > 0 || totalCredit > 0 || totalBalanceReceipt > 0 || cashBalance > 0;
+                })
+                .map(({ date, totals }) => (
                 <tr key={date} className="border-b hover:bg-muted">
                   <td className="p-2">{formatDate(date)}</td>
                   <td className="p-2">₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
@@ -483,7 +496,19 @@ async function BranchSalesTabs({
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ date, sales }) => (
+              {rows
+                .filter(({ sales }) => {
+                  // Filter out rows where all values are 0
+                  return sales.cashPayment > 0 || 
+                         sales.atmPayment > 0 || 
+                         sales.paytmPayment > 0 || 
+                         sales.fleetPayment > 0 || 
+                         sales.hsdDieselTotal > 0 || 
+                         sales.xgDieselTotal > 0 || 
+                         sales.msPetrolTotal > 0 || 
+                         sales.totalAmount > 0;
+                })
+                .map(({ date, sales }) => (
                 <tr key={date} className="border-b hover:bg-muted">
                   <td className="p-2">{formatDate(date)}</td>
                   <td className="p-2">₹{sales.cashPayment.toFixed(2)}</td>

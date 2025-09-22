@@ -137,7 +137,7 @@ const SalesActions = ({ sales }: { sales: Sales }) => {
   // Subtitle
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
-  doc.text("COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
+  doc.text(reportData.branchName || "COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
   
   // Date (right aligned with table edge)
   doc.setFontSize(11);

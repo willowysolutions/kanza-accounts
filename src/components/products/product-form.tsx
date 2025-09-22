@@ -33,7 +33,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Product } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { productSchema } from "@/schemas/product-schema";
@@ -48,6 +48,8 @@ export function ProductFormDialog({
   openChange?: (open: boolean) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
+
   const router = useRouter();
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -57,6 +59,7 @@ export function ProductFormDialog({
       purchasePrice: products?.purchasePrice || undefined,
       sellingPrice: products?.sellingPrice || undefined,
       productUnit: products?.productUnit || "",
+      branchId: products?.branchId || "",
     },
   });
 
@@ -96,6 +99,20 @@ export function ProductFormDialog({
     }
   };
 
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch("/api/branch");
+        const json = await res.json();
+        setBranchOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch branches", error);
+      }
+    };
+
+    fetchBranches();
+  }, []);
+  
   return (
     <FormDialog
       open={open}
@@ -182,6 +199,32 @@ export function ProductFormDialog({
           />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+          <FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
           <FormField
             control={form.control}
             name="productUnit"
@@ -205,6 +248,7 @@ export function ProductFormDialog({
               </FormItem>
             )}
           />
+          </div>
 
         <FormDialogFooter>
           <DialogClose asChild>

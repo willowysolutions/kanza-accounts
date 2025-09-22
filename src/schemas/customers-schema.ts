@@ -6,6 +6,7 @@ export const customerSchema = z.object({
   phone: z.string().optional(),
   openingBalance: z.coerce.number(),
   outstandingPayments:z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
   address: z.string().optional(),
 });
 

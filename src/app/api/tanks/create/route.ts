@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { tankSchema } from "@/schemas/tank-schema";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 //create new tank
 
@@ -19,16 +17,11 @@ export async function POST(req: NextRequest) {
       );
     }   
     
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
 
-    const branchId = session?.user?.branch;
 
     const tank = await prisma.tank.create({
       data: {
         ...result.data,
-        branchId
       },
     });
     revalidatePath("/tanks");

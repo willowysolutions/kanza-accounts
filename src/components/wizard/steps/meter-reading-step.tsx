@@ -31,12 +31,13 @@ type MachineWithNozzles = {
 type BulkForm = z.infer<typeof bulkSchema>;
 
 export const MeterReadingStep: React.FC = () => {
-  const { markStepCompleted, currentStep, setOnSaveAndNext } = useWizard();
+  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, setIsStepDisabled } = useWizard();
   const [machines, setMachines] = useState<MachineWithNozzles[]>([]);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<ProductType[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [tankLevels, setTankLevels] = useState<Record<string, { currentLevel: number; tankName: string; fuelType: string }>>({});
+  const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const router = useRouter();
 
   const form = useForm<BulkForm>({
@@ -56,29 +57,48 @@ export const MeterReadingStep: React.FC = () => {
   }, [machines]);
 
   // Function to validate tank level
-  const validateTankLevel = (nozzleId: string, closingValue: number, openingValue: number) => {
+  const validateTankLevel = useCallback((nozzleId: string, closingValue: number, openingValue: number) => {
     const tankInfo = tankLevels[nozzleId];
-    if (!tankInfo) return {
-      isValid: false,
-      message: "insufficient level"
-    };
+    
+    if (!tankInfo) {
+      return {
+        isValid: false,
+        message: "insufficient level"
+      };
+    }
 
     const difference = closingValue - openingValue;
     if (difference < 0) return null; // Invalid reading (closing < opening)
 
     const remainingLevel = tankInfo.currentLevel - difference;
+    
     if (remainingLevel < 0) {
       return {
         isValid: false,
         message: "insufficient level"
-    };
+      };
     }
 
-    return {
-      isValid: true,
-      message: `remaining (${tankInfo.currentLevel.toFixed(2)})`
-    };
-  };
+  }, [tankLevels]);
+
+  // Function to check if there are any validation errors
+  const checkValidationErrors = useCallback(() => {
+    const rows = form.getValues('rows');
+    let hasErrors = false;
+
+    for (const row of rows) {
+      if (row.closing != null && row.opening != null) {
+        const validation = validateTankLevel(row.nozzleId, row.closing, row.opening);
+        if (validation && !validation.isValid) {
+          hasErrors = true;
+          break;
+        }
+      }
+    }
+
+    setHasValidationErrors(hasErrors);
+    setIsStepDisabled(hasErrors);
+  }, [form, validateTankLevel, setIsStepDisabled]);
 
   // Load data
   useEffect(() => {
@@ -155,9 +175,22 @@ export const MeterReadingStep: React.FC = () => {
   const getRowIndex = (nozzleId: string) =>
     rows.findIndex((r) => r.nozzleId === nozzleId);
 
+  // Watch for changes in rows and check validation
+  useEffect(() => {
+    if (isInitialized) {
+      checkValidationErrors();
+    }
+  }, [rows, isInitialized, checkValidationErrors]);
+
   // Submit function
   const submit = useCallback(async (values: BulkForm): Promise<boolean> => {
     try {
+      // Check for validation errors before submitting
+      if (hasValidationErrors) {
+        toast.error("Cannot save with insufficient stock levels. Please check your closing readings.");
+        return false;
+      }
+
       // ensure closing >= opening before saving
       const items = values.rows.map((r) => {
         const fuelType = nozzleMap.get(r.nozzleId)?.fuelType;
@@ -223,7 +256,7 @@ export const MeterReadingStep: React.FC = () => {
       toast.error("Unexpected error");
       return false;
     }
-  }, [nozzleMap, markStepCompleted, currentStep, router]);
+  }, [nozzleMap, markStepCompleted, currentStep, router, hasValidationErrors]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {
@@ -387,6 +420,9 @@ export const MeterReadingStep: React.FC = () => {
                                           form.setValue(`rows.${idx}.sale`, undefined);
                                           form.setValue(`rows.${idx}.totalAmount`, undefined);
                                         }
+                                        
+                                        // Trigger validation check immediately
+                                        setTimeout(() => checkValidationErrors(), 0);
                                       }}
                                     />
                                   </FormControl>
@@ -590,6 +626,17 @@ export const MeterReadingStep: React.FC = () => {
               </div>
             </div>
           </form>
+
+          {/* Complete Button */}
+          <div className="flex justify-end pt-4 border-t">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={markCurrentStepCompleted}
+            >
+              Complete
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </FormProvider>

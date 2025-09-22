@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -27,13 +26,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { Product } from "@prisma/client";
 import { useState } from "react";
+import { ProductTableProps } from "@/types/product";
 
-interface ProductTableProps<TValue> {
-  columns: ColumnDef<Product, TValue>[];
-  data: Product[];
-}
 
 export function ProductTable<TValue>({ columns, data }: ProductTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);

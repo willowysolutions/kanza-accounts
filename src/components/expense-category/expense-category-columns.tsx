@@ -1,6 +1,10 @@
 "use client";
 
-import { ExpenseCategory } from "@prisma/client";
+import { ExpenseCategory, Expense } from "@prisma/client";
+
+type ExpenseCategoryWithExpenses = ExpenseCategory & {
+  expenses: Expense[];
+};
 import { ExpenseCategoryFormDialog } from "./expense-category-form";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -22,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { ExpenseCategoryDeleteDialog } from "./expense-category-delete-dailog";
 import { useState } from "react";
 
-export const expenseCategoryColumns: ColumnDef<ExpenseCategory>[] = [
+export const expenseCategoryColumns: ColumnDef<ExpenseCategoryWithExpenses>[] = [
   {
     accessorKey: "name",
     header: ({ column }) => {
@@ -47,13 +51,41 @@ export const expenseCategoryColumns: ColumnDef<ExpenseCategory>[] = [
     cell: ({ row }) =>  <div className="px-3">{row.getValue('name') as string}</div>,
   },
   {
+    accessorKey: "limit",
+    header: "Limit",
+    cell: ({ row }) => {
+      const limit = row.getValue('limit') as number | null;
+      return (
+        <div>
+          {limit ? `₹${limit.toFixed(2)}` : 'No limit'}
+        </div>
+      );
+    },
+  },
+  {
+    id: "balanceLimit",
+    header: "Balance Limit",
+    cell: ({ row }) => {
+      const expenseCategory = row.original;
+      const limit = expenseCategory.limit;
+      const totalExpenses = expenseCategory.expenses?.reduce((sum: number, expense: Expense) => sum + expense.amount, 0) || 0;
+      const exceedsLimit = limit && totalExpenses > limit;
+      
+      return (
+        <div className={` ${exceedsLimit ? 'text-red-600 font-semibold' : ''}`}>
+          ₹{totalExpenses.toFixed(2)}
+        </div>
+      );
+    },
+  },
+  {
     id: "action",
     cell: ({ row }) =>
       row.original && <ExpenseCategoryDropdeownMenu expenseCategory={row.original} />,
   },
 ];
 
-export const ExpenseCategoryDropdeownMenu = ({ expenseCategory }: { expenseCategory: ExpenseCategory }) => {
+export const ExpenseCategoryDropdeownMenu = ({ expenseCategory }: { expenseCategory: ExpenseCategoryWithExpenses }) => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
 

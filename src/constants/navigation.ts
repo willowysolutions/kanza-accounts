@@ -62,11 +62,6 @@ export const SIDEBAR_DATA: SidebarData = {
       icon: IconCash,
     },
     {
-      title: 'Customer',
-      url: '/customers',
-      icon: IconUser,
-    },
-    {
       title: "Reports",
       url: "/reports",
       icon: IconFileText,
@@ -97,6 +92,17 @@ export const SIDEBAR_DATA: SidebarData = {
         },
       ],
     },
+    {
+      title: 'Expense Category',
+      url: '/expensescategory',
+      icon: IconCategory,
+    },
+    {
+      title: 'Balance Receipt',
+      url: '/balance-receipt',
+      icon: IconCashBanknote,
+    }, 
+
 
   ],
 
@@ -142,22 +148,21 @@ export const SIDEBAR_DATA: SidebarData = {
       url: '/admin/branches',
       icon: IconBuildingPlus,
     },
-    {
-      title: 'Balance Receipt',
-      url: '/admin/balance-receipt',
-      icon: IconCashBanknote,
-    }, 
-    {
-      title: 'Branch',
-      url: '/admin/staffs',
-      icon: IconUserPlus,
-    },
+    // {
+    //   title: 'Users',
+    //   url: '/admin/staffs',
+    //   icon: IconUserPlus,
+    // },
     {
       title: 'Bank',
       url: '/admin/banks',
       icon: IconBuildingBank,
     },
-    
+    {
+      title: 'Customer',
+      url: '/admin/customers',
+      icon: IconUser,
+    },
     {
       title: 'Supplier',
       url: '/admin/suppliers',
@@ -169,11 +174,7 @@ export const SIDEBAR_DATA: SidebarData = {
   // only branch can see this navigation
   branch: [
     
-    {
-      title: 'Expense Category',
-      url: '/branch/expensescategory',
-      icon: IconCategory,
-    }
+    
   ],
 
   staff: [

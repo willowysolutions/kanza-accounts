@@ -41,9 +41,13 @@ export async function POST(req: NextRequest) {
       // 1. Create credit
       const createdCredit = await tx.credit.create({
         data: {
-          customerId,
+          customer: {
+            connect: { id: customerId }
+          },
           amount,
-          branchId,
+          branch: branchId ? {
+            connect: { id: branchId }
+          } : undefined,
           date,
           ...rest,
         },

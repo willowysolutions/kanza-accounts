@@ -5,6 +5,9 @@ export async function GET() {
   try {
     const product = await prisma.product.findMany({
       orderBy: { productName: "asc" },
+      include: {
+        branch: true,
+      },
     });
 
     return NextResponse.json({ data: product }, { status: 200 });

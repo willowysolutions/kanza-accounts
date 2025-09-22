@@ -27,14 +27,6 @@ export const creditColumns: ColumnDef<Credit>[] = [
     cell: ({ getValue }) => <div>{getValue<string>()}</div>,
   },
   {
-    accessorKey: "branchId",
-    header: "Branch",
-    cell: ({ row }) => {
-      const branch = row.original.branch.name;
-      return <div>{branch ? String(branch) : "..."}</div>;
-    },
-  },
-  {
     accessorKey: "fuelType",
     header: "Fuel Type",
   },

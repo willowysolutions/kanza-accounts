@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { nozzleSchema } from "@/schemas/nozzle-schema";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,11 +15,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    const branchId = session?.user?.branch;
 
     // 1️⃣ Get the machine details
     const machine = await prisma.machine.findUnique({
@@ -53,7 +46,6 @@ export async function POST(req: NextRequest) {
     const nozzle = await prisma.nozzle.create({
       data: {
         ...result.data,
-        branchId,
       },
     });
 

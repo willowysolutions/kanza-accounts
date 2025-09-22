@@ -23,6 +23,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 export const BankDepositStep: React.FC = () => {
   const { 
     markStepCompleted, 
+    markCurrentStepCompleted,
     currentStep, 
     setOnSaveAndNext,
     addedDeposits,
@@ -380,11 +381,9 @@ export const BankDepositStep: React.FC = () => {
                   <Button 
                     type="button" 
                     variant="outline"
-                    onClick={() => {
-                      markStepCompleted(currentStep);
-                    }}
+                    onClick={markCurrentStepCompleted}
                   >
-                    Skip Step
+                    Complete
                   </Button>
                 </>
               )}

@@ -47,12 +47,28 @@ export const customerColumns: ColumnDef<Customer>[] = [
     },
   },  
   {
+    accessorKey: "limit",
+    header: "Limit",
+  },
+  {
     accessorKey: "openingBalance",
     header: "Opening",
   },
   {
     accessorKey: "outstandingPayments",
     header: "Pending",
+    cell: ({ row }) => {
+      const customer = row.original;
+      const pendingAmount = customer.outstandingPayments;
+      const limit = (customer as { limit?: number }).limit;
+      const exceedsLimit = limit && pendingAmount > limit;
+      
+      return (
+        <div className={`px-3 ${exceedsLimit ? 'text-red-600 font-semibold' : ''}`}>
+          {pendingAmount}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "email",
@@ -76,14 +92,6 @@ export const customerColumns: ColumnDef<Customer>[] = [
     cell: ({ row }) => {
       const address = row.getValue("address");
       return <div className="px-3">{address ? String(address) : "..."}</div>;
-    },
-  },
-  {
-    accessorKey: "branchId",
-    header: "Branch",
-    cell: ({ row }) => {
-      const branch = row.original.branch.name;
-      return <div>{branch ? String(branch) : "..."}</div>;
     },
   },
   {
