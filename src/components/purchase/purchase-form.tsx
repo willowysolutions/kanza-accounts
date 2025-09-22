@@ -55,7 +55,9 @@ export function PurchaseFormModal({
   id: string;
   purchasePrice:number;
   sellingPrice:number;
-  productUnit:string }[]>([]);
+  productUnit:string;
+  branchId: string | null;
+  }[]>([]);
   const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [purchasePrice, setPurchasePrice] = useState<number>(0);
@@ -66,7 +68,6 @@ export function PurchaseFormModal({
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
       supplierId: purchase?.supplierId || "",
-      phone: purchase?.phone || "",
       productType: purchase?.productType || "",
       quantity: purchase?.quantity || undefined,
       date:purchase?.date || new Date(),
@@ -76,9 +77,9 @@ export function PurchaseFormModal({
     },
   });
 
-  const supplier = useWatch({ control: form.control, name: "supplierId" });
   const quantity = useWatch({ control: form.control, name: "quantity" });
   const productType = useWatch({ control: form.control, name: "productType" });
+  const selectedBranchId = useWatch({ control: form.control, name: "branchId" });
 
 
   const handleSubmit = async (values: PurchaseFormValues, close: () => void) => {
@@ -130,17 +131,8 @@ export function PurchaseFormModal({
       const res = await fetch("/api/products");
       const json = await res.json();
       
-      // Deduplicate products by name, keeping the first occurrence
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
-        const existingProduct = acc.find(p => p.productName === product.productName);
-        if (!existingProduct) {
-          acc.push(product);
-        }
-        return acc;
-      }, []) || [];
-      
-      setProductOptions(uniqueProducts);
+      // Keep all products with their branch-specific prices
+      setProductOptions(json.data || []);
     } catch (error) {
       console.error("Failed to fetch products", error);
     }
@@ -163,23 +155,16 @@ export function PurchaseFormModal({
     fetchBranches();
   }, []);
 
-  useEffect(() => {
-  const selectedSupplierId = form.watch("supplierId");
-  if (!selectedSupplierId) return;
-
-  const supplier = supplierOptions.find(s => s.id === selectedSupplierId);
-  if (supplier && supplier.phone) {
-    form.setValue("phone", supplier.phone, { shouldValidate: true });
-  }
-}, [supplier, supplierOptions,form]);
 
  useEffect(() => {
     const quantity = form.watch("quantity") || 0;
     const selectedProductName = form.watch("productType");
 
+    // Find product for the selected branch
     const selectedProduct = productOption.find(
-      (p) => p.productName === selectedProductName
+      (p) => p.productName === selectedProductName && p.branchId === selectedBranchId
     );
+    
     const sellingPrice = selectedProduct?.sellingPrice ?? 0;
     const purchasePrice = selectedProduct?.purchasePrice ?? 0;
 
@@ -187,8 +172,17 @@ export function PurchaseFormModal({
 
     setSellingPrice(sellingPrice);
     setPurchasePrice(purchasePrice);
-  }, [quantity, productType, productOption,form]);
+  }, [quantity, productType, selectedBranchId, productOption, form]);
 
+  // Clear product selection when branch changes
+  useEffect(() => {
+    if (selectedBranchId) {
+      form.setValue("productType", "");
+      setSellingPrice(0);
+      setPurchasePrice(0);
+      form.setValue("purchasePrice", 0);
+    }
+  }, [selectedBranchId, form]);
 
   return (
     <FormDialog
@@ -248,6 +242,33 @@ export function PurchaseFormModal({
 
           <FormField
             control={form.control}
+            name="branchId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Branch</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Branch" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {branchOptions.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
             name="phone"
             render={({ field }) => (
               <FormItem>
@@ -278,11 +299,13 @@ export function PurchaseFormModal({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {productOption.map(product => (
-                    <SelectItem key={product.id} value={product.productName}>
-                      {product.productName}
-                    </SelectItem>
-                  ))}
+                  {productOption
+                    .filter(product => product.branchId === selectedBranchId)
+                    .map(product => (
+                      <SelectItem key={product.id} value={product.productName}>
+                        {product.productName}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -380,30 +403,6 @@ export function PurchaseFormModal({
             )}
           />
 
-        <FormField
-          control={form.control}
-          name="branchId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Branch</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Branch" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {branchOptions.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormDialogFooter>
           <DialogClose asChild>

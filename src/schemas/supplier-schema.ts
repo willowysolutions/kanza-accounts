@@ -8,6 +8,7 @@ export const supplierSchema = z.object({
   openingBalance: z.coerce.number(),
   outstandingPayments:z.coerce.number().optional(),
   address: z.string().optional(),
+  branchId: z.string().optional(),
 });
 
 export const supplierSchemaWithId = supplierSchema.extend({

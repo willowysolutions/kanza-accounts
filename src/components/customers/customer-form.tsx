@@ -26,10 +26,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Customer } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { customerSchema } from "@/schemas/customers-schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function CustomerFormDialog({
   customers,
@@ -41,6 +42,7 @@ export function CustomerFormDialog({
   openChange?: (open: boolean) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof customerSchema>>({
@@ -52,6 +54,7 @@ export function CustomerFormDialog({
       address: customers?.address || "",
       openingBalance: customers?.openingBalance || undefined,
       limit: customers?.limit || undefined,
+      branchId: customers?.branchId || undefined,
     },
   });
 
@@ -90,6 +93,15 @@ export function CustomerFormDialog({
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      const res = await fetch("/api/branch");
+      const json = await res.json();
+      setBranchOptions(json.data || []);
+    };
+    fetchBranches();
+  }, []);
 
   return (
     <FormDialog
@@ -175,8 +187,32 @@ export function CustomerFormDialog({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
+        <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="openingBalance"
@@ -215,6 +251,7 @@ export function CustomerFormDialog({
 
 
         </div>
+
 
         <FormDialogFooter>
           <DialogClose asChild>

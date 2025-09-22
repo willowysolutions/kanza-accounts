@@ -8,6 +8,7 @@ export const customerSchema = z.object({
   outstandingPayments:z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
   address: z.string().optional(),
+  branchId: z.string().optional(),
 });
 
 export const customerSchemaWithId = customerSchema.extend({

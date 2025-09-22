@@ -54,7 +54,7 @@ export default async function PurchasePage() {
         </TabsList>
 
         {purchasesByBranch.map(({ branchId, branchName, purchases }: { branchId: string; branchName: string; purchases: Purchase[] }) => {
-          const xpTotal = purchases.filter((p: Purchase) => p.productType === "XP-DIESEL")
+          const xpTotal = purchases.filter((p: Purchase) => p.productType === "XG-DIESEL")
                         .reduce((sum: number, p: Purchase) => sum + p.quantity, 0) ?? 0;
           const hsdTotal = purchases.filter((p: Purchase) => p.productType === "HSD-DIESEL")
                         .reduce((sum: number, p: Purchase) => sum + p.quantity, 0);
@@ -75,7 +75,7 @@ export default async function PurchasePage() {
               <div className="grid gap-4 md:grid-cols-4 mb-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total XP-DIESEL Purchases</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total XG-DIESEL Purchases</CardTitle>
                     <Fuel className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>

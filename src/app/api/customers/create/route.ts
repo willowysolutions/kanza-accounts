@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { customerSchema } from "@/schemas/customers-schema";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,18 +15,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }    
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    const branchId = session?.user?.branch;
-
     const outstandingPayments = result.data.openingBalance
 
     const customer = await prisma.customer.create({
       data: {
         ...result.data,
-        branchId,
         outstandingPayments
       },
     });

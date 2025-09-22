@@ -21,13 +21,20 @@ import {
   FormDialogTitle,
   FormDialogTrigger,
 } from "@/components/ui/form-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supplierSchema } from "@/schemas/supplier-schema";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Supplier } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +49,7 @@ export function SupplierFormDialog({
   openChange?: (open: boolean) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof supplierSchema>>({
@@ -91,6 +99,15 @@ export function SupplierFormDialog({
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      const res = await fetch("/api/branch");
+      const json = await res.json();
+      setBranchOptions(json.data || []);
+    };
+    fetchBranches();
+  }, []);
 
   return (
     <FormDialog
@@ -190,6 +207,32 @@ export function SupplierFormDialog({
           )}
         />
 
+<FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+
         <FormField
           control={form.control}
           name="openingBalance"
@@ -206,6 +249,8 @@ export function SupplierFormDialog({
             </FormItem>
           )}
         />
+
+
 
         <FormDialogFooter>
           <DialogClose asChild>

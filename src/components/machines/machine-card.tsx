@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useState } from "react";
 import { MachineFormModal } from "./machine-form";
 import { MachineDeleteDialog } from "./machine-delete-dialog";
@@ -37,9 +37,6 @@ export function Machinecard({ data }: Props) {
                     {machine.machineName}
                   </CardTitle>
                 </div>
-                <CardDescription>
-                  {machine.model} • S/N: {machine.serialNumber}
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">

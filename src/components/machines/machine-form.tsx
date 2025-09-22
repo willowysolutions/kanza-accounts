@@ -60,8 +60,6 @@ export function MachineFormModal({
       resolver: zodResolver(machineSchema),
       defaultValues: {
         machineName: machine?.machineName || "",
-        model: machine?.model || "",
-        serialNumber: machine?.serialNumber || "",
         machineTanks: machine?.machineTanks?.map(mt => mt.tankId) || [],
         noOfNozzles: machine?.noOfNozzles || 0,
         branchId: machine?.branchId || undefined,
@@ -167,36 +165,6 @@ export function MachineFormModal({
             </FormItem>
           )}
         />
-
-        <div className="grid grid-cols-2 gap-4">
-        <FormField
-            control={form.control}
-            name="model"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Model</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="serialNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Serial Number</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
 
          <FormField
             control={form.control}

@@ -46,8 +46,6 @@ model MachineTank {
 model Machine {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   machineName  String   @unique
-  model        String
-  serialNumber String   @unique
   noOfNozzles  Int
 
   branchId       String?   @db.ObjectId
@@ -361,7 +359,7 @@ model Oil {
 model Supplier {
   id                  String @id @default(auto()) @map("_id") @db.ObjectId
   SupplierId          String
-  name                String? @unique
+  name                String? 
   email               String? 
   phone               String? 
   openingBalance      Float  
@@ -387,7 +385,7 @@ model Supplier {
 model Customer {
   id                  String @id @default(auto()) @map("_id") @db.ObjectId
 
-  name                String @unique
+  name                String 
   email               String? 
   phone               String? 
   openingBalance      Float  

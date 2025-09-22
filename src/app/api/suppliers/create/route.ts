@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supplierSchema } from "@/schemas/supplier-schema";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,11 +16,6 @@ export async function POST(req: NextRequest) {
       );
     }    
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    const branchId = session?.user?.branch;
 
 
     const outstandingPayments = result.data.openingBalance
@@ -31,7 +24,6 @@ export async function POST(req: NextRequest) {
       data: {
         ...result.data,
         outstandingPayments,
-        branchId,
       }
     });
       revalidatePath("/suppliers");
