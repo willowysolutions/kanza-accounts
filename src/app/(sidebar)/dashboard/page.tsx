@@ -42,7 +42,6 @@ export default async function Dashboard({
     monthlySales,
     monthlyPurchases,
     stocks,
-    lastMeterReadingDate,
     allSales,
     customers,
     // recentSales,
@@ -157,15 +156,6 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
               <CardTitle>Branch Daily Summary</CardTitle>
               {/* Right side */}
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4 text-red-500" />
-                  <span className='text-red-500'>
-                    Last added meter reading: {lastMeterReadingDate 
-                      ? formatDate(lastMeterReadingDate)
-                      : 'No readings yet'
-                    }
-                  </span>
-                </div>
                 <WizardButton />
               </div>
             </div>
@@ -236,7 +226,16 @@ async function fetchBranchDailySummary(branchId?: string, dateStr?: string) {
   const host = hdrs.get('host');
   const proto = hdrs.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http');
   const cookie = (await cookies()).toString();
-  const date = dateStr ?? new Date().toISOString().split('T')[0];
+  
+  // Use local date formatting to avoid timezone issues
+  const getLocalDateString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  const date = dateStr ?? getLocalDateString(new Date());
   const url = branchId ? `${proto}://${host}/api/reports/${date}?branchId=${branchId}` : `${proto}://${host}/api/reports/${date}`;
   const res = await fetch(url, { cache: 'no-store', headers: { cookie } });
   const json = await res.json();
@@ -257,30 +256,66 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
   const isAdmin = (role ?? '').toLowerCase() === 'admin';
   const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
 
-  // build a rolling list of past dates (latest first)
-  const totalDays = 30;
-  const pageSize = 5;
-  const startIndex = Math.max(page, 0) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const dates: string[] = Array.from({ length: totalDays }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  });
-  const pageDates = dates.slice(startIndex, endIndex);
+  // Find dates with actual data with pagination support
+  const getDatesWithData = async (branchId: string, page: number = 0, pageSize: number = 5) => {
+    const datesWithData: string[] = [];
+    const maxDays = 60; // Check more days to find enough data for pagination
+    
+    // Check the last 60 days for data
+    for (let i = 0; i < maxDays; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      // Fetch data for this date
+      const totals = await fetchBranchDailySummary(branchId, dateStr);
+      
+      // Check if this date has meaningful data
+      const hasData = (totals.totalSale ?? 0) > 0 || 
+                     (totals.totalExpense ?? 0) > 0 || 
+                     (totals.totalCredit ?? 0) > 0 || 
+                     (totals.totalBalanceReceipt ?? 0) > 0 || 
+                     (totals.cashBalance ?? 0) > 0;
+      
+      if (hasData) {
+        datesWithData.push(dateStr);
+      }
+    }
+    
+    // Apply pagination to the meaningful dates
+    const startIndex = page * pageSize;
+    const endIndex = startIndex + pageSize;
+    return datesWithData.slice(startIndex, endIndex);
+  };
 
-  // prefetch summaries for each branch x date on this page
+  // prefetch summaries for each branch with meaningful data only
   const summaries = await Promise.all(
-    visibleBranches.map(async (b) => ({
-      branchId: b.id,
-      name: b.name,
-      rows: await Promise.all(
-        pageDates.map(async (date) => ({
-          date,
-          totals: await fetchBranchDailySummary(b.id, date),
-        }))
-      ),
-    }))
+    visibleBranches.map(async (b) => {
+      // Get the last meter reading date for this specific branch
+      const branchLastMeterReading = await prisma.meterReading.findFirst({
+        where: { branchId: b.id },
+        orderBy: { date: "desc" },
+        select: { date: true },
+      });
+
+      // Get dates that have actual data with pagination
+      const datesWithData = await getDatesWithData(b.id, page);
+
+      return {
+        branchId: b.id,
+        name: b.name,
+        lastMeterReadingDate: branchLastMeterReading?.date,
+        rows: await Promise.all(
+          datesWithData.map(async (date) => ({
+            date,
+            totals: await fetchBranchDailySummary(b.id, date),
+          }))
+        ),
+      };
+    })
   );
 
   return (
@@ -291,8 +326,18 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
         ))}
       </TabsList>
 
-      {summaries.map(({ branchId, rows }) => (
+      {summaries.map(({ branchId, rows, lastMeterReadingDate: branchLastMeterReadingDate }) => (
         <TabsContent key={branchId} value={branchId} className="overflow-x-auto">
+          {/* Branch-specific meter reading date */}
+          <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4 text-red-500" />
+            <span className='text-red-500'>
+              Last meter reading for {visibleBranches.find(b => b.id === branchId)?.name}: {branchLastMeterReadingDate 
+                ? formatDate(branchLastMeterReadingDate)
+                : 'No readings yet'
+              }
+            </span>
+          </div>
           <table className="w-full text-sm border-collapse">
             <thead>
             <tr className="text-left border-b">
@@ -305,18 +350,7 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
               </tr>
             </thead>
             <tbody>
-              {rows
-                .filter(({ totals }) => {
-                  // Filter out rows where all values are 0
-                  const totalSale = totals.totalSale ?? 0;
-                  const totalExpense = totals.totalExpense ?? 0;
-                  const totalCredit = totals.totalCredit ?? 0;
-                  const totalBalanceReceipt = totals.totalBalanceReceipt ?? 0;
-                  const cashBalance = totals.cashBalance ?? 0;
-                  
-                  return totalSale > 0 || totalExpense > 0 || totalCredit > 0 || totalBalanceReceipt > 0 || cashBalance > 0;
-                })
-                .map(({ date, totals }) => (
+              {rows.map(({ date, totals }) => (
                 <tr key={date} className="border-b hover:bg-muted">
                   <td className="p-2">{formatDate(date)}</td>
                   <td className="p-2">₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
@@ -354,8 +388,8 @@ async function BranchSalesTabs({
   branches, 
   allSales, 
   role, 
-  userBranchId, 
-  page = 0 
+  userBranchId,
+  page = 0
 }: { 
   branches: { id: string; name: string }[]; 
   allSales: {
@@ -374,16 +408,12 @@ async function BranchSalesTabs({
   }[];
   role?: string | null; 
   userBranchId?: string | undefined; 
-  page?: number; 
+  page?: number;
 }) {
   const isAdmin = (role ?? '').toLowerCase() === 'admin';
   const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
 
-  // Pagination settings
-  const totalDays = 30;
-  const pageSize = 5;
-  const startIndex = Math.max(page, 0) * pageSize;
-  const endIndex = startIndex + pageSize;
+  // No pagination - show only meaningful data
 
   // Group sales by branch and date
   const branchSalesMap = new Map<string, Map<string, {
@@ -438,37 +468,46 @@ async function BranchSalesTabs({
     });
   });
 
-  // Create date range for pagination
-  const dates: string[] = Array.from({ length: totalDays }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  });
-  const pageDates = dates.slice(startIndex, endIndex);
+  // Get unique dates that have sales data with pagination
+  const getDatesWithSalesData = (branchId: string, page: number = 0, pageSize: number = 5) => {
+    const branchMap = branchSalesMap.get(branchId);
+    if (!branchMap) return [];
+    
+    const allDates = Array.from(branchMap.keys())
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime()); // Sort newest first
+    
+    // Apply pagination
+    const startIndex = page * pageSize;
+    const endIndex = startIndex + pageSize;
+    return allDates.slice(startIndex, endIndex);
+  };
 
   // Prepare data for each branch
-  const branchData = visibleBranches.map(branch => ({
-    branchId: branch.id,
-    name: branch.name,
-    rows: pageDates.map(date => {
-      const branchMap = branchSalesMap.get(branch.id);
-      const salesData = branchMap?.get(date) || {
-        cashPayment: 0,
-        atmPayment: 0,
-        paytmPayment: 0,
-        fleetPayment: 0,
-        hsdDieselTotal: 0,
-        xgDieselTotal: 0,
-        msPetrolTotal: 0,
-        totalAmount: 0,
-      };
-      
-      return {
-        date,
-        sales: salesData,
-      };
-    }),
-  }));
+  const branchData = visibleBranches.map(branch => {
+    const datesWithData = getDatesWithSalesData(branch.id, page);
+    return {
+      branchId: branch.id,
+      name: branch.name,
+      rows: datesWithData.map(date => {
+        const branchMap = branchSalesMap.get(branch.id);
+        const salesData = branchMap?.get(date) || {
+          cashPayment: 0,
+          atmPayment: 0,
+          paytmPayment: 0,
+          fleetPayment: 0,
+          hsdDieselTotal: 0,
+          xgDieselTotal: 0,
+          msPetrolTotal: 0,
+          totalAmount: 0,
+        };
+        
+        return {
+          date,
+          sales: salesData,
+        };
+      }),
+    };
+  });
 
   return (
     <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">

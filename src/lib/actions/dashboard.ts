@@ -74,7 +74,7 @@ export async function getDashboardData() {
     },
   });
 
-  // Last meter reading date
+  // Last meter reading date (get the most recent from any branch)
   const lastMeterReading = await prisma.meterReading.findFirst({
     orderBy: { date: "desc" },
     select: { date: true },

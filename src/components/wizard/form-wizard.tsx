@@ -247,8 +247,8 @@ const CommonDatePicker: React.FC = () => {
   const { commonDate, setCommonDate } = useWizard();
 
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="text-sm font-medium text-muted-foreground">Common Date:</span>
+    <div className="flex justify-end items-center gap-2 mb-4">
+      <span className="text-sm font-medium text-muted-foreground">Select Date:</span>
       <Popover>
         <PopoverTrigger asChild>
           <Button
