@@ -45,10 +45,12 @@ export function CreditFormDialog({
   credits,
   open,
   openChange,
+  branchId,
 }: {
   credits?: Credit;
   open?: boolean;
   openChange?: (open: boolean) => void;
+  branchId?: string;
 }) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -153,14 +155,21 @@ export function CreditFormDialog({
       try {
         const res = await fetch("/api/customers");
         const json = await res.json();
-        setCustomerOptions(json.data || []);
+        
+        // Filter customers by branch if branchId is provided
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filteredCustomers = json.data?.filter((customer: any) => {
+          return branchId ? customer.branchId === branchId : true;
+        }) || [];
+        
+        setCustomerOptions(filteredCustomers);
       } catch (error) {
         console.error("Failed to fetch customers", error);
       }
     };
 
     fetchCustomers();
-  }, []);
+  }, [branchId]);
 
    // Fetch products
     useEffect(() => {

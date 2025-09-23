@@ -1,11 +1,8 @@
 export const dynamic = "force-dynamic";
-import { creditColumns } from "@/components/credits/credit-columns";
-import { CreditFormDialog } from "@/components/credits/credit-form";
-import { CreditTable } from "@/components/credits/credit-table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { headers, cookies } from "next/headers";
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { CreditsWithBranchTabs } from "@/components/credits/credits-with-branch-tabs";
 
 export default async function CreditsPage() {
 const hdrs = await headers();
@@ -53,40 +50,7 @@ const creditsByBranch = visibleBranches.map((branch: { id: string; name: string 
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="@container/main flex flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Credit Management</h1>
-              <p className="text-muted-foreground">Manage customer credits by branch</p>
-            </div>
-            <CreditFormDialog />
-          </div>
-
-          <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">
-            <TabsList className="mb-4 flex flex-wrap gap-2">
-              {visibleBranches.map((branch: { id: string; name: string }) => (
-                <TabsTrigger key={branch.id} value={branch.id}>
-                  {branch.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {creditsByBranch.map(({ branchId, branchName, credits }: { branchId: string; branchName: string; credits: any[] }) => (
-              <TabsContent key={branchId} value={branchId}>
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold">{branchName} Credits</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {credits.length} credit{credits.length !== 1 ? 's' : ''} in this branch
-                  </p>
-                </div>
-                <CreditTable data={credits} columns={creditColumns} />
-              </TabsContent>
-            ))}
-          </Tabs>
-        </div>
-      </div>
+      <CreditsWithBranchTabs branches={visibleBranches} creditsByBranch={creditsByBranch} />
     </div>
   );
 }

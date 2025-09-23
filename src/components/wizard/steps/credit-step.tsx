@@ -20,7 +20,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 
 // type CreditWithId = z.infer<typeof creditSchema> & { id?: string; tempId?: string };
 
-export const CreditStep: React.FC = () => {
+export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   const { 
     markStepCompleted, 
     markCurrentStepCompleted,
@@ -260,14 +260,21 @@ export const CreditStep: React.FC = () => {
       try {
         const res = await fetch("/api/customers");
         const json = await res.json();
-        setCustomerOptions(json.data || []);
+        
+        // Filter customers by branch if branchId is provided
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filteredCustomers = json.data?.filter((customer: any) => {
+          return branchId ? customer.branchId === branchId : true;
+        }) || [];
+        
+        setCustomerOptions(filteredCustomers);
       } catch (error) {
         console.error("Failed to fetch customers", error);
       }
     };
 
     fetchCustomers();
-  }, []);
+  }, [branchId]);
 
   // Fetch products
   useEffect(() => {

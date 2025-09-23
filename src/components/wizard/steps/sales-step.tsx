@@ -15,7 +15,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 // import { parseProducts } from '@/lib/product-utils'; // Unused import removed
 
-export const SalesStep: React.FC = () => {
+export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _branchId = branchId; // For future branch-specific filtering
   const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext } = useWizard();
   const [meterReading, setMeterReading] = useState<{ 
     totalAmount: number;

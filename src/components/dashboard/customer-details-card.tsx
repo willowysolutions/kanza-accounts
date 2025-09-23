@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Customer } from '@/types/customer';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CustomerHistoryModal } from '@/components/customers/customer -history-modal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -21,6 +21,27 @@ export function CustomerDetailsCard({
   userBranchId, 
   page = 0 
 }: CustomerDetailsCardProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Customer Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8">
+            <div className="text-muted-foreground">Loading...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const isAdmin = (role ?? '').toLowerCase() === 'admin';
   const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
 
@@ -131,6 +152,11 @@ function CustomerTabs({
 
 function CustomerRow({ customer }: { customer: Customer }) {
   const [openHistory, setOpenHistory] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
@@ -153,11 +179,13 @@ function CustomerRow({ customer }: { customer: Customer }) {
         <td className="p-2">{customer.branch?.name || '...'}</td>
       </tr>
       
-      <CustomerHistoryModal
-        customerId={customer.id}
-        open={openHistory}
-        onOpenChange={setOpenHistory}
-      />
+      {mounted && (
+        <CustomerHistoryModal
+          customerId={customer.id}
+          open={openHistory}
+          onOpenChange={setOpenHistory}
+        />
+      )}
     </>
   );
 }

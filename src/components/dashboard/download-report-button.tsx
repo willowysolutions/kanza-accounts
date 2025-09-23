@@ -3,6 +3,7 @@
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 interface DownloadReportButtonProps {
   date: string;
@@ -10,6 +11,20 @@ interface DownloadReportButtonProps {
 }
 
 export function DownloadReportButton({ date }: DownloadReportButtonProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button size="sm" disabled>
+        <Download className="h-4 w-4" />
+      </Button>
+    );
+  }
+
   const handleExportPDF = async () => {
     try {
       // Fetch report data for the specific date (same format as report-modal)

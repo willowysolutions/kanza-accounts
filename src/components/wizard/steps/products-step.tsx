@@ -20,7 +20,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 
 type OilFormValues = z.infer<typeof oilSchema>;
 
-export const ProductsStep: React.FC = () => {
+export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   const { 
     markStepCompleted, 
     markCurrentStepCompleted,
@@ -39,6 +39,7 @@ export const ProductsStep: React.FC = () => {
     purchasePrice: number;
     sellingPrice: number;
     productUnit: string;
+    branchId: string | null;
   }[]>([]);
   const router = useRouter();
 
@@ -80,9 +81,19 @@ export const ProductsStep: React.FC = () => {
         const res = await fetch("/api/products");
         const json = await res.json();
         
+        // Filter products by branch and exclude fuel products (MS-PETROL, HSD-DIESEL, XG-DIESEL)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filteredProducts = json.data?.filter((product: any) => {
+          // Filter by branch if branchId is provided
+          const branchMatch = branchId ? product.branchId === branchId : true;
+          // Exclude fuel products
+          const notFuelProduct = !["HSD-DIESEL", "MS-PETROL", "XG-DIESEL"].includes(product.productName);
+          return branchMatch && notFuelProduct;
+        }) || [];
+        
         // Deduplicate products by name, keeping the first occurrence
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
+        const uniqueProducts = filteredProducts.reduce((acc: any[], product: any) => {
           const existingProduct = acc.find(p => p.productName === product.productName);
           if (!existingProduct) {
             acc.push(product);
@@ -98,7 +109,7 @@ export const ProductsStep: React.FC = () => {
     };
   
     fetchProducts();
-  }, []);
+  }, [branchId]);
 
   const handleSubmit = useCallback(async (values: OilFormValues): Promise<boolean> => {
     try {
@@ -305,16 +316,11 @@ export const ProductsStep: React.FC = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {productOption
-                          .filter(
-                            (product) =>
-                              !["HSD-DIESEL", "MS-PETROL", "XG-DIESEL"].includes(product.productName)
-                          )
-                          .map((product) => (
-                            <SelectItem key={product.id} value={product.productName}>
-                              {product.productName}
-                            </SelectItem>
-                          ))}
+                        {productOption.map((product) => (
+                          <SelectItem key={product.id} value={product.productName}>
+                            {product.productName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

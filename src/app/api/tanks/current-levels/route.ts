@@ -4,11 +4,17 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 // Get tank current levels for real-time validation
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
-    const whereClause = session?.user?.role === 'admin' ? {} : { branchId };
+    const { searchParams } = new URL(request.url);
+    const queryBranchId = searchParams.get('branchId');
+    
+    // Use query branchId if provided, otherwise use session branchId
+    const branchId = queryBranchId || session?.user?.branch;
+    const whereClause = session?.user?.role === 'admin' ? 
+      (queryBranchId ? { branchId: queryBranchId } : {}) : 
+      { branchId };
     
     const tanks = await prisma.tank.findMany({
       where: whereClause,

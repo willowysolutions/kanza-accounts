@@ -20,7 +20,9 @@ import { Edit2, Trash2 } from 'lucide-react';
 
 // type ExpenseWithId = z.infer<typeof expenseSchema> & { id?: string; tempId?: string };
 
-export const ExpenseStep: React.FC = () => {
+export const ExpenseStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _branchId = branchId; // For future branch-specific filtering
   const { 
     markStepCompleted, 
     markCurrentStepCompleted,

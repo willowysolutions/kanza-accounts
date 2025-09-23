@@ -37,6 +37,7 @@ import { Loader2 } from "lucide-react";
 type MachineWithNozzles = {
   id: string;
   machineName: string;
+  branchId: string | null;
   nozzles: {
     id: string;
     nozzleNumber: string;
@@ -52,10 +53,12 @@ export function MeterReadingFormSheet({
   meterReading,
   open,
   openChange,
+  branchId,
 }: {
   meterReading? : MeterReading;
   open?: boolean;
   openChange?: (open: boolean) => void;
+  branchId?: string;
 }) {
   const isControlled = typeof open === "boolean";
   const [machines, setMachines] = useState<MachineWithNozzles[]>([]);
@@ -105,9 +108,11 @@ useEffect(() => {
     setLoading(true);
     try {
       // Fetch machines and tank levels in parallel
+      const machinesUrl = branchId ? `/api/machines/with-nozzles?branchId=${branchId}` : '/api/machines/with-nozzles';
+      const tankLevelsUrl = branchId ? `/api/tanks/current-levels?branchId=${branchId}` : '/api/tanks/current-levels';
       const [machinesRes, tankLevelsRes] = await Promise.all([
-        fetch('/api/machines/with-nozzles'),
-        fetch('/api/tanks/current-levels')
+        fetch(machinesUrl),
+        fetch(tankLevelsUrl)
       ]);
 
       const machinesJson = await machinesRes.json();
@@ -117,14 +122,23 @@ useEffect(() => {
       setMachines(data);
       setTankLevels(tankLevelsJson.data ?? {});
 
-      const priceMap = new Map(
-        products.map(p => [p.productName, p.sellingPrice])
-      );
+      // Create a map of branch-specific fuel rates
+      const branchPriceMap = new Map<string, Map<string, number>>();
+      products.forEach(p => {
+        if (p.branchId) {
+          if (!branchPriceMap.has(p.branchId)) {
+            branchPriceMap.set(p.branchId, new Map());
+          }
+          branchPriceMap.get(p.branchId)!.set(p.productName, p.sellingPrice);
+        }
+      });
 
       const rows: BulkForm['rows'] = data.flatMap((m) =>
         m.nozzles.map((n) => {
           const opening = n.openingReading;   
-          const fuelRate = priceMap.get(n.fuelType) ?? undefined;
+          // Get fuel rate for the specific branch
+          const branchPrices = m.branchId ? branchPriceMap.get(m.branchId) : null;
+          const fuelRate = branchPrices?.get(n.fuelType) ?? undefined;
 
           return {
             nozzleId: n.id,
@@ -151,7 +165,7 @@ useEffect(() => {
   };
 
   load();
-}, [products, form]);
+}, [products, form, branchId]);
 
   const rows = form.watch('rows');
 

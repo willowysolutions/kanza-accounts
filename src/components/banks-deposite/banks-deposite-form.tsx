@@ -38,7 +38,8 @@ export const BankDepositeFormDialog = ({
   bankDeposite,
   open,
   openChange,
-}: BankDepositeFormProps) => {
+  branchId,
+}: BankDepositeFormProps & { branchId?: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bankOptions, setBankOptions] = useState<{ bankName: string; id: string;}[]>([]);
   const router = useRouter();
@@ -94,14 +95,21 @@ export const BankDepositeFormDialog = ({
       try {
         const res = await fetch("/api/banks");
         const json = await res.json();
-        setBankOptions(json.banks || []);
+        
+        // Filter banks by branch if branchId is provided
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filteredBanks = json.banks?.filter((bank: any) => {
+          return branchId ? bank.branchId === branchId : true;
+        }) || [];
+        
+        setBankOptions(filteredBanks);
       } catch (error) {
         console.error("Failed to fetch banks", error);
       }
     };
   
       fetchBanks();
-    }, []);
+    }, [branchId]);
 
     console.log(bankOptions);
     

@@ -46,17 +46,21 @@ export function OilFormModal({
   oil,
   open,
   openChange,
+  branchId,
 }: {
   oil?: Oil;
   open?: boolean;
   openChange?: (open: boolean) => void;
+  branchId?: string;
 }) {
     const [productOption, setProductOptions] = useState<{ 
       productName: string;
       id: string;
       purchasePrice:number;
       sellingPrice:number;
-      productUnit:string }[]>([]);
+      productUnit:string;
+      branchId: string | null;
+    }[]>([]);
 
   const router = useRouter();
 
@@ -123,15 +127,25 @@ export function OilFormModal({
         const res = await fetch("/api/products");
         const json = await res.json();
         
+        // Filter products by branch and exclude fuel products
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filteredProducts = json.data?.filter((product: any) => {
+          // Filter by branch if branchId is provided
+          const branchMatch = branchId ? product.branchId === branchId : true;
+          // Exclude fuel products
+          const notFuelProduct = !["HSD-DIESEL", "MS-PETROL", "XG-DIESEL"].includes(product.productName);
+          return branchMatch && notFuelProduct;
+        }) || [];
+        
         // Deduplicate products by name, keeping the first occurrence
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
+        const uniqueProducts = filteredProducts.reduce((acc: any[], product: any) => {
           const existingProduct = acc.find(p => p.productName === product.productName);
           if (!existingProduct) {
             acc.push(product);
           }
           return acc;
-        }, []) || [];
+        }, []);
         
         setProductOptions(uniqueProducts);
       } catch (error) {
@@ -140,7 +154,15 @@ export function OilFormModal({
     };
   
     fetchProducts();
-    }, []);
+    }, [branchId]);
+
+  // Clear product selection when branch changes
+  useEffect(() => {
+    if (branchId) {
+      form.setValue("productType", "");
+      form.setValue("price", 0);
+    }
+  }, [branchId, form]);
 
   return (
     <FormDialog
@@ -178,16 +200,11 @@ export function OilFormModal({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {productOption
-                      .filter(
-                        (product) =>
-                          !["HSD-DIESEL", "MS-PETROL", "XG-DIESEL"].includes(product.productName)
-                      )
-                      .map((product) => (
-                        <SelectItem key={product.id} value={product.productName}>
-                          {product.productName}
-                        </SelectItem>
-                      ))}
+                    {productOption.map((product) => (
+                      <SelectItem key={product.id} value={product.productName}>
+                        {product.productName}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
 
 

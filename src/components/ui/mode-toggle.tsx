@@ -13,7 +13,16 @@ import {
 } from "./dropdown-menu";
 
 export function ModeToggle() {
+  const [mounted, setMounted] = React.useState(false);
   const { setTheme } = useTheme();
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <DropdownMenu>

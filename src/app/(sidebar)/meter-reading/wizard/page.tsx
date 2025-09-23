@@ -1,84 +1,47 @@
-"use client";
+export const dynamic = "force-dynamic";
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
-import { FormWizard, WizardStep } from '@/components/wizard/form-wizard';
-import { MeterReadingStep } from '@/components/wizard/steps/meter-reading-step';
-import { ProductsStep } from '@/components/wizard/steps/products-step';
-import { SalesStep } from '@/components/wizard/steps/sales-step';
-import { ExpenseStep } from '@/components/wizard/steps/expense-step';
-import { CreditStep } from '@/components/wizard/steps/credit-step';
-import { BankDepositStep } from '@/components/wizard/steps/bank-deposit-step';
+import { headers, cookies } from "next/headers";
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { WizardWithBranchTabs } from '@/components/wizard/wizard-with-branch-tabs';
 
-const wizardSteps: WizardStep[] = [
-  {
-    id: 'meter-reading',
-    title: 'Meter Reading',
-    description: 'Record meter readings for all nozzles',
-    component: MeterReadingStep,
-  },
-  {
-    id: 'products',
-    title: 'Products',
-    description: 'Add oil, AdBlue, and other products',
-    component: ProductsStep,
-  },
-  {
-    id: 'credit',
-    title: 'Credit',
-    description: 'Record credit transactions',
-    component: CreditStep,
-  },
-  {
-    id: 'expense',
-    title: 'Expense',
-    description: 'Record daily expenses',
-    component: ExpenseStep,
-  },
-  {
-    id: 'bank-deposit',
-    title: 'Bank Deposit',
-    description: 'Record bank deposits',
-    component: BankDepositStep,
-  },
-  {
-    id: 'sales',
-    title: 'Sales',
-    description: 'Record sales transactions',
-    component: SalesStep,
-  },
-];
+export default async function WizardPage() {
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  
+  // Get session to check user role and branch
+  const session = await auth.api.getSession({
+    headers: hdrs,
+  });
 
-export default function WizardPage() {
-  const router = useRouter();
+  if (!session) {
+    redirect('/login');
+  }
 
-  const handleComplete = () => {
-    // Redirect to the Report tab in Meter Reading
-    router.push('/meter-reading?tab=report');
-  };
+  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
+  
+  // Forward cookies
+  const cookie = cookies().toString();
+  
+  // Fetch branches
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+  
+  const { data: allBranches } = await branchesRes.json();
 
-  const handleStepChange = () => {
-    // Optional: Handle step changes if needed
-  };
-
+  // Filter branches based on user role
+  const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
+  
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Daily Reading</h1>
-            <p className="text-muted-foreground">Complete all steps to finish the daily workflow</p>
-          </div>
-        </div>
-
-        <FormWizard
-          steps={wizardSteps}
-          onComplete={handleComplete}
-          onStepChange={handleStepChange}
-          title="Daily Reading Records"
-          description="Complete all steps in order to finish your daily reading records."
-        />
-      </div>
+      <WizardWithBranchTabs branches={visibleBranches} />
     </div>
   );
 }

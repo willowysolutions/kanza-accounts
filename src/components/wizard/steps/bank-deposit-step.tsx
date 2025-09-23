@@ -20,7 +20,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 
 // type BankDepositWithId = z.infer<typeof bankDepositeSchema> & { id?: string; tempId?: string };
 
-export const BankDepositStep: React.FC = () => {
+export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   const { 
     markStepCompleted, 
     markCurrentStepCompleted,
@@ -225,7 +225,14 @@ export const BankDepositStep: React.FC = () => {
       try {
         const res = await fetch("/api/banks");
         const json = await res.json();
-        setBankOptions(json.banks || []);
+        
+        // Filter banks by branch if branchId is provided
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filteredBanks = json.banks?.filter((bank: any) => {
+          return branchId ? bank.branchId === branchId : true;
+        }) || [];
+        
+        setBankOptions(filteredBanks);
         setIsInitialized(true);
       } catch (error) {
         console.error("Failed to fetch banks", error);
@@ -233,7 +240,7 @@ export const BankDepositStep: React.FC = () => {
     };
 
     fetchBanks();
-  }, []);
+  }, [branchId]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {

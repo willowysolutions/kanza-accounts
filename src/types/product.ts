@@ -7,6 +7,7 @@ export type ProductType = {
   productUnit: string;
   purchasePrice: number;
   sellingPrice: number;
+  branchId: string | null;
 }
 
 export interface ProductTableProps<TValue> {

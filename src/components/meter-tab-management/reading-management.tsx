@@ -61,7 +61,7 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches 
               <Plus className="w-4 h-4 mr-2" />
               All Records
             </Button>
-            {activeTab === "meter-reading" ? <MeterReadingFormSheet /> : activeTab === "other-Products" ? <OilFormModal /> : ""}
+            {activeTab === "meter-reading" ? <MeterReadingFormSheet branchId={activeBranch} /> : activeTab === "other-Products" ? <OilFormModal branchId={activeBranch} /> : ""}
           </div>
         </div>
 
