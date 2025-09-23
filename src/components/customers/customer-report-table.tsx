@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerReportExport } from "@/components/reports/customer-report-export";
+import { CustomerHistoryModal } from "@/components/customers/customer -history-modal";
 
 type Customer = {
   id: string;
@@ -72,17 +73,7 @@ export default function CustomerReportTable({ customers }: { customers: Customer
             <TableBody>
               {filteredCustomers.length > 0 ? (
                 filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>{customer.email}</TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(customer.openingBalance)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(customer.outstandingPayments)}
-                    </TableCell>
-                  </TableRow>
+                  <CustomerRow key={customer.id} customer={customer} />
                 ))
               ) : (
                 <TableRow>
@@ -113,5 +104,38 @@ export default function CustomerReportTable({ customers }: { customers: Customer
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function CustomerRow({ customer }: { customer: Customer }) {
+  const [openHistory, setOpenHistory] = useState(false);
+
+  return (
+    <>
+      <TableRow>
+        <TableCell className="font-medium">
+          <button
+            className="text-blue-600 hover:underline cursor-pointer"
+            onClick={() => setOpenHistory(true)}
+          >
+            {customer.name}
+          </button>
+        </TableCell>
+        <TableCell>{customer.email}</TableCell>
+        <TableCell>{customer.phone}</TableCell>
+        <TableCell className="text-right">
+          {formatCurrency(customer.openingBalance)}
+        </TableCell>
+        <TableCell className="text-right">
+          {formatCurrency(customer.outstandingPayments)}
+        </TableCell>
+      </TableRow>
+      
+      <CustomerHistoryModal
+        customerId={customer.id}
+        open={openHistory}
+        onOpenChange={setOpenHistory}
+      />
+    </>
   );
 }

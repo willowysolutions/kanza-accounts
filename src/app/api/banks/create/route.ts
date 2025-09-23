@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { bankSchema } from "@/schemas/bank-schema";
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
 
 
 export async function POST(req: NextRequest) {
@@ -19,13 +17,9 @@ export async function POST(req: NextRequest) {
       );
     }    
 
-    const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
-
     const banks = await prisma.bank.create({
       data: {
         ...result.data,
-        branchId
       },
     });
       revalidatePath("/banks");

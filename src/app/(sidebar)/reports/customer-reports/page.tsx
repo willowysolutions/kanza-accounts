@@ -1,22 +1,61 @@
-// app/customer-report/page.tsx
-import { prisma } from "@/lib/prisma";
+export const dynamic = "force-dynamic";
+
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import CustomerReportTable from "@/components/customers/customer-report-table";
+import { headers, cookies } from "next/headers";
+import { redirect } from 'next/navigation';
+import { CustomerReportsWithBranchTabs } from "@/components/reports/customer-reports-with-branch-tabs";
 
 export default async function CustomerReportPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const branchId = session?.user?.branch;
-  const branchClause = session?.user?.role === "admin" ? {} : { branchId };
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  
+  // Get session to check user role and branch
+  const session = await auth.api.getSession({
+    headers: hdrs,
+  });
 
-  const customers = await prisma.customer.findMany({ where: branchClause });
+  if (!session) {
+    redirect('/login');
+  }
+
+  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
+  
+  // Forward cookies
+  const cookie = cookies().toString();
+  
+  // Fetch customers and branches in parallel
+  const [customersRes, branchesRes] = await Promise.all([
+    fetch(`${proto}://${host}/api/customers`, {
+      cache: "no-store",
+      headers: { cookie },
+    }),
+    fetch(`${proto}://${host}/api/branch`, {
+      cache: "no-store",
+      headers: { cookie },
+    })
+  ]);
+  
+  const { data: customers = [] } = await customersRes.json();
+  const { data: allBranches = [] } = await branchesRes.json();
+
+  // Filter branches based on user role
+  const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
+
+  // Group customers by visible branches only
+  const customersByBranch = visibleBranches.map((branch: { id: string; name: string }) => ({
+    branchId: branch.id,
+    branchName: branch.name,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customers: (customers || []).filter((customer: any) => customer.branchId === branch.id)
+  }));
 
   return (
-    <div>
-      <div className="my-4">
-        <h1 className="text-2xl font-bold tracking-tight">Customer Report</h1>
-      </div>
-      <CustomerReportTable customers={customers} />
+    <div className="flex flex-1 flex-col">
+      <CustomerReportsWithBranchTabs branches={visibleBranches} customersByBranch={customersByBranch} />
     </div>
   );
 }

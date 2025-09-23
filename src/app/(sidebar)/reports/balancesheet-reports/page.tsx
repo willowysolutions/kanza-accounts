@@ -88,7 +88,6 @@ export default async function BalanceSheetReportPage() {
                 </div>
 
                 <BalanceSheetReport
-                  branchId={branch.id}
                   branchName={branch.name}
                   sales={sales.filter((sale: any) => sale.branchId === branch.id)}
                   credits={credits.filter((credit: any) => credit.branchId === branch.id)}

@@ -1,90 +1,61 @@
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { prisma } from "@/lib/prisma";
+export const dynamic = "force-dynamic";
+
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { formatCurrency } from "@/lib/utils";
+import { headers, cookies } from "next/headers";
+import { redirect } from 'next/navigation';
+import { SupplierReportsWithBranchTabs } from "@/components/reports/supplier-reports-with-branch-tabs";
 
 export default async function SupplierReportPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const branchId = session?.user?.branch;
-  const branchClause = session?.user?.role === "admin" ? {} : { branchId };
-
-  const suppliers = await prisma.supplier.findMany({
-    where: branchClause,
+  const hdrs = await headers();
+  const host = hdrs.get("host");
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  
+  // Get session to check user role and branch
+  const session = await auth.api.getSession({
+    headers: hdrs,
   });
 
-  return (
-    <div>
-      <div className="my-4">
-        <h1 className="text-2xl font-bold tracking-tight">Supplier Report</h1>
-      </div>
+  if (!session) {
+    redirect('/login');
+  }
 
-      <div className="grid grid-cols-1 gap-6">
-        <Card className="p-4">
-          <CardHeader>
-            <CardTitle>Supplier Report</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Summary of all supplier accounts
-            </p>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableCaption>A summary of supplier details.</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead className="text-right">Opening Balance</TableHead>
-                  <TableHead className="text-right">Outstanding Payments</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {suppliers.map((supplier) => (
-                  <TableRow key={supplier.id.toString()}>
-                    <TableCell className="font-medium">{supplier.name}</TableCell>
-                    <TableCell>{supplier.email}</TableCell>
-                    <TableCell>{supplier.phone}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(supplier.openingBalance)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(supplier.outstandingPayments)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter className="bg-primary text-primary-foreground font-black">
-                <TableRow>
-                  <TableCell className="text-right font-medium" colSpan={3}>
-                    Grand Total
-                  </TableCell>
-                  <TableCell className="text-right font-bold">
-                    {formatCurrency(
-                      suppliers.reduce((sum, s) => sum + s.openingBalance, 0)
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right font-bold">
-                    {formatCurrency(
-                      suppliers.reduce((sum, s) => sum + s.outstandingPayments, 0)
-                    )}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
+  
+  // Forward cookies
+  const cookie = cookies().toString();
+  
+  // Fetch suppliers and branches in parallel
+  const [suppliersRes, branchesRes] = await Promise.all([
+    fetch(`${proto}://${host}/api/suppliers`, {
+      cache: "no-store",
+      headers: { cookie },
+    }),
+    fetch(`${proto}://${host}/api/branch`, {
+      cache: "no-store",
+      headers: { cookie },
+    })
+  ]);
+  
+  const { data: suppliers = [] } = await suppliersRes.json();
+  const { data: allBranches = [] } = await branchesRes.json();
+
+  // Filter branches based on user role
+  const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
+
+  // Group suppliers by visible branches only
+  const suppliersByBranch = visibleBranches.map((branch: { id: string; name: string }) => ({
+    branchId: branch.id,
+    branchName: branch.name,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    suppliers: (suppliers || []).filter((supplier: any) => supplier.branchId === branch.id)
+  }));
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <SupplierReportsWithBranchTabs branches={visibleBranches} suppliersByBranch={suppliersByBranch} />
     </div>
   );
 }

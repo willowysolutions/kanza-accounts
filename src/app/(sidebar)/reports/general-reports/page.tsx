@@ -1,28 +1,9 @@
-// src/app/(sidebar)/reports/general-report/page.tsx
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { formatDate } from "@/lib/utils";
-import { FilterSelect } from "@/components/filters/filter-select";
-import { CustomDateFilter } from "@/components/filters/custom-date-filter";
-import { GeneralReportExport } from "@/components/reports/general-report-export";
-import { headers, cookies } from "next/headers";
+export const dynamic = "force-dynamic";
 
-type Rows = {
-  date: Date;
-  sales: number;
-  purchases: number;
-  expenses: number;
-  customerPayments: number;
-  finalTotal: number;
-};
+import { auth } from "@/lib/auth";
+import { headers, cookies } from "next/headers";
+import { redirect } from 'next/navigation';
+import { GeneralReportsWithBranchTabs } from "@/components/reports/general-reports-with-branch-tabs";
 
 export default async function GeneralReportPage({
   searchParams,
@@ -30,114 +11,59 @@ export default async function GeneralReportPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filter = typeof params.filter === "string" ? params.filter : "today";
-
+  const filter = typeof params.filter === "string" ? params.filter : "all";
   const from = params.from ? new Date(params.from as string) : undefined;
   const to = params.to ? new Date(params.to as string) : undefined;
 
-  const query = new URLSearchParams();
-  query.set("filter", filter);
-  if (from) query.set("from", from.toISOString());
-  if (to) query.set("to", to.toISOString());
-
   const hdrs = await headers();
   const host = hdrs.get("host");
-  const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
-  const cookie = (await cookies()).toString();
-
-  const res = await fetch(`${proto}://${host}/api/reports/general?${query.toString()}`, {
-    cache: "no-store",
-    headers: { cookie },
+  const proto =
+    hdrs.get("x-forwarded-proto") ??
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+  
+  // Get session to check user role and branch
+  const session = await auth.api.getSession({
+    headers: hdrs,
   });
 
-  const { rows, totals } = await res.json();
+  if (!session) {
+    redirect('/login');
+  }
+
+  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
+  
+  // Forward cookies
+  const cookie = cookies().toString();
+  
+  // Fetch general report data and branches in parallel
+  const [generalReportRes, branchesRes] = await Promise.all([
+    fetch(`${proto}://${host}/api/reports/general?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}`, {
+      cache: "no-store",
+      headers: { cookie },
+    }),
+    fetch(`${proto}://${host}/api/branch`, {
+      cache: "no-store",
+      headers: { cookie },
+    })
+  ]);
+  
+  const { rows, totals } = await generalReportRes.json();
+  const { data: allBranches } = await branchesRes.json();
+
+  // Filter branches based on user role
+  const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">General Report</h1>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>General Report (Summary)</CardTitle>
-          </div>
-          <div className="flex gap-3">
-            <FilterSelect defaultValue={filter} />
-            <CustomDateFilter />
-            <GeneralReportExport
-              rows={rows}
-              totals={totals}
-              filter={filter}
-              from={from}
-              to={to}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-left">Date</TableHead>
-                <TableHead className="text-right">Total Sales</TableHead>
-                <TableHead className="text-right">Total Purchases</TableHead>
-                <TableHead className="text-right">Total Expenses</TableHead>
-                <TableHead className="text-right">Credit Received</TableHead>
-                <TableHead className="text-right">Final Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row: Rows) => (
-                <TableRow key={new Date(row.date).toISOString()}>
-                  <TableCell>{formatDate(row.date)}</TableCell>
-                  <TableCell className="text-right">
-                    ₹{row.sales.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ₹{row.purchases.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ₹{row.expenses.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ₹{row.customerPayments.toLocaleString()}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right ${
-                      row.finalTotal >= 0 ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    ₹{row.finalTotal.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow className="font-semibold">
-                <TableCell className="text-right">Grand Total</TableCell>
-                <TableCell className="text-right">
-                  ₹{totals.totalSales.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  ₹{totals.totalPurchases.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  ₹{totals.totalExpenses.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  ₹{totals.totalCustomerPayments.toLocaleString()}
-                </TableCell>
-                <TableCell
-                  className={`text-right ${
-                    totals.totalFinal >= 0 ? "text-green-700" : "text-red-700"
-                  }`}
-                >
-                  ₹{totals.totalFinal.toLocaleString()}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </CardContent>
-      </Card>
+    <div className="flex flex-1 flex-col">
+      <GeneralReportsWithBranchTabs 
+        branches={visibleBranches} 
+        rows={rows}
+        totals={totals}
+        filter={filter}
+        from={from}
+        to={to}
+      />
     </div>
   );
 }

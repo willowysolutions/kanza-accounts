@@ -8,9 +8,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { BalanceSheetExport } from "./balance-sheet-export";
 
 interface BalanceSheetReportProps {
-  branchId: string;
   branchName: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sales: any[];
@@ -23,6 +23,7 @@ interface BalanceSheetReportProps {
 }
 
 export function BalanceSheetReport({
+  branchName,
   sales,
   credits,
   expenses,
@@ -141,31 +142,42 @@ export function BalanceSheetReport({
 
   return (
     <div className="space-y-6">
-      {/* Month Selector */}
-      <div className="flex items-center gap-4">
-        <h3 className="text-lg font-semibold">Select Month:</h3>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[240px] justify-start text-left font-normal",
-                !selectedMonth && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedMonth ? format(selectedMonth, "MMMM yyyy") : <span>Pick a month</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={selectedMonth}
-              onSelect={(date) => date && setSelectedMonth(date)}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+      {/* Month Selector and Export Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h3 className="text-lg font-semibold">Select Month:</h3>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[240px] justify-start text-left font-normal",
+                  !selectedMonth && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedMonth ? format(selectedMonth, "MMMM yyyy") : <span>Pick a month</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedMonth}
+                onSelect={(date) => date && setSelectedMonth(date)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        <BalanceSheetExport
+          branchName={branchName}
+          selectedMonth={selectedMonth}
+          productsData={productsData}
+          customerCreditsData={customerCreditsData}
+          expenseCategoriesData={expenseCategoriesData}
+          bankDepositsData={bankDepositsData}
+        />
       </div>
 
       {/* Grid Layout: 2 Rows x 2 Columns */}
@@ -183,8 +195,8 @@ export function BalanceSheetReport({
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Credit Given (₹)</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Amount Received (₹)</th>
+                      <th className="border border-gray-300 px-4 py-2 text-right">Credit Given </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right">Amount Received</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -234,7 +246,7 @@ export function BalanceSheetReport({
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border border-gray-300 px-4 py-2 text-left">Expense Category</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount (₹)</th>
+                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -281,7 +293,7 @@ export function BalanceSheetReport({
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border border-gray-300 px-4 py-2 text-left">Product</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount (₹)</th>
+                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount </th>
                     </tr>
                   </thead>
                   <tbody>

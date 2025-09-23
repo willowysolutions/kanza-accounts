@@ -26,10 +26,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BankFormProps } from "@/types/bank";
 import { bankSchema } from "@/schemas/bank-schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 export const BankFormDialog = ({
   bank,
@@ -37,6 +38,8 @@ export const BankFormDialog = ({
   openChange,
 }: BankFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
+
   const router = useRouter();
 
 
@@ -85,6 +88,20 @@ export const BankFormDialog = ({
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch("/api/branch");
+        const json = await res.json();
+        setBranchOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch branches", error);
+      }
+    };
+
+    fetchBranches();
+  }, []);
 
 
   return (
@@ -184,6 +201,32 @@ export const BankFormDialog = ({
           )}
         />
         </div>
+
+        <FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
 
         <FormDialogFooter>
           <DialogClose asChild>
