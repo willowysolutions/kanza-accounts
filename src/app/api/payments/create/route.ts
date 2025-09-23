@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { customerPaymentSchema } from "@/schemas/payment-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { updateBalanceReceipt } from "@/lib/balance-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,33 +29,43 @@ export async function POST(req: NextRequest) {
     const { customerId, amount, paymentMethod,paidOn } = result.data;
 
     // Run everything in one transaction
-    const [payment, paymentHistory] = await prisma.$transaction([
-      prisma.customerPayment.create({
-      data: {
-        ...result.data,
-        branchId
-      },
-      }),
+    const [payment, paymentHistory] = await prisma.$transaction(async (tx) => {
+      // 1. Create customer payment
+      const createdPayment = await tx.customerPayment.create({
+        data: {
+          ...result.data,
+          branchId
+        },
+      });
 
-      prisma.customer.update({
+      // 2. Update customer outstanding (decrement)
+      await tx.customer.update({
         where: { id: customerId },
         data: {
           outstandingPayments: {
             decrement: amount,
           },
         },
-      }),
+      });
 
-      prisma.paymentHistory.create({
+      // 3. Create payment history
+      const createdPaymentHistory = await tx.paymentHistory.create({
         data: {
           customerId,
           branchId,
-          paymentMethod:paymentMethod,
-          paidAmount:amount,
+          paymentMethod: paymentMethod,
+          paidAmount: amount,
           paidOn: paidOn,
         },
-      }),
-    ]);
+      });
+
+      // 4. Update BalanceReceipt (positive amount = cash received from customer)
+      if (branchId) {
+        await updateBalanceReceipt(branchId, new Date(paidOn), amount, tx);
+      }
+
+      return [createdPayment, createdPaymentHistory];
+    });
 
     revalidatePath("/payments");
 

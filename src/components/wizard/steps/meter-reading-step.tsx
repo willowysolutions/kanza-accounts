@@ -41,10 +41,12 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const router = useRouter();
 
+  const { commonDate } = useWizard();
+
   const form = useForm<BulkForm>({
     resolver: zodResolver(bulkSchema),
     defaultValues: {
-      date: new Date(),
+      date: commonDate,
       rows: [],
     },
   });
@@ -82,11 +84,44 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
 
   }, [tankLevels]);
 
+  // Function to check stock availability for each product type
+  const validateStockAvailability = useCallback(() => {
+    const rows = form.getValues('rows');
+    const stockIssues: { fuelType: string; totalSale: number; availableStock: number }[] = [];
+
+    // Calculate total sales by fuel type
+    const salesByFuelType = new Map<string, number>();
+    rows.forEach(row => {
+      if (row.sale && row.fuelType) {
+        const currentSale = salesByFuelType.get(row.fuelType) || 0;
+        salesByFuelType.set(row.fuelType, currentSale + row.sale);
+      }
+    });
+
+    // Check stock for each fuel type
+    salesByFuelType.forEach((totalSale, fuelType) => {
+      // Find the tank level for this fuel type
+      const tankInfo = Object.values(tankLevels).find(tank => tank.fuelType === fuelType);
+      if (tankInfo) {
+        if (totalSale > tankInfo.currentLevel) {
+          stockIssues.push({
+            fuelType,
+            totalSale,
+            availableStock: tankInfo.currentLevel
+          });
+        }
+      }
+    });
+
+    return stockIssues;
+  }, [form, tankLevels]);
+
   // Function to check if there are any validation errors
   const checkValidationErrors = useCallback(() => {
     const rows = form.getValues('rows');
     let hasErrors = false;
 
+    // Check individual tank level validation
     for (const row of rows) {
       if (row.closing != null && row.opening != null) {
         const validation = validateTankLevel(row.nozzleId, row.closing, row.opening);
@@ -97,9 +132,17 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
       }
     }
 
+    // Check stock availability validation
+    if (!hasErrors) {
+      const stockIssues = validateStockAvailability();
+      if (stockIssues.length > 0) {
+        hasErrors = true;
+      }
+    }
+
     setHasValidationErrors(hasErrors);
     setIsStepDisabled(hasErrors);
-  }, [form, validateTankLevel, setIsStepDisabled]);
+  }, [form, validateTankLevel, validateStockAvailability, setIsStepDisabled]);
 
   // Load data
   useEffect(() => {
@@ -152,7 +195,7 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
         );      
 
         form.reset({ 
-          date: new Date(), 
+          date: commonDate, 
           rows 
         });
         setIsInitialized(true);
@@ -165,7 +208,7 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
     };
 
     load();
-  }, [products, form, branchId]);
+  }, [products, form, branchId, commonDate]);
 
   // Fetch products
   useEffect(() => {
@@ -199,7 +242,13 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
     try {
       // Check for validation errors before submitting
       if (hasValidationErrors) {
-        toast.error("Cannot save with insufficient stock levels. Please check your closing readings.");
+        const stockIssues = validateStockAvailability();
+        if (stockIssues.length > 0) {
+          const fuelTypes = stockIssues.map(issue => issue.fuelType).join(', ');
+          toast.error(`Cannot save: Insufficient stock for ${fuelTypes}. Please adjust your closing readings.`);
+        } else {
+          toast.error("Cannot save with insufficient stock levels. Please check your closing readings.");
+        }
         return false;
       }
 
@@ -268,7 +317,7 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
       toast.error("Unexpected error");
       return false;
     }
-  }, [nozzleMap, markStepCompleted, currentStep, router, hasValidationErrors]);
+  }, [nozzleMap, markStepCompleted, currentStep, router, hasValidationErrors, validateStockAvailability]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {
@@ -637,6 +686,29 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
                 </div>
               </div>
             </div>
+
+            {/* Stock Validation Messages */}
+            {(() => {
+              const stockIssues = validateStockAvailability();
+              if (stockIssues.length > 0) {
+                return (
+                  <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <h4 className="text-red-800 font-semibold mb-2">⚠️ Insufficient Stock</h4>
+                    <div className="space-y-1">
+                      {stockIssues.map((issue, index) => (
+                        <div key={index} className="text-red-700 text-sm">
+                          <strong>{issue.fuelType}:</strong> Total sale ({issue.totalSale.toFixed(2)}L) exceeds available stock ({issue.availableStock.toFixed(2)}L)
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-red-600 text-xs mt-2">
+                      Please adjust your closing readings to match available stock levels.
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </form>
 
           {/* Complete Button */}

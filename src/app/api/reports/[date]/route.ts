@@ -135,6 +135,22 @@ export async function GET(
         (sum,b) => sum + (b.amount || 0),0
     )
 
+    // Customer Payments
+    const customerPayments = await prisma.customerPayment.findMany({
+      where: { 
+        paidOn: { gte: startOfDay, lte: endOfDay },
+        ...(branchId && { branchId })
+      },
+      include: {
+        customer: true
+      }
+    });
+
+    const totalCustomerPayment = customerPayments.reduce(
+      (sum, p) => sum + (p.amount || 0),
+      0
+    );
+
     // Get yesterday's BalanceReceipt
     const yesterday = new Date(startOfDay);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -162,7 +178,7 @@ export async function GET(
 
     const salesAndExpense = totalSale - totalExpense - totalCredit
 
-    const salesAndBalaceReceipt = totalSale + totalBalanceReceipt
+    const salesAndBalaceReceipt = totalSale + totalBalanceReceipt + totalCustomerPayment
 
     const expenseSum = totalExpense + totalCredit + paytmTotal + atmTotal + fleetTotal;
 
@@ -203,6 +219,7 @@ export async function GET(
       oils,
       bankDeposite,
       meterReadings,
+      customerPayments,
     });
   } catch (err) {
     console.error("Report fetch error:", err);

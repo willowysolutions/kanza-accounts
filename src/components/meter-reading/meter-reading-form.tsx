@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -65,6 +65,7 @@ export function MeterReadingFormSheet({
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<ProductType[]>([]);
   const [tankLevels, setTankLevels] = useState<Record<string, { currentLevel: number; tankName: string; fuelType: string }>>({});
+  const [hasValidationErrors, setHasValidationErrors] = useState(false);
 
   const form = useForm<BulkForm>({
     resolver: zodResolver(bulkSchema),
@@ -83,7 +84,7 @@ export function MeterReadingFormSheet({
   }, [machines]);
 
   // Function to validate tank level
-  const validateTankLevel = (nozzleId: string, closingValue: number, openingValue: number) => {
+  const validateTankLevel = useCallback((nozzleId: string, closingValue: number, openingValue: number) => {
     const tankInfo = tankLevels[nozzleId];
     if (!tankInfo) return {
       isValid: false,
@@ -101,7 +102,66 @@ export function MeterReadingFormSheet({
       };
     }
 
-  };
+  }, [tankLevels]);
+
+  // Function to check stock availability for each product type
+  const validateStockAvailability = useCallback(() => {
+    const rows = form.getValues('rows');
+    const stockIssues: { fuelType: string; totalSale: number; availableStock: number }[] = [];
+
+    // Calculate total sales by fuel type
+    const salesByFuelType = new Map<string, number>();
+    rows.forEach(row => {
+      if (row.sale && row.fuelType) {
+        const currentSale = salesByFuelType.get(row.fuelType) || 0;
+        salesByFuelType.set(row.fuelType, currentSale + row.sale);
+      }
+    });
+
+    // Check stock for each fuel type
+    salesByFuelType.forEach((totalSale, fuelType) => {
+      // Find the tank level for this fuel type
+      const tankInfo = Object.values(tankLevels).find(tank => tank.fuelType === fuelType);
+      if (tankInfo) {
+        if (totalSale > tankInfo.currentLevel) {
+          stockIssues.push({
+            fuelType,
+            totalSale,
+            availableStock: tankInfo.currentLevel
+          });
+        }
+      }
+    });
+
+    return stockIssues;
+  }, [form, tankLevels]);
+
+  // Function to check if there are any validation errors
+  const checkValidationErrors = useCallback(() => {
+    const rows = form.getValues('rows');
+    let hasErrors = false;
+
+    // Check individual tank level validation
+    for (const row of rows) {
+      if (row.closing != null && row.opening != null) {
+        const validation = validateTankLevel(row.nozzleId, row.closing, row.opening);
+        if (validation && !validation.isValid) {
+          hasErrors = true;
+          break;
+        }
+      }
+    }
+
+    // Check stock availability validation
+    if (!hasErrors) {
+      const stockIssues = validateStockAvailability();
+      if (stockIssues.length > 0) {
+        hasErrors = true;
+      }
+    }
+
+    setHasValidationErrors(hasErrors);
+  }, [form, validateStockAvailability, validateTankLevel]);
 
 useEffect(() => {
   const load = async () => {
@@ -172,9 +232,22 @@ useEffect(() => {
   const getRowIndex = (nozzleId: string) =>
     rows.findIndex((r) => r.nozzleId === nozzleId);
 
+  // Watch for changes in rows and check validation
+  useEffect(() => {
+    checkValidationErrors();
+  }, [rows, checkValidationErrors]);
+
   //submit
   const submit = async (values: BulkForm) => {
   try {
+    // Check for stock validation errors before submitting
+    const stockIssues = validateStockAvailability();
+    if (stockIssues.length > 0) {
+      const fuelTypes = stockIssues.map(issue => issue.fuelType).join(', ');
+      toast.error(`Cannot save: Insufficient stock for ${fuelTypes}. Please adjust your closing readings.`);
+      return;
+    }
+
     // ensure closing >= opening before saving
     const items = values.rows.map((r) => {
     const fuelType = nozzleMap.get(r.nozzleId)?.fuelType;
@@ -426,6 +499,9 @@ return (
                                           form.setValue(`rows.${idx}.sale`, undefined);
                                           form.setValue(`rows.${idx}.totalAmount`, undefined);
                                         }
+                                        
+                                        // Trigger validation check immediately
+                                        setTimeout(() => checkValidationErrors(), 0);
                                       }}
                                     />
                                   </FormControl>
@@ -628,6 +704,29 @@ return (
           </div>
           </div>
 
+          {/* Stock Validation Messages */}
+          {(() => {
+            const stockIssues = validateStockAvailability();
+            if (stockIssues.length > 0) {
+              return (
+                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <h4 className="text-red-800 font-semibold mb-2">⚠️ Insufficient Stock</h4>
+                  <div className="space-y-1">
+                    {stockIssues.map((issue, index) => (
+                      <div key={index} className="text-red-700 text-sm">
+                        <strong>{issue.fuelType}:</strong> Total sale ({issue.totalSale.toFixed(2)}L) exceeds available stock ({issue.availableStock.toFixed(2)}L)
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-red-600 text-xs mt-2">
+                    Please adjust your closing readings to match available stock levels.
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           </Card>
 
           {/* Footer */}
@@ -639,7 +738,7 @@ return (
               </Button>
             </SheetClose>
 
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting || hasValidationErrors}>
                 {form.formState.isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

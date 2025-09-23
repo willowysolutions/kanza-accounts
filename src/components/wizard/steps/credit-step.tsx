@@ -29,7 +29,8 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     addedCredits,
     setAddedCredits,
     savedRecords,
-    setSavedRecords
+    setSavedRecords,
+    commonDate
   } = useWizard();
   const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments: number; limit?: number; }[]>([]);
   const [products, setProducts] = useState<{id: string; productName: string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
@@ -44,7 +45,7 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
       fuelType: "",
       quantity: undefined,
       amount: undefined,
-      date: new Date(),
+      date: commonDate,
       reason: "",
     },
   });

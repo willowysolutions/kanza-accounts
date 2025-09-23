@@ -17,8 +17,8 @@ import { Button } from '@/components/ui/button';
 
 export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _branchId = branchId; // For future branch-specific filtering
-  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext } = useWizard();
+  const _branchId = branchId;
+  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, commonDate, addedProducts } = useWizard();
   const [meterReading, setMeterReading] = useState<{ 
     totalAmount: number;
     id: string;
@@ -28,14 +28,6 @@ export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     sale: number;
   }[]>([]);
 
-  const [oilSales, setOilSales] = useState<{ 
-    totalAmount: number;
-    id: string;
-    date: Date;
-    quantity: number;
-    price: number;
-    productType: string;
-  }[]>([]);
 
   const [savedRecords, setSavedRecords] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -44,7 +36,7 @@ export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   const form = useForm<SalesFormValues>({
     resolver: zodResolver(salesSchema),
     defaultValues: {
-      date: new Date(),
+      date: commonDate,
       rate: undefined,
       products: {},
       xgDieselTotal: undefined,
@@ -97,20 +89,9 @@ export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     fetchMeterReading();
   }, []);
 
-  // Fetch Oil sale
+  // Initialize when component mounts
   useEffect(() => {
-    const fetchOilSales = async () => {
-      try {
-        const res = await fetch("/api/oils");
-        const json = await res.json();
-        setOilSales(json.oils || []);
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("Failed to fetch oils", error);
-      }
-    };
-
-    fetchOilSales();
+    setIsInitialized(true);
   }, []);
 
   // Watch form values
@@ -144,7 +125,7 @@ export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
       const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
 
       // --- Oil & Gas Sales (Dynamic products) ---
-      const matchingOils = oilSales.filter(
+      const matchingOils = addedProducts.filter(
         (item) =>
           new Date(item.date).toLocaleDateString() === formattedDate
       );
@@ -185,7 +166,7 @@ export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   }, [
     selectedDate,
     meterReading,
-    oilSales,
+    addedProducts,
     atmPayment,
     paytmPayment,
     fleetPayment,
@@ -337,7 +318,7 @@ export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
               {/* Dynamic Oil/Gas products (readonly amounts) */}
               {Array.from(
                 new Set(
-                  oilSales
+                  addedProducts
                     .filter(o => new Date(o.date).toLocaleDateString() === new Date(selectedDate).toLocaleDateString())
                     .map(o => (o.productType || '').toUpperCase())
                 )

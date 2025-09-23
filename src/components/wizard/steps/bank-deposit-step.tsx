@@ -29,7 +29,8 @@ export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) =
     addedDeposits,
     setAddedDeposits,
     savedRecords,
-    setSavedRecords
+    setSavedRecords,
+    commonDate
   } = useWizard();
   const [bankOptions, setBankOptions] = useState<{ bankName: string; id: string; }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -40,7 +41,7 @@ export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) =
     resolver: zodResolver(bankDepositeSchema),
     defaultValues: {
       bankId: "",
-      date: new Date(),
+      date: commonDate,
       amount: undefined,
     },
   });

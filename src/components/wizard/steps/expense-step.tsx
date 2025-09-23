@@ -31,7 +31,8 @@ export const ExpenseStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     addedExpenses,
     setAddedExpenses,
     savedRecords,
-    setSavedRecords
+    setSavedRecords,
+    commonDate
   } = useWizard();
   const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string; limit?: number }[]>([]);
   const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([]);
@@ -44,7 +45,7 @@ export const ExpenseStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     defaultValues: {
       description: "",
       amount: undefined,
-      date: new Date(),
+      date: commonDate,
       expenseCategoryId: "",
       bankId: undefined,
       reason: "",

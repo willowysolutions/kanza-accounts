@@ -4,8 +4,11 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronLeft, ChevronRight, Check, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 // Wizard Step Types
 export interface WizardStep {
@@ -76,6 +79,9 @@ interface WizardContextType {
   setIsStepDisabled: (disabled: boolean) => void;
   isCurrentStepCompleted: boolean;
   setIsCurrentStepCompleted: (completed: boolean) => void;
+  // Common date for all steps
+  commonDate: Date;
+  setCommonDate: React.Dispatch<React.SetStateAction<Date>>;
   // Persistent data across steps
   addedExpenses: AddedExpense[];
   setAddedExpenses: React.Dispatch<React.SetStateAction<AddedExpense[]>>;
@@ -119,6 +125,9 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
   const [onSaveAndNext, setOnSaveAndNext] = useState<(() => (() => Promise<boolean>)) | null>(null);
   const [isStepDisabled, setIsStepDisabled] = useState(false);
   const [isCurrentStepCompleted, setIsCurrentStepCompleted] = useState(false);
+  
+  // Common date for all steps - initialized to today and persists across navigation
+  const [commonDate, setCommonDate] = useState<Date>(new Date());
   
   // Persistent data across all steps
   const [addedExpenses, setAddedExpenses] = useState<AddedExpense[]>([]);
@@ -210,6 +219,9 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     setIsStepDisabled,
     isCurrentStepCompleted,
     setIsCurrentStepCompleted,
+    // Common date
+    commonDate,
+    setCommonDate,
     // Persistent data
     addedExpenses,
     setAddedExpenses,
@@ -227,6 +239,39 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     <WizardContext.Provider value={value}>
       {children}
     </WizardContext.Provider>
+  );
+};
+
+// Common Date Picker Component
+const CommonDatePicker: React.FC = () => {
+  const { commonDate, setCommonDate } = useWizard();
+
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <span className="text-sm font-medium text-muted-foreground">Common Date:</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-[240px] justify-start text-left font-normal",
+              !commonDate && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {commonDate ? format(commonDate, "PPP") : <span>Pick a date</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={commonDate}
+            onSelect={(date) => date && setCommonDate(date)}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 };
 
@@ -392,6 +437,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           <CardHeader>
             <CardTitle className="text-2xl">{title}</CardTitle>
             <p className="text-muted-foreground">{description}</p>
+            <CommonDatePicker />
           </CardHeader>
           <CardContent className="space-y-6">
             <StepIndicator />
@@ -422,4 +468,4 @@ const WizardContent: React.FC = () => {
 };
 
 // Export all components
-export { WizardNavigation, StepIndicator, ProgressBar };
+export { WizardNavigation, StepIndicator, ProgressBar, CommonDatePicker };

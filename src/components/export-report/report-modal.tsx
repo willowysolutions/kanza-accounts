@@ -61,6 +61,7 @@ type ReportData = {
   oils: { id: string; amount: number; productType: string; quantity: number; price: number }[];
   bankDeposite: { id: string; amount: number; bank: { id: string; bankName: string } }[];
   creditRecieved: { id: string; amount: number; customer: { id: string; name: string }; paidOn: Date }[];
+  customerPayments: { id: string; amount: number; customer: { id: string; name: string }; paidOn: Date }[];
   meterReadings: {
     id: string;
     openingReading: number;
@@ -245,6 +246,11 @@ if (report.oils.length > 0) {
   const receiptRows: TableRowData[] = [
     [{ content: "SALE", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, report.totals.totalSale],
     [{ content: "BALANCE RECEIPT", colSpan: 2 , styles: { halign: "center", underline: true, fontStyle: "bold" }}, report.totals.totalBalanceReceipt],
+    // Customer Payments
+    ...report.customerPayments.map((cp) => [
+      { content: cp.customer.name, colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } },
+      cp.amount
+    ] as TableRowData),
     [{ content: "", colSpan: 2 },{content: report.totals.salesAndBalaceReceipt, styles: { fillColor: [253, 224, 71]}}],
     [{ content: "EXPENSES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, report.totals.expenseSum.toFixed(2)],
     [{ content: "BANK DEPOSITES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, ""],
@@ -472,6 +478,15 @@ if (report.oils.length > 0) {
                       {formatCurrency(report.totals.totalBalanceReceipt)}
                     </TableCell>
                   </TableRow>
+                  {/* Customer Payments */}
+                  {report.customerPayments.map((cp) => (
+                    <TableRow key={cp.id}>
+                      <TableCell>{cp.customer.name}</TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(cp.amount)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                   <TableRow className="font-bold border-t">
                     <TableCell />
                     <TableCell className="text-right bg-yellow-200">

@@ -29,7 +29,8 @@ export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     addedProducts,
     setAddedProducts,
     savedRecords,
-    setSavedRecords
+    setSavedRecords,
+    commonDate
   } = useWizard();
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -46,7 +47,7 @@ export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   const form = useForm<OilFormValues>({
     resolver: zodResolver(oilSchema),
     defaultValues: {
-      date: new Date(),
+      date: commonDate,
       productType: "",
       quantity: undefined,
       price: undefined,
