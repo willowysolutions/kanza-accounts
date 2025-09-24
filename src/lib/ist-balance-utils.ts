@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getStartOfDayIST, getEndOfDayIST } from "@/lib/date-utils";
+import { getStartOfDayIST, getEndOfDayIST, convertToIST } from "@/lib/date-utils";
 
 /**
  * IST-aware balance receipt utilities
@@ -22,8 +22,8 @@ export async function updateBalanceReceiptIST(
     where: {
       branchId,
       date: {
-        gte: startOfDay,
-        lte: endOfDay,
+        gte: convertToIST(startOfDay),
+        lte: convertToIST(endOfDay),
       },
     },
   });
@@ -42,7 +42,7 @@ export async function updateBalanceReceiptIST(
     const previousBalance = await getPreviousDayBalanceIST(branchId, date, prismaClient);
     const result = await prismaClient.balanceReceipt.create({
       data: {
-        date: startOfDay,
+        date: convertToIST(startOfDay), // Ensure date is stored in IST timezone
         amount: previousBalance + amountChange,
         branchId,
       },
@@ -65,8 +65,8 @@ async function getPreviousDayBalanceIST(branchId: string, currentDate: Date, pri
     where: {
       branchId,
       date: {
-        gte: previousStart,
-        lte: previousEnd,
+        gte: convertToIST(previousStart),
+        lte: convertToIST(previousEnd),
       },
     },
     orderBy: { date: 'desc' },
@@ -86,8 +86,8 @@ export async function getCurrentBalanceIST(branchId: string, date: Date): Promis
     where: {
       branchId,
       date: {
-        gte: startOfDay,
-        lte: endOfDay,
+        gte: convertToIST(startOfDay),
+        lte: convertToIST(endOfDay),
       },
     },
     orderBy: { date: 'desc' },
@@ -107,8 +107,8 @@ export async function getBalanceReceiptIST(branchId: string, date: Date) {
     where: {
       branchId,
       date: {
-        gte: startOfDay,
-        lte: endOfDay,
+        gte: convertToIST(startOfDay),
+        lte: convertToIST(endOfDay),
       },
     },
   });
