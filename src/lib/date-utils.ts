@@ -51,8 +51,13 @@ export function formatDateIST(date?: Date): string {
  * Parse date string and ensure it's in IST timezone
  */
 export function parseDateIST(dateString: string): Date {
+  // If the date string is in YYYY-MM-DD format, treat it as UTC midnight
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return new Date(dateString + 'T00:00:00.000Z');
+  }
+  
+  // For other formats, use the original logic
   const date = new Date(dateString);
-  // Ensure we're working with IST timezone
   const istOffset = 5.5 * 60; // 5 hours 30 minutes in minutes
   const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
   return new Date(utc + (istOffset * 60000));

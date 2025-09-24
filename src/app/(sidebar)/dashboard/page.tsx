@@ -15,7 +15,7 @@ import { Fuel, Calendar } from 'lucide-react';
 import DashboardCharts from '@/components/graphs/sales-purchase-graph';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { prisma } from '@/lib/prisma';
-import { formatDisplayDate, formatDateIST } from '@/lib/date-utils';
+import { formatDisplayDate, formatDateIST, getCurrentDateIST } from '@/lib/date-utils';
 import { Customer } from '@/types/customer';
 import { DownloadReportButton } from '@/components/dashboard/download-report-button';
 import { formatDate } from '@/lib/utils';
@@ -234,9 +234,7 @@ async function fetchBranchDailySummary(branchId?: string, dateStr?: string) {
   const cookie = (await cookies()).toString();
   
   // Use IST timezone for consistent date handling
-  const now = new Date();
-  const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
-  const date = dateStr ?? istNow.toISOString().split('T')[0];
+  const date = dateStr ?? formatDateIST(getCurrentDateIST());
   const url = branchId ? `${proto}://${host}/api/reports/${date}?branchId=${branchId}` : `${proto}://${host}/api/reports/${date}`;
   const res = await fetch(url, { cache: 'no-store', headers: { cookie } });
   const json = await res.json();
@@ -297,9 +295,8 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
     // Combine and deduplicate dates
     const allDates = new Set<string>();
     [...salesDates, ...expenseDates, ...creditDates, ...balanceDates].forEach(item => {
-      // Convert UTC date to IST date string
-      const istDate = new Date(item.date.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
-      const dateStr = istDate.toISOString().split('T')[0]; // Get YYYY-MM-DD format in IST
+      // Convert date to IST date string using proper utility
+      const dateStr = formatDateIST(item.date);
       allDates.add(dateStr);
     });
     
