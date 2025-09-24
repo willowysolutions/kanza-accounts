@@ -48,6 +48,25 @@ export function formatDateIST(date?: Date): string {
 }
 
 /**
+ * Convert UTC date to IST date string for consistent display
+ * This ensures the same date is shown regardless of server timezone
+ */
+export function convertToISTDateString(date: Date): string {
+  // Create a new date object to avoid mutating the original
+  const utcDate = new Date(date);
+  
+  // Convert to IST by adding 5.5 hours (5 hours 30 minutes)
+  const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+  
+  // Format as YYYY-MM-DD
+  const year = istDate.getUTCFullYear();
+  const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(istDate.getUTCDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Parse date string and ensure it's in IST timezone
  */
 export function parseDateIST(dateString: string): Date {

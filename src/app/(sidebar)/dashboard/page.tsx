@@ -15,7 +15,7 @@ import { Fuel, Calendar } from 'lucide-react';
 import DashboardCharts from '@/components/graphs/sales-purchase-graph';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { prisma } from '@/lib/prisma';
-import { formatDisplayDate, formatDateIST, getCurrentDateIST } from '@/lib/date-utils';
+import { formatDisplayDate, formatDateIST, getCurrentDateIST, convertToISTDateString } from '@/lib/date-utils';
 import { Customer } from '@/types/customer';
 import { DownloadReportButton } from '@/components/dashboard/download-report-button';
 import { formatDate } from '@/lib/utils';
@@ -295,8 +295,8 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
     // Combine and deduplicate dates
     const allDates = new Set<string>();
     [...salesDates, ...expenseDates, ...creditDates, ...balanceDates].forEach(item => {
-      // Convert date to IST date string using proper utility
-      const dateStr = formatDateIST(item.date);
+      // Convert date to IST date string using robust conversion
+      const dateStr = convertToISTDateString(item.date);
       allDates.add(dateStr);
     });
     
@@ -450,7 +450,7 @@ async function BranchSalesTabs({
   // Group sales by branch and date
   filteredSales.forEach(sale => {
     const branchId = sale.branchId || 'no-branch';
-    const dateKey = formatDateIST(sale.date); 
+    const dateKey = convertToISTDateString(sale.date); 
 // "YYYY-MM-DD" in IST timezone
 
     
