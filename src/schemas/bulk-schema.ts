@@ -1,8 +1,7 @@
 import z from "zod";
-import { convertToIST } from "@/lib/date-utils";
 
 export const bulkSchema = z.object({
-  date: z.coerce.date().transform((date) => convertToIST(date)),
+  date: z.coerce.date(),
   rows: z
     .array(
       z.object({

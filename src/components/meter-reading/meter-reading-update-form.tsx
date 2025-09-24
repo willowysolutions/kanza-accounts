@@ -33,6 +33,10 @@ import { useEffect, useState } from "react";
 import { MeterReading, Nozzle } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { ProductType } from "@/types/product";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+import { cn } from "@/lib/utils";
+
 
 // ✅ schema
 const meterReadingSchema = z.object({
@@ -40,6 +44,7 @@ const meterReadingSchema = z.object({
   openingReading: z.coerce.number(),
   closingReading: z.coerce.number(),
   totalAmount: z.coerce.number(),
+  date: z.coerce.date(),
 });
 
 type MeterReadingFormValues = z.infer<typeof meterReadingSchema>;
@@ -64,6 +69,7 @@ export function MeterReadingUpdateForm({
       openingReading: meterReading.openingReading || undefined,
       closingReading: meterReading.closingReading || undefined,
       totalAmount: meterReading.totalAmount,
+      date: meterReading.date,
     },
   });
 
@@ -261,6 +267,43 @@ export function MeterReadingUpdateForm({
           )}
         />
         </div>
+
+        {/* Date field */}
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick a date"}
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Calendar
+                    mode="single"
+                    selected={field.value ? new Date(field.value) : undefined}
+                    onSelect={field.onChange}
+                    captionLayout="dropdown"
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormDialogFooter>
           <DialogClose asChild>

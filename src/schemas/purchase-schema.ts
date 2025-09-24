@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { convertToIST } from "@/lib/date-utils";
 
 export const purchaseSchema = z.object({
   supplierId: z.string(),
   phone: z.string().min(7, "Phone number is required").optional(),
-  date: z.coerce.date().transform((date) => convertToIST(date)),
+  date: z.coerce.date(),
   productType: z.string().min(1),
   quantity: z.coerce.number().min(0),
   purchasePrice:z.coerce.number(),

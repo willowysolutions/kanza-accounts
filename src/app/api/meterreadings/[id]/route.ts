@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { meterReadingSchemaWithId } from "@/schemas/meter-reading-schema";
+import { meterReadingUpdateSchema } from "@/schemas/meter-reading-schema";
 import { ObjectId } from "mongodb";
 
 export const runtime = "nodejs";
@@ -26,7 +26,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const parsed = meterReadingSchemaWithId.safeParse({ id, ...body });
+    const parsed = meterReadingUpdateSchema.safeParse({ id, ...body });
 
 
     if (!parsed.success) {
@@ -58,21 +58,37 @@ export async function PATCH(
       return NextResponse.json({ error: "Meter reading not found" }, { status: 404 });
     }
 
-    const difference =
-      (data.closingReading ?? existingReading.closingReading) -
-      (data.openingReading ?? existingReading.openingReading);
+    // Calculate new difference if closing or opening reading changed
+    const newOpeningReading = data.openingReading ?? existingReading.openingReading;
+    const newClosingReading = data.closingReading ?? existingReading.closingReading;
+    const newDifference = newClosingReading - newOpeningReading;
+
+    // Prepare update data, only including fields that were provided
+    const updateData: {
+      nozzleId?: string;
+      openingReading?: number;
+      closingReading?: number;
+      totalAmount?: number;
+      date?: Date;
+      difference: number;
+    } = {
+      difference: newDifference,
+    };
+    
+    if (data.nozzleId !== undefined) updateData.nozzleId = data.nozzleId;
+    if (data.openingReading !== undefined) updateData.openingReading = data.openingReading;
+    if (data.closingReading !== undefined) updateData.closingReading = data.closingReading;
+    if (data.totalAmount !== undefined) updateData.totalAmount = data.totalAmount;
+    if (data.date !== undefined) updateData.date = data.date;
 
     const updatedReading = await prisma.meterReading.update({
       where: { id },
-      data: {
-        ...data,
-        difference,
-      },
+      data: updateData,
     });
 
     // Adjust tank stock if difference changed
     const oldDiff = existingReading.closingReading - existingReading.openingReading;
-    const newDiff = difference;
+    const newDiff = newDifference;
     const qtyChange = newDiff - oldDiff;
 
     const connectedTank = existingReading.nozzle?.machine?.machineTanks.find(

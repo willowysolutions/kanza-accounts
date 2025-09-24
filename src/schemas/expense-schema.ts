@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { convertToIST } from "@/lib/date-utils";
 
 export const expenseSchema = z.object({
   description: z.string().optional(),
   amount: z.coerce.number({ required_error: "Amount is required" }).min(0),
-  date: z.coerce.date().transform((date) => convertToIST(date)),
+  date: z.coerce.date(),
   expenseCategoryId: z.string().min(1),
   bankId:z.string().optional(),
   reason: z.string().optional()

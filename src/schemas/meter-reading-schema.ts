@@ -15,4 +15,14 @@ export const meterReadingSchemaWithId = meterReadingSchema.extend({
   id: z.string(),
 });
 
+export const meterReadingUpdateSchema = z.object({
+  id: z.string(),
+  nozzleId: z.string().min(1).optional(),
+  openingReading: z.coerce.number().optional(),
+  closingReading: z.coerce.number().optional(),
+  totalAmount: z.coerce.number().optional(),
+  date: z.coerce.date().transform((date) => convertToIST(date)).optional(),
+});
+
 export type MeterReadingInput = z.infer<typeof meterReadingSchema>;
+export type MeterReadingUpdateInput = z.infer<typeof meterReadingUpdateSchema>;
