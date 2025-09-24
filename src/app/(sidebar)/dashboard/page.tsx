@@ -18,6 +18,7 @@ import { prisma } from '@/lib/prisma';
 import { formatDisplayDate, formatDateIST } from '@/lib/date-utils';
 import { Customer } from '@/types/customer';
 import { DownloadReportButton } from '@/components/dashboard/download-report-button';
+import { formatDate } from '@/lib/utils';
 
 export default async function Dashboard({
   searchParams,
@@ -368,7 +369,7 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
             <tbody>
               {rows.map(({ date, totals }) => (
                 <tr key={date} className="border-b hover:bg-muted">
-                  <td className="p-2">{formatDisplayDate(new Date(date))}</td>
+                  <td className="p-2">{formatDate(date)}</td>
                   <td className="p-2">₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
                   <td className="p-2">₹{totals.totalExpense?.toFixed(2) ?? '0.00'}</td>
                   <td className="p-2">₹{totals.totalCredit?.toFixed(2) ?? '0.00'}</td>
@@ -565,7 +566,7 @@ async function BranchSalesTabs({
                 })
                 .map(({ date, sales }) => (
                 <tr key={date} className="border-b hover:bg-muted">
-                  <td className="p-2">{formatDisplayDate(new Date(date))}</td>
+                  <td className="p-2">{formatDate(date)}</td>
                   <td className="p-2">₹{sales.cashPayment.toFixed(2)}</td>
                   <td className="p-2">₹{sales.atmPayment.toFixed(2)}</td>
                   <td className="p-2">₹{sales.paytmPayment.toFixed(2)}</td>
