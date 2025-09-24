@@ -15,7 +15,7 @@ import { Fuel, Calendar } from 'lucide-react';
 import DashboardCharts from '@/components/graphs/sales-purchase-graph';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { prisma } from '@/lib/prisma';
-import { formatDisplayDate, formatDateIST, getCurrentDateIST, convertToISTDateString } from '@/lib/date-utils';
+import { formatDisplayDate, getCurrentDateIST, convertToISTDateString } from '@/lib/date-utils';
 import { Customer } from '@/types/customer';
 import { DownloadReportButton } from '@/components/dashboard/download-report-button';
 import { formatDate } from '@/lib/utils';
@@ -234,7 +234,7 @@ async function fetchBranchDailySummary(branchId?: string, dateStr?: string) {
   const cookie = (await cookies()).toString();
   
   // Use IST timezone for consistent date handling
-  const date = dateStr ?? formatDateIST(getCurrentDateIST());
+  const date = dateStr ?? convertToISTDateString(getCurrentDateIST());
   const url = branchId ? `${proto}://${host}/api/reports/${date}?branchId=${branchId}` : `${proto}://${host}/api/reports/${date}`;
   const res = await fetch(url, { cache: 'no-store', headers: { cookie } });
   const json = await res.json();
@@ -439,6 +439,7 @@ async function BranchSalesTabs({
     xgDieselTotal: number;
     msPetrolTotal: number;
     totalAmount: number;
+    originalDate: string; // Store original UTC date for API calls
   }>>();
 
   // Filter sales for visible branches
@@ -450,9 +451,8 @@ async function BranchSalesTabs({
   // Group sales by branch and date
   filteredSales.forEach(sale => {
     const branchId = sale.branchId || 'no-branch';
-    const dateKey = convertToISTDateString(sale.date); 
-// "YYYY-MM-DD" in IST timezone
-
+    const dateKey = convertToISTDateString(sale.date); // IST date for display
+    const originalDate = sale.date.toISOString().split('T')[0]; // UTC date for API calls
     
     if (!branchSalesMap.has(branchId)) {
       branchSalesMap.set(branchId, new Map());
@@ -468,6 +468,7 @@ async function BranchSalesTabs({
       xgDieselTotal: 0,
       msPetrolTotal: 0,
       totalAmount: 0,
+      originalDate: originalDate,
     };
 
     branchMap.set(dateKey, {
@@ -479,6 +480,7 @@ async function BranchSalesTabs({
       xgDieselTotal: existing.xgDieselTotal + (sale.xgDieselTotal || 0),
       msPetrolTotal: existing.msPetrolTotal + (sale.msPetrolTotal || 0),
       totalAmount: existing.totalAmount + (sale.rate || 0),
+      originalDate: originalDate,
     });
   });
 
@@ -513,6 +515,7 @@ async function BranchSalesTabs({
           xgDieselTotal: 0,
           msPetrolTotal: 0,
           totalAmount: 0,
+          originalDate: date,
         };
         
         return {
@@ -573,7 +576,7 @@ async function BranchSalesTabs({
                   <td className="p-2 text-red-600">₹{sales.msPetrolTotal.toFixed(2)}</td>
                   <td className="p-2 font-bold">₹{sales.totalAmount.toFixed(2)}</td>
                   <td className="p-2">
-                    <DownloadReportButton date={date} branchId={branchId} />
+                    <DownloadReportButton date={sales.originalDate} branchId={branchId} />
                   </td>
                 </tr>
               ))}
