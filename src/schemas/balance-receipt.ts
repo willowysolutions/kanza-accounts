@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { convertToIST } from "@/lib/date-utils";
 
 export const balanceReceiptSchema = z.object({
-  date: z.coerce.date(),
+  date: z.coerce.date().transform((date) => convertToIST(date)),
   amount: z.coerce.number()
 });
 

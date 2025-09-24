@@ -4,7 +4,7 @@ import { salesSchema } from "@/schemas/sales-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { updateBalanceReceipt } from "@/lib/balance-utils";
+import { updateBalanceReceiptIST } from "@/lib/ist-balance-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       // Update balance receipt with cash payment (positive amount = cash received)
       // Note: Only cash payments affect the cash balance, non-cash payments don't
       if (branchId) {
-        await updateBalanceReceipt(branchId, new Date(result.data.date), newSale.cashPayment, tx);
+        await updateBalanceReceiptIST(branchId, result.data.date, newSale.cashPayment, tx);
       }
 
       return newSale;

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { creditSchema } from "@/schemas/credit-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { updateBalanceReceipt } from "@/lib/balance-utils";
+import { updateBalanceReceiptIST } from "@/lib/ist-balance-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
       // 3. Update BalanceReceipt (negative amount = cash given as credit)
       if (branchId) {
-        await updateBalanceReceipt(branchId, new Date(date), -amount, tx);
+        await updateBalanceReceiptIST(branchId, date, -amount, tx);
       }
 
       return [createdCredit];

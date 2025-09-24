@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { headers, cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getDashboardData } from '@/lib/actions/dashboard';
+import { getOptimizedDashboardData } from '@/lib/actions/optimized-dashboard';
 import { ChartAreaInteractive } from '@/components/dashboard/chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { WizardButton } from '@/components/dashboard/wizard-button';
@@ -15,7 +15,7 @@ import { Fuel, Calendar } from 'lucide-react';
 import DashboardCharts from '@/components/graphs/sales-purchase-graph';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { prisma } from '@/lib/prisma';
-import { formatDate } from '@/lib/utils';
+import { formatDisplayDate, formatDateIST } from '@/lib/date-utils';
 import { Customer } from '@/types/customer';
 import { DownloadReportButton } from '@/components/dashboard/download-report-button';
 
@@ -34,7 +34,11 @@ export default async function Dashboard({
     redirect('/login');
   }
 
-  const dashboardData = await getDashboardData();
+  // Use optimized dashboard data fetcher
+  // For admin users, don't filter by branch to show all data
+  const isAdmin = (session?.user?.role ?? '').toLowerCase() === 'admin';
+  const branchFilter = isAdmin ? undefined : (session?.user?.branch || undefined);
+  const dashboardData = await getOptimizedDashboardData(branchFilter);
   const branches = await prisma.branch.findMany({ orderBy: { name: 'asc' } });
 
   const {
@@ -46,6 +50,7 @@ export default async function Dashboard({
     customers,
     // recentSales,
   } = dashboardData;
+
 
   // Generic groupByMonth function
   function groupByMonth<
@@ -227,15 +232,8 @@ async function fetchBranchDailySummary(branchId?: string, dateStr?: string) {
   const proto = hdrs.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http');
   const cookie = (await cookies()).toString();
   
-  // Use local date formatting to avoid timezone issues
-  const getLocalDateString = (d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-  
-  const date = dateStr ?? getLocalDateString(new Date());
+  // Use IST timezone for consistent date handling
+  const date = dateStr ?? formatDateIST();
   const url = branchId ? `${proto}://${host}/api/reports/${date}?branchId=${branchId}` : `${proto}://${host}/api/reports/${date}`;
   const res = await fetch(url, { cache: 'no-store', headers: { cookie } });
   const json = await res.json();
@@ -256,39 +254,52 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
   const isAdmin = (role ?? '').toLowerCase() === 'admin';
   const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
 
-  // Find dates with actual data with pagination support
+  // Find dates with actual data using efficient database queries
   const getDatesWithData = async (branchId: string, page: number = 0, pageSize: number = 5) => {
-    const datesWithData: string[] = [];
-    const maxDays = 60; // Check more days to find enough data for pagination
-    
-    // Check the last 60 days for data
-    for (let i = 0; i < maxDays; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
-      
-      // Fetch data for this date
-      const totals = await fetchBranchDailySummary(branchId, dateStr);
-      
-      // Check if this date has meaningful data
-      const hasData = (totals.totalSale ?? 0) > 0 || 
-                     (totals.totalExpense ?? 0) > 0 || 
-                     (totals.totalCredit ?? 0) > 0 || 
-                     (totals.totalBalanceReceipt ?? 0) > 0 || 
-                     (totals.cashBalance ?? 0) > 0;
-      
-      if (hasData) {
-        datesWithData.push(dateStr);
-      }
-    }
-    
-    // Apply pagination to the meaningful dates
     const startIndex = page * pageSize;
     const endIndex = startIndex + pageSize;
-    return datesWithData.slice(startIndex, endIndex);
+    
+    // Get dates from each table and combine them
+    const [salesDates, expenseDates, creditDates, balanceDates] = await Promise.all([
+      prisma.sale.findMany({
+        where: { branchId },
+        select: { date: true },
+        distinct: ['date'],
+        orderBy: { date: 'desc' },
+        take: 20
+      }),
+      prisma.expense.findMany({
+        where: { branchId },
+        select: { date: true },
+        distinct: ['date'],
+        orderBy: { date: 'desc' },
+        take: 20
+      }),
+      prisma.credit.findMany({
+        where: { branchId },
+        select: { date: true },
+        distinct: ['date'],
+        orderBy: { date: 'desc' },
+        take: 20
+      }),
+      prisma.balanceReceipt.findMany({
+        where: { branchId },
+        select: { date: true },
+        distinct: ['date'],
+        orderBy: { date: 'desc' },
+        take: 20
+      })
+    ]);
+    
+    // Combine and deduplicate dates
+    const allDates = new Set<string>();
+    [...salesDates, ...expenseDates, ...creditDates, ...balanceDates].forEach(item => {
+      allDates.add(formatDateIST(item.date));
+    });
+    
+    // Sort dates and apply pagination
+    const sortedDates = Array.from(allDates).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    return sortedDates.slice(startIndex, endIndex);
   };
 
   // prefetch summaries for each branch with meaningful data only
@@ -333,7 +344,7 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
             <Calendar className="h-4 w-4 text-red-500" />
             <span className='text-red-500'>
               Last meter reading for {visibleBranches.find(b => b.id === branchId)?.name}: {branchLastMeterReadingDate 
-                ? formatDate(branchLastMeterReadingDate)
+                ? formatDisplayDate(branchLastMeterReadingDate)
                 : 'No readings yet'
               }
             </span>
@@ -352,7 +363,7 @@ async function BranchSummaryTabs({ branches, role, userBranchId, page = 0 }: { b
             <tbody>
               {rows.map(({ date, totals }) => (
                 <tr key={date} className="border-b hover:bg-muted">
-                  <td className="p-2">{formatDate(date)}</td>
+                  <td className="p-2">{formatDisplayDate(new Date(date))}</td>
                   <td className="p-2">₹{totals.totalSale?.toFixed(2) ?? '0.00'}</td>
                   <td className="p-2">₹{totals.totalExpense?.toFixed(2) ?? '0.00'}</td>
                   <td className="p-2">₹{totals.totalCredit?.toFixed(2) ?? '0.00'}</td>
@@ -436,8 +447,8 @@ async function BranchSalesTabs({
   // Group sales by branch and date
   filteredSales.forEach(sale => {
     const branchId = sale.branchId || 'no-branch';
-    const dateKey = sale.date.toLocaleDateString("en-CA"); 
-// "YYYY-MM-DD" in local timezone
+    const dateKey = formatDateIST(sale.date); 
+// "YYYY-MM-DD" in IST timezone
 
     
     if (!branchSalesMap.has(branchId)) {
@@ -549,7 +560,7 @@ async function BranchSalesTabs({
                 })
                 .map(({ date, sales }) => (
                 <tr key={date} className="border-b hover:bg-muted">
-                  <td className="p-2">{formatDate(date)}</td>
+                  <td className="p-2">{formatDisplayDate(new Date(date))}</td>
                   <td className="p-2">₹{sales.cashPayment.toFixed(2)}</td>
                   <td className="p-2">₹{sales.atmPayment.toFixed(2)}</td>
                   <td className="p-2">₹{sales.paytmPayment.toFixed(2)}</td>

@@ -1,6 +1,7 @@
 // app/api/report/[date]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parseDateIST, getStartOfDayIST, getEndOfDayIST } from "@/lib/date-utils";
 
 export async function GET(
   req: Request,
@@ -10,14 +11,11 @@ export async function GET(
     const { date } = await params;
     const { searchParams } = new URL(req.url);
     const branchId = searchParams.get('branchId');
-    const selectedDate = new Date(date);
-
-    // create start & end of the day range
-    const startOfDay = new Date(selectedDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    
+    // Use IST timezone for consistent date handling
+    const selectedDate = parseDateIST(date);
+    const startOfDay = getStartOfDayIST(selectedDate);
+    const endOfDay = getEndOfDayIST(selectedDate);
 
     // Purchase
     const purchases = await prisma.purchase.findMany({
@@ -151,15 +149,11 @@ export async function GET(
       0
     );
 
-    // Get yesterday's BalanceReceipt
-    const yesterday = new Date(startOfDay);
+    // Get yesterday's BalanceReceipt using IST timezone
+    const yesterday = new Date(selectedDate);
     yesterday.setDate(yesterday.getDate() - 1);
-
-    const yesterdayStart = new Date(yesterday);
-    yesterdayStart.setHours(0, 0, 0, 0);
-
-    const yesterdayEnd = new Date(yesterday);
-    yesterdayEnd.setHours(23, 59, 59, 999);
+    const yesterdayStart = getStartOfDayIST(yesterday);
+    const yesterdayEnd = getEndOfDayIST(yesterday);
 
     const yesterdayReceipts = await prisma.balanceReceipt.findMany({
       where: {

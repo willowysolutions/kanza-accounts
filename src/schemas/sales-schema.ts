@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { convertToIST } from "@/lib/date-utils";
 
 export const salesSchema = z.object({
-  date:z.coerce.date(),
+  date: z.coerce.date().transform((date) => convertToIST(date)),
   cashPayment: z.coerce.number().min(0),
   atmPayment: z.coerce.number().min(0),
   paytmPayment: z.coerce.number().min(0),
