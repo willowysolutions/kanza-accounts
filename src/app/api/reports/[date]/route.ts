@@ -6,10 +6,10 @@ import { getISTDateRangeForQuery } from "@/lib/date-utils";
 
 export async function GET(
   req: Request,
-  { params }: { params: { date: string } }
+  { params }: { params: Promise<{ date: string }> }
 ) {
   try {
-    const { date } = params;
+    const { date } = await params;
     const { searchParams } = new URL(req.url);
     const branchId = searchParams.get('branchId');
     
