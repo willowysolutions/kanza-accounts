@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { convertToIST, getISTDateRangeForQuery } from "@/lib/date-utils";
+import { getISTDateRangeForQuery } from "@/lib/date-utils";
 
 /**
  * IST-aware balance receipt utilities
@@ -38,12 +38,31 @@ export async function updateBalanceReceiptIST(
     });
     return result;
   } else {
-    // Create new receipt with previous balance + current change
+    // Create new receipt
     const previousBalance = await getPreviousDayBalanceIST(branchId, date, prismaClient);
+    
+    // Create IST date for storage (previous day's 18:30:00.000Z represents IST midnight)
+    // For Sep 5 IST, we need Sep 4 18:30 UTC to represent Sep 5 00:00 IST
+    const [year, month, day] = dateString.split('-').map(Number);
+    const previousDay = new Date(year, month - 1, day - 1);
+    const istDate = new Date(`${previousDay.getFullYear()}-${String(previousDay.getMonth() + 1).padStart(2, '0')}-${String(previousDay.getDate()).padStart(2, '0')}T18:30:00.000Z`);
+    
+    // Determine the new balance amount
+    let newAmount: number;
+    if (amountChange < 0) {
+      // For expenses/credits/bank-deposits (negative amountChange)
+      // If no previous balance receipt exists, start with 0 - amount (not previousBalance)
+      newAmount = 0 + amountChange; // This gives us 0 - amount
+    } else {
+      // For sales (positive amountChange)
+      // Use previous balance + current change
+      newAmount = previousBalance + amountChange;
+    }
+    
     const result = await prismaClient.balanceReceipt.create({
       data: {
-        date: convertToIST(new Date(dateString + 'T00:00:00.000Z')), // Ensure date is stored in IST timezone
-        amount: previousBalance + amountChange,
+        date: istDate, // Store in IST format (18:30:00.000Z)
+        amount: newAmount,
         branchId,
       },
     });

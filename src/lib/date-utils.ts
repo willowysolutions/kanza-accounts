@@ -162,18 +162,15 @@ export function getISTDateRangeForQuery(dateString: string): { start: Date; end:
     day = parseInt(parts[2]);
   }
   
-  // Create IST date (start of day)
-  const istStartDate = new Date(year, month - 1, day, 0, 0, 0, 0);
-  const istEndDate = new Date(year, month - 1, day, 23, 59, 59, 999);
-  
-  // Convert to UTC for database queries
-  // IST is UTC+5:30, so we need to subtract 5:30 to get UTC
-  const utcStartDate = new Date(istStartDate.getTime() - (5.5 * 60 * 60 * 1000));
-  const utcEndDate = new Date(istEndDate.getTime() - (5.5 * 60 * 60 * 1000));
+  // Since we're now storing dates as IST format (previous day's 18:30:00.000Z), we need to query for that specific time
+  // For Sep 5 IST, we store Sep 4 18:30 UTC to represent Sep 5 00:00 IST
+  const previousDay = new Date(year, month - 1, day - 1);
+  const istStartDate = new Date(`${previousDay.getFullYear()}-${String(previousDay.getMonth() + 1).padStart(2, '0')}-${String(previousDay.getDate()).padStart(2, '0')}T18:30:00.000Z`);
+  const istEndDate = new Date(`${previousDay.getFullYear()}-${String(previousDay.getMonth() + 1).padStart(2, '0')}-${String(previousDay.getDate()).padStart(2, '0')}T18:30:59.999Z`);
   
   return {
-    start: utcStartDate,
-    end: utcEndDate
+    start: istStartDate,
+    end: istEndDate
   };
 }
 
