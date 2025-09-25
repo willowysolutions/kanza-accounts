@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getStartOfDayIST, getEndOfDayIST, convertToIST } from "@/lib/date-utils";
+import { convertToIST, getISTDateRangeForQuery } from "@/lib/date-utils";
 
 /**
  * IST-aware balance receipt utilities
@@ -13,17 +13,17 @@ export async function updateBalanceReceiptIST(
 ) {
   const prismaClient = tx || prisma;
   
-  // Use IST date handling for consistent timezone
-  const startOfDay = getStartOfDayIST(date);
-  const endOfDay = getEndOfDayIST(date);
+  // Convert the date to IST date string using the same logic as report modal
+  const dateString = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const { start, end } = getISTDateRangeForQuery(dateString);
   
   // Check if balance receipt exists for this date and branch
   const existingReceipt = await prismaClient.balanceReceipt.findFirst({
     where: {
       branchId,
       date: {
-        gte: convertToIST(startOfDay),
-        lte: convertToIST(endOfDay),
+        gte: start,
+        lte: end,
       },
     },
   });
@@ -42,7 +42,7 @@ export async function updateBalanceReceiptIST(
     const previousBalance = await getPreviousDayBalanceIST(branchId, date, prismaClient);
     const result = await prismaClient.balanceReceipt.create({
       data: {
-        date: convertToIST(startOfDay), // Ensure date is stored in IST timezone
+        date: convertToIST(new Date(dateString + 'T00:00:00.000Z')), // Ensure date is stored in IST timezone
         amount: previousBalance + amountChange,
         branchId,
       },
@@ -58,15 +58,16 @@ async function getPreviousDayBalanceIST(branchId: string, currentDate: Date, pri
   const previousDay = new Date(currentDate);
   previousDay.setDate(previousDay.getDate() - 1);
   
-  const previousStart = getStartOfDayIST(previousDay);
-  const previousEnd = getEndOfDayIST(previousDay);
+  // Convert the previous day to IST date string using the same logic as report modal
+  const previousDateString = previousDay.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const { start, end } = getISTDateRangeForQuery(previousDateString);
   
   const previousReceipt = await prismaClient.balanceReceipt.findFirst({
     where: {
       branchId,
       date: {
-        gte: convertToIST(previousStart),
-        lte: convertToIST(previousEnd),
+        gte: start,
+        lte: end,
       },
     },
     orderBy: { date: 'desc' },
@@ -79,15 +80,16 @@ async function getPreviousDayBalanceIST(branchId: string, currentDate: Date, pri
  * Get current cash balance for a branch on a specific date (IST timezone)
  */
 export async function getCurrentBalanceIST(branchId: string, date: Date): Promise<number> {
-  const startOfDay = getStartOfDayIST(date);
-  const endOfDay = getEndOfDayIST(date);
+  // Convert the date to IST date string using the same logic as report modal
+  const dateString = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const { start, end } = getISTDateRangeForQuery(dateString);
   
   const receipt = await prisma.balanceReceipt.findFirst({
     where: {
       branchId,
       date: {
-        gte: convertToIST(startOfDay),
-        lte: convertToIST(endOfDay),
+        gte: start,
+        lte: end,
       },
     },
     orderBy: { date: 'desc' },
@@ -100,15 +102,16 @@ export async function getCurrentBalanceIST(branchId: string, date: Date): Promis
  * Get balance receipt for a specific date and branch (IST timezone)
  */
 export async function getBalanceReceiptIST(branchId: string, date: Date) {
-  const startOfDay = getStartOfDayIST(date);
-  const endOfDay = getEndOfDayIST(date);
+  // Convert the date to IST date string using the same logic as report modal
+  const dateString = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const { start, end } = getISTDateRangeForQuery(dateString);
   
   return await prisma.balanceReceipt.findFirst({
     where: {
       branchId,
       date: {
-        gte: convertToIST(startOfDay),
-        lte: convertToIST(endOfDay),
+        gte: start,
+        lte: end,
       },
     },
   });
