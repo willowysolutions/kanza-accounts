@@ -107,8 +107,17 @@ const SalesActions = ({ sales }: { sales: Sales }) => {
 
   const handleExportPDF = async () => {
     try {
+      // Convert date to YYYY-MM-DD format for API using IST timezone
+      let dateString: string;
+      if (sales.date instanceof Date) {
+        dateString = sales.date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      } else {
+        // Handle string dates (from Prisma/database)
+        const dateObj = new Date(sales.date);
+        dateString = dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      }
       // Fetch report data for the specific date (same format as report-modal)
-      const response = await fetch(`/api/reports/${sales.date}`);
+      const response = await fetch(`/api/reports/${dateString}`);
       const reportData = await response.json();
 
       if (!reportData) {

@@ -24,7 +24,7 @@ import { Button } from "../ui/button";
 import { IconFileExport } from "@tabler/icons-react";
 
 type ReportModalProps = {
-  date?: Date;
+  date?: Date | string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -84,7 +84,16 @@ export function ReportModal({ date, open, onOpenChange }: ReportModalProps) {
     const fetchReport = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/reports/${date}`);
+        // Convert date to YYYY-MM-DD format for API using IST timezone
+        let dateString: string;
+        if (date instanceof Date) {
+          dateString = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        } else {
+          // Handle string dates (from Prisma/database)
+          const dateObj = new Date(date);
+          dateString = dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        }
+        const res = await fetch(`/api/reports/${dateString}`);
         const data = await res.json();
         setReport(data);
       } catch (err) {
