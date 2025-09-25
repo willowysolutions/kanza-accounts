@@ -11,6 +11,7 @@ interface DownloadReportButtonProps {
 }
 
 export function DownloadReportButton({ date, branchId }: DownloadReportButtonProps) {
+  console.log("date", date);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

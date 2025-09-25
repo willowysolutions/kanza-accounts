@@ -1,21 +1,20 @@
 // app/api/report/[date]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { parseDateIST, getStartOfDayIST, getEndOfDayIST } from "@/lib/date-utils";
+import moment from "moment-timezone";
+import { getISTDateRangeForQuery } from "@/lib/date-utils";
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ date: string }> }
+  { params }: { params: { date: string } }
 ) {
   try {
-    const { date } = await params;
+    const { date } = params;
     const { searchParams } = new URL(req.url);
     const branchId = searchParams.get('branchId');
     
     // Use IST timezone for consistent date handling
-    const selectedDate = parseDateIST(date);
-    const startOfDay = getStartOfDayIST(selectedDate);
-    const endOfDay = getEndOfDayIST(selectedDate);
+    const { start: startOfDay, end: endOfDay } = getISTDateRangeForQuery(date);
 
     // Purchase
     const purchases = await prisma.purchase.findMany({
@@ -150,10 +149,8 @@ export async function GET(
     );
 
     // Get yesterday's BalanceReceipt using IST timezone
-    const yesterday = new Date(selectedDate);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStart = getStartOfDayIST(yesterday);
-    const yesterdayEnd = getEndOfDayIST(yesterday);
+    const yesterday = moment.tz(date, "Asia/Kolkata").subtract(1, "day").format("YYYY-MM-DD");
+    const { start: yesterdayStart, end: yesterdayEnd } = getISTDateRangeForQuery(yesterday);
 
     const yesterdayReceipts = await prisma.balanceReceipt.findMany({
       where: {
