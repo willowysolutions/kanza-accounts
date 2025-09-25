@@ -10,7 +10,7 @@ interface DownloadReportButtonProps {
   branchId?: string;
 }
 
-export function DownloadReportButton({ date }: DownloadReportButtonProps) {
+export function DownloadReportButton({ date, branchId }: DownloadReportButtonProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,8 @@ export function DownloadReportButton({ date }: DownloadReportButtonProps) {
   const handleExportPDF = async () => {
     try {
       // Fetch report data for the specific date (same format as report-modal)
-      const response = await fetch(`/api/reports/${date}`);
+      const url = branchId ? `/api/reports/${date}?branchId=${branchId}` : `/api/reports/${date}`;
+      const response = await fetch(url);
       const reportData = await response.json();
 
       if (!reportData) {
@@ -59,9 +60,16 @@ export function DownloadReportButton({ date }: DownloadReportButtonProps) {
       doc.setFont("helvetica", "normal");
       doc.text(reportData.branchName || "COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
 
-      // Date (right aligned with table edge)
+      // Date (right aligned with table edge) - Convert UTC date to IST
       doc.setFontSize(11);
-      doc.text(`${formatDate(date)}`, pageWidth - marginX, 50, {
+      const utcDate = new Date(date + 'T00:00:00.000Z');
+      const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+      const formattedDate = istDate.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      doc.text(formattedDate, pageWidth - marginX, 50, {
         align: "right",
       });
 
@@ -152,21 +160,37 @@ export function DownloadReportButton({ date }: DownloadReportButtonProps) {
 
       // --- Oils section ---
       if (reportData.oils.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        reportData.oils.forEach((o: any) => {
-          if (o.productType.toUpperCase() === "2T-OIL") {
+        // Group oils by productType to avoid duplicates
+        const oilGroups = reportData.oils.reduce((acc: Record<string, { productType: string; quantity: number; amount: number; price: number }>, oil: { productType: string; quantity: number; amount: number; price: number }) => {
+          const key = oil.productType;
+          if (!acc[key]) {
+            acc[key] = {
+              productType: oil.productType,
+              quantity: 0,
+              amount: 0,
+              price: oil.price
+            };
+          }
+          acc[key].quantity += oil.quantity;
+          acc[key].amount += oil.amount;
+          return acc;
+        }, {});
+
+        // Add grouped oils to the table
+        (Object.values(oilGroups) as { productType: string; quantity: number; amount: number; price: number }[]).forEach((oil) => {
+          if (oil.productType.toUpperCase() === "2T-OIL") {
             // ✅ Special style for 2T OIL
             body.push([
-              { content: o.productType, styles: { fillColor: [255, 0, 0], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" } },
+              { content: oil.productType, styles: { fillColor: [255, 0, 0], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" } },
               "",
               "",
-              o.quantity,
+              oil.quantity,
               "",
-              o.price,
+              oil.price,
             ]);
           } else {
             // Normal oil rows
-            body.push([o.productType, "", "", o.quantity, o.amount, o.price]);
+            body.push([oil.productType, "", "", oil.quantity, "", oil.price]);
           }
         });
       } else {

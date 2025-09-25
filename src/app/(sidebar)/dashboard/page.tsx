@@ -471,7 +471,7 @@ async function BranchSalesTabs({
   filteredSales.forEach(sale => {
     const branchId = sale.branchId || 'no-branch';
     const dateKey = convertToISTDateString(sale.date); // IST date for display
-    const originalDate = sale.date.toISOString().split('T')[0]; // UTC date for API calls
+    const originalDate = convertToISTDateString(sale.date); // IST date for API calls
     
     if (!branchSalesMap.has(branchId)) {
       branchSalesMap.set(branchId, new Map());

@@ -61,7 +61,9 @@ export async function PATCH(
     // Calculate new difference if closing or opening reading changed
     const newOpeningReading = data.openingReading ?? existingReading.openingReading;
     const newClosingReading = data.closingReading ?? existingReading.closingReading;
-    const newDifference = newClosingReading - newOpeningReading;
+    const newDifference = Number(
+      (newClosingReading - newOpeningReading).toFixed(2)
+    );
 
     // Prepare update data, only including fields that were provided
     const updateData: {

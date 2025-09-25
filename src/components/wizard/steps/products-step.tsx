@@ -71,7 +71,7 @@ export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     if (selectedProduct) {
       // auto calculate based on purchasePrice
       const autoPrice = quantity * selectedProduct.sellingPrice;
-      form.setValue("price", autoPrice || 0);
+      form.setValue("price", Math.round(autoPrice) || 0);
     }
   }, [quantity, oilType, productOption, form]);
 

@@ -142,7 +142,7 @@ export function MeterReadingUpdateForm({
 
         if (diff >= 0) {
             const total = diff * product.sellingPrice;
-            form.setValue("totalAmount", total);
+            form.setValue("totalAmount", Math.round(total));
         }
         }
     });
