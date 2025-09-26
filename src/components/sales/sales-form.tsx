@@ -163,17 +163,17 @@ useEffect(() => {
         new Date(reading.date).toLocaleDateString() === formattedDate
     );
 
-    const xgDieselTotal = matchingReadings
+    const xgDieselTotal = Math.round(matchingReadings
       .filter((p) => p.fuelType === "XG-DIESEL")
-      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
+      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
 
-    const msPetrolTotal = matchingReadings
+    const msPetrolTotal = Math.round(matchingReadings
       .filter((p) => p.fuelType === "MS-PETROL")
-      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
+      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
 
-    const hsdTotal = matchingReadings
+    const hsdTotal = Math.round(matchingReadings
       .filter((p) => p.fuelType === "HSD-DIESEL")
-      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
+      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
 
     const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
 
@@ -193,10 +193,10 @@ useEffect(() => {
     form.setValue("products", productsObj);
 
     // --- Grand Total ---
-    const dynamicProductsTotal = Object.values(productsObj).reduce(
+    const dynamicProductsTotal = Math.round(Object.values(productsObj).reduce(
       (s, n) => s + (Number(n) || 0),
       0
-    );
+    ));
 
     const total = fuelTotal + dynamicProductsTotal;
     const roundedTotal = Math.round(total);

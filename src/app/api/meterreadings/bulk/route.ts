@@ -160,13 +160,17 @@ export async function POST(req: Request) {
               data: { quantity: { decrement: reading.difference } },
             });
           }
-
-          // Always update nozzle last
-          await tx.nozzle.update({
-            where: { id: reading.nozzleId },
-            data: { openingReading: reading.closingReading },
-          });
         });
+      });
+    }
+
+    // -----------------------------
+    // 3. Update all nozzles with their closing readings
+    // -----------------------------
+    for (const reading of readingsToCreate) {
+      await prisma.nozzle.update({
+        where: { id: reading.nozzleId },
+        data: { openingReading: reading.closingReading },
       });
     }
 
