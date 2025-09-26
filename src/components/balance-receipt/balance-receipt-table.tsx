@@ -5,9 +5,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  getPaginationRowModel,
   SortingState,
-  PaginationState,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -27,33 +25,89 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BalanceReceiptTableProps } from "@/types/balance-receipt";
 import { DateEqualsFilter } from "../filters/date-equals-filter";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function BalanceReceiptTable<TValue>({
   columns,
-  data,
+  data: initialData,
 }: BalanceReceiptTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10, // default rows per page
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 15
   });
+
+  // Fetch data from API with pagination
+  const fetchData = async (page: number, searchTerm: string = "") => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '15'
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      const response = await fetch(`/api/balance-receipts?${params.toString()}`);
+      const result = await response.json();
+      
+      if (response.ok) {
+        setData(result.balanceReceipts);
+        setPagination(result.pagination);
+      }
+    } catch (error) {
+      console.error('Error fetching balance receipts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data load
+  useEffect(() => {
+    if (initialData && initialData.length > 0) {
+      setData(initialData);
+    } else {
+      fetchData(1);
+    }
+  }, [initialData]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (globalFilter !== "") {
+        fetchData(1, globalFilter);
+      } else {
+        fetchData(1);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [globalFilter]);
 
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
-    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
-      pagination,
+      globalFilter,
     },
   });
 
@@ -90,7 +144,19 @@ export function BalanceReceiptTable<TValue>({
             </TableHeader>
 
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <span className="ml-2">Loading...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
@@ -119,29 +185,33 @@ export function BalanceReceiptTable<TValue>({
             </TableBody>
           </Table>
 
-          {/* Pagination Controls */}
+          {/* API Pagination Controls */}
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
+              Showing {data.length} of {pagination.totalCount} records
+              {pagination.totalPages > 1 && (
+                <span> • Page {pagination.currentPage} of {pagination.totalPages}</span>
+              )}
             </div>
 
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
+                onClick={() => fetchData(pagination.currentPage - 1, globalFilter)}
+                disabled={!pagination.hasPrevPage || loading}
               >
+                <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
+                onClick={() => fetchData(pagination.currentPage + 1, globalFilter)}
+                disabled={!pagination.hasNextPage || loading}
               >
                 Next
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </div>

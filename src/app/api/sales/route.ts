@@ -56,6 +56,11 @@ export async function GET(req: Request) {
     const filter = searchParams.get("filter") || "all";
     const from = searchParams.get("from") || undefined;
     const to = searchParams.get("to") || undefined;
+    
+    // Get pagination parameters
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '15');
+    const skip = (page - 1) * limit;
 
     const { start, end } = getDateRange(filter, from, to);
 
@@ -66,6 +71,15 @@ export async function GET(req: Request) {
     // Add date filtering
     const dateFilter = start && end ? { gte: start, lte: end } : {};
 
+    // Get total count for pagination info
+    const totalCount = await prisma.sale.count({
+      where: {
+        ...whereClause,
+        date: dateFilter,
+      },
+    });
+
+    // Get paginated sales
     const sales = await prisma.sale.findMany({
       where: {
         ...whereClause,
@@ -73,9 +87,23 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
       include: { branch: true },
+      skip,
+      take: limit,
     });
 
-    return NextResponse.json({ sales }, { status: 200 });
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return NextResponse.json({ 
+      sales,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        limit
+      }
+    }, { status: 200 });
   } catch (error) {
     console.error("Error fetching sales:", error);
     return NextResponse.json(

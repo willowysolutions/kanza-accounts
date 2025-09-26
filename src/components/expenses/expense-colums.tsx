@@ -21,6 +21,18 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const expenseColumns: ColumnDef<Expense>[] = [
   {
+    accessorKey: "date",
+    header: "Date",
+    cell: ({ row }) => {
+        const date = row.getValue("date") as string | Date;
+        return (
+        <div>
+            {date ? formatDate(date) : "-"}
+        </div>
+        );
+    },
+    },
+  {
     accessorKey: "category",
     header: "Category",
     cell: ({ row }) => {
@@ -44,18 +56,7 @@ export const expenseColumns: ColumnDef<Expense>[] = [
         )
     }
   },
-    {
-    accessorKey: "date",
-    header: "Date",
-    cell: ({ row }) => {
-        const date = row.getValue("date") as string | Date;
-        return (
-        <div>
-            {date ? formatDate(date) : "-"}
-        </div>
-        );
-    },
-    },{
+  {
     accessorKey: "amount",
     header: "Amount",
     cell: ({ row }) => {

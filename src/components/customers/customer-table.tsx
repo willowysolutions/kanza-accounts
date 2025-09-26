@@ -6,9 +6,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  getPaginationRowModel,
   SortingState,
-  PaginationState,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -31,8 +29,9 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Customer } from "@/types/customer";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CustomerTableProps<TValue> {
   columns: ColumnDef<Customer, TValue>[];
@@ -41,29 +40,81 @@ interface CustomerTableProps<TValue> {
 
 export function CustomerTable<TValue>({
   columns,
-  data,
+  data: initialData,
 }: CustomerTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 15, // 👈 adjust page size here
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 15
   });
+
+  // Fetch data from API with pagination
+  const fetchData = async (page: number, searchTerm: string = "") => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '15'
+      });
+      
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      const response = await fetch(`/api/customers?${params.toString()}`);
+      const result = await response.json();
+      
+      if (response.ok) {
+        setData(result.data);
+        setPagination(result.pagination);
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data load
+  useEffect(() => {
+    if (initialData && initialData.length > 0) {
+      setData(initialData);
+    } else {
+      fetchData(1);
+    }
+  }, [initialData]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (globalFilter !== "") {
+        fetchData(1, globalFilter);
+      } else {
+        fetchData(1);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [globalFilter]);
 
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
       globalFilter,
-      pagination,
     },
     globalFilterFn: (row, columnId, filterValue) => {
       const value = String(row.getValue(columnId) ?? "").toLowerCase();
@@ -113,7 +164,19 @@ export function CustomerTable<TValue>({
             </TableHeader>
 
             <TableBody>
-              {table.getRowModel().rows.length ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <span className="ml-2">Loading...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
@@ -139,29 +202,33 @@ export function CustomerTable<TValue>({
             </TableBody>
           </Table>
 
-          {/* 🔹 Pagination Controls */}
+          {/* API Pagination Controls */}
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
+              Showing {data.length} of {pagination.totalCount} records
+              {pagination.totalPages > 1 && (
+                <span> • Page {pagination.currentPage} of {pagination.totalPages}</span>
+              )}
             </div>
 
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
+                onClick={() => fetchData(pagination.currentPage - 1, globalFilter)}
+                disabled={!pagination.hasPrevPage || loading}
               >
+                <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
+                onClick={() => fetchData(pagination.currentPage + 1, globalFilter)}
+                disabled={!pagination.hasNextPage || loading}
               >
                 Next
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </div>
