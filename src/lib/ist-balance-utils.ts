@@ -29,14 +29,30 @@ export async function updateBalanceReceiptIST(
   });
 
   if (existingReceipt) {
-    // Update existing receipt atomically
-    const result = await prismaClient.balanceReceipt.update({
-      where: { id: existingReceipt.id },
-      data: {
-        amount: existingReceipt.amount + amountChange,
-      },
-    });
-    return result;
+    // Check if this is a sale (positive amountChange) and the existing receipt has 0 amount
+    // If so, we need to add yesterday's balance + cash payment (like creating a new receipt)
+    if (amountChange > 0 && existingReceipt.amount === 0) {
+      // This is a sale with an existing 0-amount receipt - treat it like a new receipt
+      const previousBalance = await getPreviousDayBalanceIST(branchId, date, prismaClient);
+      const newAmount = previousBalance + amountChange;
+      
+      const result = await prismaClient.balanceReceipt.update({
+        where: { id: existingReceipt.id },
+        data: {
+          amount: newAmount,
+        },
+      });
+      return result;
+    } else {
+      // Normal update for existing receipt
+      const result = await prismaClient.balanceReceipt.update({
+        where: { id: existingReceipt.id },
+        data: {
+          amount: existingReceipt.amount + amountChange,
+        },
+      });
+      return result;
+    }
   } else {
     // Create new receipt
     const previousBalance = await getPreviousDayBalanceIST(branchId, date, prismaClient);

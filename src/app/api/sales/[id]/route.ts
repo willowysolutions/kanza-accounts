@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { salesSchemaWithId } from "@/schemas/sales-schema";
 import { revalidatePath } from "next/cache";
+import { updateBalanceReceiptIST } from "@/lib/ist-balance-utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,7 +53,6 @@ export async function PATCH(
     const oldCash = existingSale.cashPayment ?? 0;
     const newCash = saleData.cashPayment ?? 0;
     const diff = newCash - oldCash; // +ve = more cash, -ve = less cash
-    const saleDate = new Date(existingSale.date);
 
     const [updatedSale] = await prisma.$transaction(async (tx) => {
       // 1. Update sale
@@ -64,33 +64,14 @@ export async function PATCH(
         },
       });
 
-      // 2. Adjust BalanceReceipt (only if cashPayment changed)
+      // 2. Adjust BalanceReceipt using IST-aware logic (only if cashPayment changed)
       if (diff !== 0 && existingSale.branchId) {
-        const receipt = await tx.balanceReceipt.findFirst({
-          where: {
-            branchId: existingSale.branchId,
-            date: {
-              gte: new Date(saleDate.setHours(0, 0, 0, 0)),
-              lte: new Date(saleDate.setHours(23, 59, 59, 999)),
-            },
-          },
-        });
-
-        if (receipt) {
-          if (diff > 0) {
-            // cash increased → increment branch cash
-            await tx.balanceReceipt.update({
-              where: { id: receipt.id },
-              data: { amount: { increment: diff } },
-            });
-          } else {
-            // cash decreased → decrement branch cash
-            await tx.balanceReceipt.update({
-              where: { id: receipt.id },
-              data: { amount: { decrement: Math.abs(diff) } },
-            });
-          }
-        }
+        await updateBalanceReceiptIST(
+          existingSale.branchId, 
+          existingSale.date, 
+          diff, // Positive or negative amount change
+          tx
+        );
       }
 
       return [updated];
@@ -118,32 +99,44 @@ export async function DELETE(
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
     }
 
-    const saleDate = new Date(existingSale.date);
-
     await prisma.$transaction(async (tx) => {
       // 1. Delete sale
       await tx.sale.delete({
         where: { id: saleId },
       });
 
-      // 2. Adjust BalanceReceipt (decrement cashPayment for that day/branch)
+      // 2. Adjust BalanceReceipt using IST-aware logic (decrement entire amount that was added)
       if (existingSale.cashPayment && existingSale.branchId) {
-        const receipt = await tx.balanceReceipt.findFirst({
+        // Get the previous day's balance to calculate the total amount that was added
+        const previousDay = new Date(existingSale.date);
+        previousDay.setDate(previousDay.getDate() - 1);
+        
+        // Get yesterday's balance receipt amount
+        const previousDateString = previousDay.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const { getISTDateRangeForQuery } = await import('@/lib/date-utils');
+        const { start, end } = getISTDateRangeForQuery(previousDateString);
+        
+        const previousReceipt = await tx.balanceReceipt.findFirst({
           where: {
             branchId: existingSale.branchId,
             date: {
-              gte: new Date(saleDate.setHours(0, 0, 0, 0)),
-              lte: new Date(saleDate.setHours(23, 59, 59, 999)),
+              gte: start,
+              lte: end,
             },
           },
+          orderBy: { date: 'desc' },
         });
-
-        if (receipt) {
-          await tx.balanceReceipt.update({
-            where: { id: receipt.id },
-            data: { amount: { decrement: existingSale.cashPayment } },
-          });
-        }
+        
+        const previousBalance = previousReceipt?.amount || 0;
+        const totalAmountAdded = previousBalance + existingSale.cashPayment;
+        
+        // Decrement the entire amount that was added (yesterday's balance + cash payment)
+        await updateBalanceReceiptIST(
+          existingSale.branchId, 
+          existingSale.date, 
+          -totalAmountAdded, // Negative amount to decrement the entire amount
+          tx
+        );
       }
     });
 
