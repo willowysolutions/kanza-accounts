@@ -150,3 +150,55 @@ export async function getBalanceReceiptIST(branchId: string, date: Date) {
     },
   });
 }
+
+/**
+ * Update balance receipt for payments (IST timezone)
+ * For payments: only add payment amount, don't add yesterday's balance
+ */
+export async function updateBalanceReceiptForPaymentIST(
+  branchId: string,
+  date: Date,
+  amountChange: number,
+  tx?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+) {
+  const prismaClient = tx || prisma;
+  
+  const dateString = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const { start, end } = getISTDateRangeForQuery(dateString);
+  
+  // Check if balance receipt exists for this date and branch
+  const existingReceipt = await prismaClient.balanceReceipt.findFirst({
+    where: {
+      branchId,
+      date: {
+        gte: start,
+        lte: end,
+      },
+    },
+  });
+
+  if (existingReceipt) {
+    // Update existing receipt with payment amount
+    const result = await prismaClient.balanceReceipt.update({
+      where: { id: existingReceipt.id },
+      data: {
+        amount: existingReceipt.amount + amountChange,
+      },
+    });
+    return result;
+  } else {
+    // Create new receipt with only the payment amount (no yesterday's balance)
+    const [year, month, day] = dateString.split('-').map(Number);
+    const previousDay = new Date(year, month - 1, day - 1);
+    const istDate = new Date(`${previousDay.getFullYear()}-${String(previousDay.getMonth() + 1).padStart(2, '0')}-${String(previousDay.getDate()).padStart(2, '0')}T18:30:00.000Z`);
+    
+    const result = await prismaClient.balanceReceipt.create({
+      data: {
+        date: istDate, // Store in IST format (18:30:00.000Z)
+        amount: amountChange, // Only the payment amount, no previous balance
+        branchId,
+      },
+    });
+    return result;
+  }
+}

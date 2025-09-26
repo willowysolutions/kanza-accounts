@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { customerPaymentSchema } from "@/schemas/payment-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { updateBalanceReceipt } from "@/lib/balance-utils";
+import { updateBalanceReceiptForPaymentIST } from "@/lib/ist-balance-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,9 +59,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 4. Update BalanceReceipt (positive amount = cash received from customer)
+      // 4. Update BalanceReceipt for payment (positive amount = cash received from customer)
       if (branchId) {
-        await updateBalanceReceipt(branchId, new Date(paidOn), amount, tx);
+        await updateBalanceReceiptForPaymentIST(branchId, new Date(paidOn), amount, tx);
       }
 
       return [createdPayment, createdPaymentHistory];
