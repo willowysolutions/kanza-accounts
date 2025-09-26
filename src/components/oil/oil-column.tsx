@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { OilDeleteDialog } from "./oil-delete-dialog";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Oil } from "@/types/oils";
 
 export const oilColumns: ColumnDef<Oil>[] = [
@@ -41,11 +41,11 @@ export const oilColumns: ColumnDef<Oil>[] = [
   },
   {
     accessorKey: "productType",
-    header: "Name"
+    header: "Product Name"
   },
   {
     accessorKey:"quantity",
-    header:"Quantity",
+    header:"Sale Quantity",
     cell: ({row}) => {
         const quantity = row.original.quantity;
         return (
@@ -55,7 +55,13 @@ export const oilColumns: ColumnDef<Oil>[] = [
   },
   {
     accessorKey: "price",
-    header: "Price"
+    header: "Amount(₹)",
+    cell: ({row}) => {
+      const price = row.original.price;
+      return (
+        <div className="px-3">{formatCurrency(price)}</div>
+      )
+    }
   },
   {
     id: "action",

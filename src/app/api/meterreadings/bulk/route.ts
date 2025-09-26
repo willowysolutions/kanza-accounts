@@ -109,18 +109,60 @@ export async function POST(req: Request) {
     }
 
     // -----------------------------
-    // 1. Insert all readings (bulk insert)
-    // -----------------------------
-    await prisma.meterReading.createMany({
-      data: readingsToCreate,
-    });
-
-    // -----------------------------
-    // 2. Process tanks & stocks with retry
+    // 1. Pre-validate stock availability for ALL readings
     // -----------------------------
     for (const reading of readingsToCreate) {
-      await runWithRetry(async () => {
-        return prisma.$transaction(async (tx) => {
+      // Find nozzle and connected tank
+      const nozzleWithTank = await prisma.nozzle.findUnique({
+        where: { id: reading.nozzleId },
+        include: {
+          machine: {
+            include: {
+              machineTanks: { include: { tank: true } },
+            },
+          },
+        },
+      });
+
+      const connectedTank = nozzleWithTank?.machine?.machineTanks.find(
+        (mt) => mt.tank?.fuelType === reading.fuelType
+      )?.tank;
+
+      if (connectedTank) {
+        // Check tank level
+        if (connectedTank.currentLevel - reading.difference < 0) {
+          return NextResponse.json(
+            { error: `Tank does not have sufficient current level for ${reading.fuelType}` },
+            { status: 400 }
+          );
+        }
+
+        // Check stock availability
+        const stock = await prisma.stock.findUnique({
+          where: { item: reading.fuelType },
+        });
+
+        if (!stock || stock.quantity - reading.difference < 0) {
+          return NextResponse.json(
+            { error: `Stock not available for ${reading.fuelType}` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // -----------------------------
+    // 2. If all validations pass, process everything in a single transaction
+    // -----------------------------
+    await runWithRetry(async () => {
+      return prisma.$transaction(async (tx) => {
+        // Insert all readings
+        await tx.meterReading.createMany({
+          data: readingsToCreate,
+        });
+
+        // Process tanks & stocks
+        for (const reading of readingsToCreate) {
           // Find nozzle and connected tank
           const nozzleWithTank = await tx.nozzle.findUnique({
             where: { id: reading.nozzleId },
@@ -138,41 +180,29 @@ export async function POST(req: Request) {
           )?.tank;
 
           if (connectedTank) {
-            if (connectedTank.currentLevel - reading.difference < 0) {
-              throw new Error("Tank does not have sufficient current level");
-            }
-
+            // Update tank level
             await tx.tank.update({
               where: { id: connectedTank.id },
               data: { currentLevel: { decrement: reading.difference } },
             });
 
-            const stock = await tx.stock.findUnique({
-              where: { item: reading.fuelType },
-            });
-
-            if (!stock || stock.quantity - reading.difference < 0) {
-              throw new Error("Stock not available");
-            }
-
+            // Update stock
             await tx.stock.update({
               where: { item: reading.fuelType },
               data: { quantity: { decrement: reading.difference } },
             });
           }
-        });
-      });
-    }
+        }
 
-    // -----------------------------
-    // 3. Update all nozzles with their closing readings
-    // -----------------------------
-    for (const reading of readingsToCreate) {
-      await prisma.nozzle.update({
-        where: { id: reading.nozzleId },
-        data: { openingReading: reading.closingReading },
+        // Update all nozzles with their closing readings
+        for (const reading of readingsToCreate) {
+          await tx.nozzle.update({
+            where: { id: reading.nozzleId },
+            data: { openingReading: reading.closingReading },
+          });
+        }
       });
-    }
+    });
 
     // -----------------------------
     // Revalidate cache

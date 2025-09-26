@@ -24,6 +24,24 @@ export async function POST(req: NextRequest) {
     });
     const branchId = session?.user?.branch;
 
+    // ✅ Check if sale already exists for the same date and branch
+    const existingSale = await prisma.sale.findFirst({
+      where: {
+        branchId,
+        date: {
+          gte: new Date(result.data.date.getFullYear(), result.data.date.getMonth(), result.data.date.getDate()),
+          lt: new Date(result.data.date.getFullYear(), result.data.date.getMonth(), result.data.date.getDate() + 1),
+        },
+      },
+    });
+
+    if (existingSale) {
+      return NextResponse.json(
+        { error: "A sale already exists for this date." },
+        { status: 400 }
+      );
+    }
+
     // ✅ Create Sale and update balance receipt in a transaction
     const sale = await prisma.$transaction(async (tx) => {
       // Create sale

@@ -26,13 +26,9 @@ export default async function MeterReadingPage() {
   // 🔹 Forward cookies
   const cookie = cookies().toString();
   
-  // 🔹 Fetch meter readings, oils, sales, and branches
-  const [meterReadingRes, oilRes, salesRes, branchesRes] = await Promise.all([
+  // 🔹 Fetch meter readings, sales, and branches (oils will be fetched by the table component)
+  const [meterReadingRes, salesRes, branchesRes] = await Promise.all([
     fetch(`${proto}://${host}/api/meterreadings`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/oils`, {
       cache: "no-store",
       headers: { cookie },
     }),
@@ -47,7 +43,6 @@ export default async function MeterReadingPage() {
   ]);
   
   const { withDifference } = await meterReadingRes.json();
-  const { oils } = await oilRes.json();
   const { sales } = await salesRes.json();
   const { data: allBranches } = await branchesRes.json();
 
@@ -58,7 +53,7 @@ export default async function MeterReadingPage() {
     <div className="flex flex-1 flex-col">
       <MeterTabManagement 
         meterReading={withDifference} 
-        oil={oils} 
+        oil={[]} 
         sales={sales}
         branches={visibleBranches}
       />

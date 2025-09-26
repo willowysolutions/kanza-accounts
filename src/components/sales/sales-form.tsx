@@ -97,7 +97,11 @@ const form = useForm<SalesFormValues>({
 
       if (!res.ok) {
         const { error } = await res.json();
-        toast.error(error || "Something went wrong");
+        if (error && error.includes("already exists for this date")) {
+          toast.error("A sale already exists for this date.");
+        } else {
+          toast.error(error || "Something went wrong");
+        }
         return;
       }
 
