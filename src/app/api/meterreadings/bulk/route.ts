@@ -109,8 +109,12 @@ export async function POST(req: Request) {
     }
 
     // -----------------------------
-    // 1. Pre-validate stock availability for ALL readings
+    // 1. Pre-validate stock availability and collect update data
     // -----------------------------
+    const tankUpdates = new Map<string, number>();
+    const stockUpdates = new Map<string, number>();
+    const nozzleUpdates = new Map<string, number>();
+
     for (const reading of readingsToCreate) {
       // Find nozzle and connected tank
       const nozzleWithTank = await prisma.nozzle.findUnique({
@@ -148,11 +152,22 @@ export async function POST(req: Request) {
             { status: 400 }
           );
         }
+
+        // Accumulate tank updates
+        const currentTankUpdate = tankUpdates.get(connectedTank.id) || 0;
+        tankUpdates.set(connectedTank.id, currentTankUpdate + reading.difference);
+
+        // Accumulate stock updates
+        const currentStockUpdate = stockUpdates.get(reading.fuelType) || 0;
+        stockUpdates.set(reading.fuelType, currentStockUpdate + reading.difference);
       }
+
+      // Accumulate nozzle updates
+      nozzleUpdates.set(reading.nozzleId, reading.closingReading);
     }
 
     // -----------------------------
-    // 2. If all validations pass, process everything in a single transaction
+    // 2. Process everything in a single optimized transaction
     // -----------------------------
     await runWithRetry(async () => {
       return prisma.$transaction(async (tx) => {
@@ -161,46 +176,31 @@ export async function POST(req: Request) {
           data: readingsToCreate,
         });
 
-        // Process tanks & stocks
-        for (const reading of readingsToCreate) {
-          // Find nozzle and connected tank
-          const nozzleWithTank = await tx.nozzle.findUnique({
-            where: { id: reading.nozzleId },
-            include: {
-              machine: {
-                include: {
-                  machineTanks: { include: { tank: true } },
-                },
-              },
-            },
+        // Batch update tanks (using pre-collected data)
+        for (const [tankId, totalDifference] of tankUpdates) {
+          await tx.tank.update({
+            where: { id: tankId },
+            data: { currentLevel: { decrement: totalDifference } },
           });
-
-          const connectedTank = nozzleWithTank?.machine?.machineTanks.find(
-            (mt) => mt.tank?.fuelType === reading.fuelType
-          )?.tank;
-
-          if (connectedTank) {
-            // Update tank level
-            await tx.tank.update({
-              where: { id: connectedTank.id },
-              data: { currentLevel: { decrement: reading.difference } },
-            });
-
-            // Update stock
-            await tx.stock.update({
-              where: { item: reading.fuelType },
-              data: { quantity: { decrement: reading.difference } },
-            });
-          }
         }
 
-        // Update all nozzles with their closing readings
-        for (const reading of readingsToCreate) {
+        // Batch update stocks (using pre-collected data)
+        for (const [fuelType, totalDifference] of stockUpdates) {
+          await tx.stock.update({
+            where: { item: fuelType },
+            data: { quantity: { decrement: totalDifference } },
+          });
+        }
+
+        // Batch update nozzles (using pre-collected data)
+        for (const [nozzleId, closingReading] of nozzleUpdates) {
           await tx.nozzle.update({
-            where: { id: reading.nozzleId },
-            data: { openingReading: reading.closingReading },
+            where: { id: nozzleId },
+            data: { openingReading: closingReading },
           });
         }
+      }, {
+        timeout: 15000, // Increase timeout to 15 seconds
       });
     });
 
