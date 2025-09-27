@@ -142,7 +142,7 @@ export default async function SalesPage() {
                     </Card>
                   </div>
 
-                  <SalesTable data={sales} columns={salesColumns}/>
+                  <SalesTable data={sales} columns={salesColumns} branchId={branchId}/>
                 </TabsContent>
               );
             })}

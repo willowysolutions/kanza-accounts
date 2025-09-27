@@ -256,27 +256,41 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     }
   }, [enteredQuantity, selectedFuelType, selectedProduct, form]);
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        // Fetch all customers by setting a high limit
-        const res = await fetch("/api/customers?limit=1000");
-        const json = await res.json();
-        
-        // Filter customers by branch if branchId is provided
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const filteredCustomers = json.data?.filter((customer: any) => {
-          return branchId ? customer.branchId === branchId : true;
-        }) || [];
-        
-        setCustomerOptions(filteredCustomers);
-      } catch (error) {
-        console.error("Failed to fetch customers", error);
+  // Search-based customer fetching
+  const fetchCustomers = useCallback(async (searchTerm: string = "") => {
+    try {
+      const params = new URLSearchParams({
+        limit: '20', // Only fetch 20 customers at a time
+        search: searchTerm
+      });
+      
+      if (branchId) {
+        params.append('branchId', branchId);
       }
-    };
-
-    fetchCustomers();
+      
+      const res = await fetch(`/api/customers?${params.toString()}`);
+      const json = await res.json();
+      
+      return json.data?.map((customer: { id: string; name: string; branchId?: string }) => ({
+        value: customer.id,
+        label: customer.name,
+        ...customer
+      })) || [];
+    } catch (error) {
+      console.error("Failed to fetch customers", error);
+      return [];
+    }
   }, [branchId]);
+
+  // Load initial customers (recent ones)
+  useEffect(() => {
+    const loadInitialCustomers = async () => {
+      const customers = await fetchCustomers("");
+      setCustomerOptions(customers);
+    };
+    
+    loadInitialCustomers();
+  }, [branchId, fetchCustomers]);
 
   // Fetch products
   useEffect(() => {

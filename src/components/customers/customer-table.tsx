@@ -29,7 +29,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Customer } from "@/types/customer";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -41,7 +41,8 @@ interface CustomerTableProps<TValue> {
 export function CustomerTable<TValue>({
   columns,
   data: initialData,
-}: CustomerTableProps<TValue>) {
+  branchId,
+}: CustomerTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -56,7 +57,7 @@ export function CustomerTable<TValue>({
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -66,6 +67,10 @@ export function CustomerTable<TValue>({
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/customers?${params.toString()}`);
@@ -80,7 +85,7 @@ export function CustomerTable<TValue>({
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -89,7 +94,7 @@ export function CustomerTable<TValue>({
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -102,7 +107,7 @@ export function CustomerTable<TValue>({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
   const table = useReactTable({
     data,

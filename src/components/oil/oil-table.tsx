@@ -26,13 +26,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { OilTableProps } from "@/types/oils";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "@/components/ui/button";
 
-export function OilTable<TValue>({ columns, data: initialData }: OilTableProps<TValue>) {
+export function OilTable<TValue>({ columns, data: initialData, branchId }: OilTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -47,7 +47,7 @@ export function OilTable<TValue>({ columns, data: initialData }: OilTableProps<T
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -57,6 +57,10 @@ export function OilTable<TValue>({ columns, data: initialData }: OilTableProps<T
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/oils?${params.toString()}`);
@@ -71,7 +75,7 @@ export function OilTable<TValue>({ columns, data: initialData }: OilTableProps<T
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -80,7 +84,7 @@ export function OilTable<TValue>({ columns, data: initialData }: OilTableProps<T
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -93,7 +97,7 @@ export function OilTable<TValue>({ columns, data: initialData }: OilTableProps<T
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
   const table = useReactTable({
     data,

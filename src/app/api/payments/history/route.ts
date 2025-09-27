@@ -7,19 +7,20 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
+    const { searchParams } = new URL(req.url);
+    const requestedBranchId = searchParams.get('branchId');
+    
+    // Use requested branchId if provided, otherwise use session branchId
+    const branchId = requestedBranchId || session?.user?.branch;
     const isAdmin = session?.user?.role?.toLowerCase() === 'admin';
     const whereClause = isAdmin || !branchId
-      ? {}
+      ? (requestedBranchId ? { branchId: requestedBranchId } : {})
       : {
           OR: [
             { branchId },
             { customer: { is: { branchId } } },
           ],
         };
-
-    // Get pagination parameters from URL
-    const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '15');
     const skip = (page - 1) * limit;

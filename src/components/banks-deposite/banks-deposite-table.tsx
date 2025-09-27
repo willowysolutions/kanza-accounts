@@ -24,7 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { BankDepositeTableProps } from "@/types/bank-deposite";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -32,7 +32,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export function BankDepositeTable<TValue>({
   columns,
   data: initialData,
-}: BankDepositeTableProps<TValue>) {
+  branchId,
+}: BankDepositeTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -47,7 +48,7 @@ export function BankDepositeTable<TValue>({
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -57,6 +58,10 @@ export function BankDepositeTable<TValue>({
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/bank-deposite?${params.toString()}`);
@@ -71,7 +76,7 @@ export function BankDepositeTable<TValue>({
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -80,7 +85,7 @@ export function BankDepositeTable<TValue>({
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -93,7 +98,7 @@ export function BankDepositeTable<TValue>({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
   const table = useReactTable({
     data,

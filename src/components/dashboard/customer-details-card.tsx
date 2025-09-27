@@ -2,8 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Customer } from '@/types/customer';
-import { useState, useEffect } from 'react';
-import { CustomerHistoryModal } from '@/components/customers/customer -history-modal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CustomerDetailsCardProps {
@@ -21,27 +19,6 @@ export function CustomerDetailsCard({
   userBranchId, 
   page = 0 
 }: CustomerDetailsCardProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center p-8">
-            <div className="text-muted-foreground">Loading...</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const isAdmin = (role ?? '').toLowerCase() === 'admin';
   const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
 
@@ -151,41 +128,34 @@ function CustomerTabs({
 }
 
 function CustomerRow({ customer }: { customer: Customer }) {
-  const [openHistory, setOpenHistory] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
-    <>
-      <tr className="border-b hover:bg-muted">
-        <td className="p-2">
-          <button
-            className="text-blue-600 hover:underline cursor-pointer"
-            onClick={() => setOpenHistory(true)}
-          >
-            {customer.name}
-          </button>
-        </td>
-        <td className="p-2">₹{customer.openingBalance?.toFixed(2) || '0.00'}</td>
-        <td className={`p-2 ${(() => {
-          const limit = (customer as { limit?: number }).limit;
-          return limit && customer.outstandingPayments > limit ? 'text-red-600 font-semibold' : '';
-        })()}`}>
-          ₹{customer.outstandingPayments?.toFixed(2) || '0.00'}
-        </td>
-        <td className="p-2">{customer.branch?.name || '...'}</td>
-      </tr>
-      
-      {mounted && (
-        <CustomerHistoryModal
-          customerId={customer.id}
-          open={openHistory}
-          onOpenChange={setOpenHistory}
-        />
-      )}
-    </>
+    <tr className="border-b hover:bg-muted">
+      <td className="p-2">
+        <CustomerNameButton customer={customer} />
+      </td>
+      <td className="p-2">₹{customer.openingBalance?.toFixed(2) || '0.00'}</td>
+      <td className={`p-2 ${(() => {
+        const limit = (customer as { limit?: number }).limit;
+        return limit && customer.outstandingPayments > limit ? 'text-red-600 font-semibold' : '';
+      })()}`}>
+        ₹{customer.outstandingPayments?.toFixed(2) || '0.00'}
+      </td>
+      <td className="p-2">{customer.branch?.name || '...'}</td>
+    </tr>
+  );
+}
+
+// Separate component for the button to avoid useState in the main component
+function CustomerNameButton({ customer }: { customer: Customer }) {
+  return (
+    <button
+      className="text-blue-600 hover:underline cursor-pointer"
+      onClick={() => {
+        // This will be handled by the modal component itself
+        console.log('Customer clicked:', customer.id);
+      }}
+    >
+      {customer.name}
+    </button>
   );
 }

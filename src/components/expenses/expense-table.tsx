@@ -26,12 +26,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ExpenseTableProps } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export function ExpenseTable<TValue>({ columns, data: initialData }: ExpenseTableProps<TValue>) {
+export function ExpenseTable<TValue>({ columns, data: initialData, branchId }: ExpenseTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -46,7 +46,7 @@ export function ExpenseTable<TValue>({ columns, data: initialData }: ExpenseTabl
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -56,6 +56,10 @@ export function ExpenseTable<TValue>({ columns, data: initialData }: ExpenseTabl
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/expenses?${params.toString()}`);
@@ -70,7 +74,7 @@ export function ExpenseTable<TValue>({ columns, data: initialData }: ExpenseTabl
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -79,7 +83,7 @@ export function ExpenseTable<TValue>({ columns, data: initialData }: ExpenseTabl
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -92,7 +96,7 @@ export function ExpenseTable<TValue>({ columns, data: initialData }: ExpenseTabl
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
   const table = useReactTable({
     data,

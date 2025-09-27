@@ -6,11 +6,14 @@ import { headers } from "next/headers";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
-    const whereClause = session?.user?.role === 'admin' || !branchId ? {} : { branchId };
-    
-    // Get pagination parameters from URL
     const { searchParams } = new URL(req.url);
+    const requestedBranchId = searchParams.get('branchId');
+    
+    // Use requested branchId if provided, otherwise use session branchId
+    const branchId = requestedBranchId || session?.user?.branch;
+    const whereClause = session?.user?.role === 'admin' ? 
+      (requestedBranchId ? { branchId: requestedBranchId } : {}) : 
+      { branchId };
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '15');
     const skip = (page - 1) * limit;
@@ -23,7 +26,7 @@ export async function GET(req: NextRequest) {
     // Get paginated bank deposits
     const bankDeposite = await prisma.bankDeposite.findMany({
       where: whereClause,
-      orderBy: { bankId: "desc" },
+      orderBy: { date: "desc" },
       include:{bank:true, branch:true},
       skip,
       take: limit,

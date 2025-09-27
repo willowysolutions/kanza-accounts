@@ -60,8 +60,13 @@ export async function GET(req: Request) {
     const { start, end } = getDateRange(filter, from, to);
 
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
-    const whereClause = session?.user?.role === 'admin' || !branchId ? {} : { branchId };
+    const requestedBranchId = searchParams.get('branchId');
+    
+    // Use requested branchId if provided, otherwise use session branchId
+    const branchId = requestedBranchId || session?.user?.branch;
+    const whereClause = session?.user?.role === 'admin' ? 
+      (requestedBranchId ? { branchId: requestedBranchId } : {}) : 
+      { branchId };
 
     // Add date filtering
     const dateFilter = start && end ? { gte: start, lte: end } : {};

@@ -64,7 +64,7 @@ const balanceReceiptsByBranch = branches.map((branch: { id: string; name: string
                     {balanceReceipts.length} receipt{balanceReceipts.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <BalanceReceiptTable data={balanceReceipts} columns={balanceReceiptColumn} />
+                <BalanceReceiptTable data={balanceReceipts} columns={balanceReceiptColumn} branchId={branchId} />
               </TabsContent>
             ))}
           </Tabs>

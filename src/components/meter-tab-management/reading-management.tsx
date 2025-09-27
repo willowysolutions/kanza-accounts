@@ -97,11 +97,11 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches 
                 </TabsList>
 
                 <TabsContent value="meter-reading">
-                  <MeterReadingTable data={branchMeterReading} columns={meterReadinColumns}/>
+                  <MeterReadingTable data={branchMeterReading} columns={meterReadinColumns} branchId={branchId}/>
                 </TabsContent>
 
                 <TabsContent value="other-Products">
-                  <OilTable data={branchOil} columns={oilColumns}/>
+                  <OilTable data={branchOil} columns={oilColumns} branchId={branchId}/>
                 </TabsContent>
 
                 <TabsContent value="report">

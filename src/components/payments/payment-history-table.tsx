@@ -26,12 +26,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PaymentHistoryTableProps } from "@/types/payment-history";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export function PaymentHistoryTable<TValue>({ columns, data: initialData }: PaymentHistoryTableProps<TValue>) {
+export function PaymentHistoryTable<TValue>({ columns, data: initialData, branchId }: PaymentHistoryTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -46,7 +46,7 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData }: Paym
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -56,6 +56,10 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData }: Paym
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/payments/history?${params.toString()}`);
@@ -70,7 +74,7 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData }: Paym
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -79,7 +83,7 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData }: Paym
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -92,7 +96,7 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData }: Paym
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
   const table = useReactTable({
     data,

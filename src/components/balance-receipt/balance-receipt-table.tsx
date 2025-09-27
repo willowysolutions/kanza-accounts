@@ -25,7 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { BalanceReceiptTableProps } from "@/types/balance-receipt";
 import { DateEqualsFilter } from "../filters/date-equals-filter";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export function BalanceReceiptTable<TValue>({
   columns,
   data: initialData,
-}: BalanceReceiptTableProps<TValue>) {
+  branchId,
+}: BalanceReceiptTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -49,7 +50,7 @@ export function BalanceReceiptTable<TValue>({
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -59,6 +60,10 @@ export function BalanceReceiptTable<TValue>({
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/balance-receipts?${params.toString()}`);
@@ -73,7 +78,7 @@ export function BalanceReceiptTable<TValue>({
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -82,7 +87,7 @@ export function BalanceReceiptTable<TValue>({
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -95,7 +100,7 @@ export function BalanceReceiptTable<TValue>({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
   const table = useReactTable({
     data,

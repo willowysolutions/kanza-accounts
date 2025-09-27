@@ -7,23 +7,46 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
-    const whereClause = session?.user?.role === 'admin' ? {} : { branchId };
+    const { searchParams } = new URL(req.url);
+    const requestedBranchId = searchParams.get('branchId');
+    
+    // Use requested branchId if provided, otherwise use session branchId
+    const branchId = requestedBranchId || session?.user?.branch;
+    const whereClause = session?.user?.role === 'admin' ? 
+      (requestedBranchId ? { branchId: requestedBranchId } : {}) : 
+      { branchId };
     
     // Get pagination parameters from URL
-    const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '16');
     const skip = (page - 1) * limit;
+    const date = searchParams.get('date');
+
+    // Add date filtering if provided
+    let dateFilter = {};
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
+      
+      dateFilter = {
+        date: {
+          gte: startDate,
+          lt: endDate,
+        },
+      };
+    }
+
+    const finalWhereClause = { ...whereClause, ...dateFilter };
 
     // Get total count for pagination info
     const totalCount = await prisma.meterReading.count({
-      where: whereClause,
+      where: finalWhereClause,
     });
 
     // Get paginated readings
     const readings = await prisma.meterReading.findMany({
-      where: whereClause,
+      where: finalWhereClause,
       orderBy: { date: "desc" },
       include: { nozzle: true, branch: true },
       skip,

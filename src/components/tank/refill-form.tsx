@@ -30,6 +30,7 @@ import { Tank } from '@/types/tank'
 import { FormProvider } from 'react-hook-form'
 import { refillTankSchema } from '@/schemas/refill-schema'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 
 
@@ -46,6 +47,7 @@ export function RefillTankFormDialog({
   openChange,
   tank
 }: RefillTankFormDialogProps) {
+  const router = useRouter();
   const form = useForm<RefillTankFormValues>({
     resolver: zodResolver(refillTankSchema),
     defaultValues: {
@@ -80,6 +82,7 @@ const handleSubmit = async (
 
     toast.success("Refill successfull");
     close();
+    router.refresh();
   } catch (error) {
     console.error("Something went wrong:", error);
   }

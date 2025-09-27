@@ -32,6 +32,7 @@ import { ProductType } from '@/types/product';
 import { Card } from '../ui/card';
 import { MeterReading } from '@/types/meter-reading';
 import { Loader2 } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 
 type MachineWithNozzles = {
@@ -60,6 +61,7 @@ export function MeterReadingFormSheet({
   openChange?: (open: boolean) => void;
   branchId?: string;
 }) {
+  const router = useRouter();
   const isControlled = typeof open === "boolean";
   const [machines, setMachines] = useState<MachineWithNozzles[]>([]);
   const [loading, setLoading] = useState(false);
@@ -308,6 +310,7 @@ useEffect(() => {
     if (isControlled) {
       openChange?.(false);
     }
+    router.refresh();
   } catch (e) {
     console.error(e);
     toast.error("Unexpected error");

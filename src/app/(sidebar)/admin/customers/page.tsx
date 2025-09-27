@@ -66,7 +66,7 @@ export default async function CustomerPage() {
                     {customers.length} customer{customers.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <CustomerTable data={customers} columns={customerColumns} />
+                <CustomerTable data={customers} columns={customerColumns} branchId={branchId} />
               </TabsContent>
             ))}
           </Tabs>

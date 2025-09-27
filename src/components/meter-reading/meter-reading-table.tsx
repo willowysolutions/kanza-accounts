@@ -29,14 +29,15 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MeterReadingTableProps } from "@/types/meter-reading";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export function MeterReadingTable<TValue>({
   columns,
   data: initialData,
-}: MeterReadingTableProps<TValue>) {
+  branchId,
+}: MeterReadingTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -51,7 +52,7 @@ export function MeterReadingTable<TValue>({
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -61,6 +62,10 @@ export function MeterReadingTable<TValue>({
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/meterreadings?${params.toString()}`);
@@ -75,7 +80,7 @@ export function MeterReadingTable<TValue>({
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -84,7 +89,7 @@ export function MeterReadingTable<TValue>({
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -97,7 +102,7 @@ export function MeterReadingTable<TValue>({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
 const table = useReactTable({
   data,

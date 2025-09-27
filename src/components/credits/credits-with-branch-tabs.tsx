@@ -43,7 +43,7 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch }: CreditsWith
                   {credits.length} credit{credits.length !== 1 ? 's' : ''} in this branch
                 </p>
               </div>
-              <CreditTable data={credits} columns={creditColumns} />
+              <CreditTable data={credits} columns={creditColumns} branchId={branchId} />
             </TabsContent>
           ))}
         </Tabs>

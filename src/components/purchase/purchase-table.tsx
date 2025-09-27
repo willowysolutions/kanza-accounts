@@ -26,7 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PurchaseTableProps } from "@/types/purchase";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -34,7 +34,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export function PurchaseTable<TValue>({
   columns,
   data: initialData,
-}: PurchaseTableProps<TValue>) {
+  branchId,
+}: PurchaseTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
@@ -49,7 +50,7 @@ export function PurchaseTable<TValue>({
   });
 
   // Fetch data from API with pagination
-  const fetchData = async (page: number, searchTerm: string = "") => {
+  const fetchData = useCallback(async (page: number, searchTerm: string = "") => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -59,6 +60,10 @@ export function PurchaseTable<TValue>({
       
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+
+      if (branchId) {
+        params.append('branchId', branchId);
       }
 
       const response = await fetch(`/api/purchases?${params.toString()}`);
@@ -73,7 +78,7 @@ export function PurchaseTable<TValue>({
     } finally {
       setLoading(false);
     }
-  };
+  }, [branchId]);
 
   // Initial data load
   useEffect(() => {
@@ -82,7 +87,7 @@ export function PurchaseTable<TValue>({
     } else {
       fetchData(1);
     }
-  }, [initialData]);
+  }, [initialData, fetchData]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -95,7 +100,7 @@ export function PurchaseTable<TValue>({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [globalFilter]);
+  }, [globalFilter, fetchData]);
 
   const table = useReactTable({
     data,
