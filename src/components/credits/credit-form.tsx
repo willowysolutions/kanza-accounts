@@ -153,7 +153,8 @@ export function CreditFormDialog({
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await fetch("/api/customers");
+        // Fetch all customers by setting a high limit
+        const res = await fetch("/api/customers?limit=1000");
         const json = await res.json();
         
         // Filter customers by branch if branchId is provided
