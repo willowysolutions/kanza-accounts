@@ -167,42 +167,43 @@ export async function POST(req: Request) {
     }
 
     // -----------------------------
-    // 2. Process everything in a single optimized transaction
+    // 2. Process in separate transactions to avoid timeout
     // -----------------------------
+    
+    // First: Insert meter readings only
     await runWithRetry(async () => {
       return prisma.$transaction(async (tx) => {
-        // Insert all readings
         await tx.meterReading.createMany({
           data: readingsToCreate,
         });
-
-        // Batch update tanks (using pre-collected data)
-        for (const [tankId, totalDifference] of tankUpdates) {
-          await tx.tank.update({
-            where: { id: tankId },
-            data: { currentLevel: { decrement: totalDifference } },
-          });
-        }
-
-        // Batch update stocks (using pre-collected data)
-        for (const [fuelType, totalDifference] of stockUpdates) {
-          await tx.stock.update({
-            where: { item: fuelType },
-            data: { quantity: { decrement: totalDifference } },
-          });
-        }
-
-        // Batch update nozzles (using pre-collected data)
-        for (const [nozzleId, closingReading] of nozzleUpdates) {
-          await tx.nozzle.update({
-            where: { id: nozzleId },
-            data: { openingReading: closingReading },
-          });
-        }
       }, {
-        timeout: 15000, // Increase timeout to 15 seconds
+        timeout: 10000, // 10 seconds for insert
       });
     });
+
+    // Second: Update tanks (outside transaction to avoid timeout)
+    for (const [tankId, totalDifference] of tankUpdates) {
+      await prisma.tank.update({
+        where: { id: tankId },
+        data: { currentLevel: { decrement: totalDifference } },
+      });
+    }
+
+    // Third: Update stocks (outside transaction to avoid timeout)
+    for (const [fuelType, totalDifference] of stockUpdates) {
+      await prisma.stock.update({
+        where: { item: fuelType },
+        data: { quantity: { decrement: totalDifference } },
+      });
+    }
+
+    // Fourth: Update nozzles (outside transaction to avoid timeout)
+    for (const [nozzleId, closingReading] of nozzleUpdates) {
+      await prisma.nozzle.update({
+        where: { id: nozzleId },
+        data: { openingReading: closingReading },
+      });
+    }
 
     // -----------------------------
     // Revalidate cache
