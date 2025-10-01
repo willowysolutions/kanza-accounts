@@ -79,6 +79,10 @@ export const SIDEBAR_DATA: SidebarData = {
           url: "/reports/payment-reports",
         },
         {
+          title: "Credit Report",
+          url: "/reports/credit-reports",
+        },
+        {
           title: "Customer Report",
           url: "/reports/customer-reports",
         },

@@ -12,8 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ProductType } from '@/types/product';
 // import { Loader2 } from 'lucide-react'; // Unused import removed
 
@@ -31,7 +29,8 @@ type MachineWithNozzles = {
 
 type BulkForm = z.infer<typeof bulkSchema>;
 
-export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
+export const MeterReadingStep: React.FC<{ branchId?: string }> = () => {
+  const { selectedBranchId } = useWizard();
   const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, setIsStepDisabled } = useWizard();
   const [machines, setMachines] = useState<MachineWithNozzles[]>([]);
   const [loading, setLoading] = useState(false);
@@ -150,8 +149,8 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
       setLoading(true);
       try {
         // Fetch machines and tank levels in parallel
-        const machinesUrl = branchId ? `/api/machines/with-nozzles?branchId=${branchId}` : '/api/machines/with-nozzles';
-        const tankLevelsUrl = branchId ? `/api/tanks/current-levels?branchId=${branchId}` : '/api/tanks/current-levels';
+        const machinesUrl = selectedBranchId ? `/api/machines/with-nozzles?branchId=${selectedBranchId}` : '/api/machines/with-nozzles';
+        const tankLevelsUrl = selectedBranchId ? `/api/tanks/current-levels?branchId=${selectedBranchId}` : '/api/tanks/current-levels';
         const [machinesRes, tankLevelsRes] = await Promise.all([
           fetch(machinesUrl),
           fetch(tankLevelsUrl)
@@ -208,7 +207,7 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
     };
 
     load();
-  }, [products, form, branchId, commonDate]);
+  }, [products, form, selectedBranchId, commonDate]);
 
   // Fetch products
   useEffect(() => {
@@ -352,25 +351,17 @@ export const MeterReadingStep: React.FC<{ branchId?: string }> = ({ branchId }) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" className="w-full text-left font-normal">
-                            {field.value
-                              ? new Date(field.value).toLocaleDateString("en-EG") 
-                              : "Pick date"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent align="start" className="p-0">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(val) => field.onChange(val ?? new Date())}
-                          captionLayout="dropdown"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Button 
+                        variant="outline" 
+                        disabled
+                        className="w-full text-left font-normal bg-muted cursor-not-allowed"
+                      >
+                        {field.value
+                          ? new Date(field.value).toLocaleDateString("en-EG") 
+                          : "Pick date"}
+                      </Button>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

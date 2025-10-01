@@ -11,8 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 // import { formatDate } from '@/lib/utils'; // Removed to fix hydration issue
@@ -307,25 +305,17 @@ export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) =
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" className="w-full justify-start">
-                            {field.value
-                              ? new Date(field.value).toLocaleDateString()
-                              : "Pick date"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <Calendar
-                          mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={field.onChange}
-                          captionLayout="dropdown"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Button 
+                        variant="outline" 
+                        disabled
+                        className="w-full justify-start bg-muted cursor-not-allowed"
+                      >
+                        {field.value
+                          ? new Date(field.value).toLocaleDateString()
+                          : "Pick date"}
+                      </Button>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

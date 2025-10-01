@@ -63,7 +63,10 @@ export default async function SalesPage() {
               <h1 className="text-2xl font-bold tracking-tight">Sales Management</h1>
               <p className="text-muted-foreground">Track and manage fuel sales transactions by branch</p>
             </div>
-            <SalesFormModal />
+            <SalesFormModal 
+              userRole={session.user.role || undefined}
+              userBranchId={userBranchId}
+            />
           </div>
 
           <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">

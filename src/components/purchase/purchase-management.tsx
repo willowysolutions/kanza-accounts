@@ -16,9 +16,11 @@ import { PurchaseOrderFormModal } from "../purchase-order/purchase-order-form";
 type PurchaseManagementProps = {
   purchase: Purchase[];
   purchaseOrder: PurchaseOrder[];
+  userRole?: string;
+  userBranchId?: string;
 };
 
-export default function PurchaseManagement({ purchase, purchaseOrder }: PurchaseManagementProps) {
+export default function PurchaseManagement({ purchase, purchaseOrder, userRole, userBranchId }: PurchaseManagementProps) {
   const [activeTab, setActiveTab] = useState("purchase");
 
   return (
@@ -29,7 +31,14 @@ export default function PurchaseManagement({ purchase, purchaseOrder }: Purchase
             <h1 className="text-2xl font-bold tracking-tight">Purchase Management</h1>
             <p className="text-muted-foreground">Manage fuel and inventory purchases</p>
           </div>
-          {activeTab === "purchase" ? <PurchaseFormModal /> : <PurchaseOrderFormModal />}
+          {activeTab === "purchase" ? (
+            <PurchaseFormModal 
+              userRole={userRole}
+              userBranchId={userBranchId}
+            />
+          ) : (
+            <PurchaseOrderFormModal />
+          )}
         </div>
 
         <Tabs

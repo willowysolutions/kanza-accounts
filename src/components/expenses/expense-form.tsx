@@ -34,15 +34,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "@/lib/utils";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 export const ExpenseFormDialog = ({
   expense,
   open,
   openChange,
-}: ExpenseFormProps) => {
+  userRole,
+  userBranchId,
+}: ExpenseFormProps & { userRole?: string; userBranchId?: string }) => {
   const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string; limit?: number }[]>([])
   const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
   const router = useRouter();
 
 
@@ -91,7 +95,10 @@ export const ExpenseFormDialog = ({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       const response = await res.json();
@@ -162,6 +169,13 @@ export const ExpenseFormDialog = ({
           </FormDialogDescription>
         </FormDialogHeader>
 
+        {/* Branch Selector */}
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
 
         {/* Title */}
         {/* Expense Category */}

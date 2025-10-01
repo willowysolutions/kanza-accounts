@@ -14,6 +14,8 @@ type BalanceSheetExportProps = {
   customerCreditsData: { customer: string; credit: number; received: number }[];
   expenseCategoriesData: { category: string; total: number }[];
   bankDepositsData: { bank: string; total: number }[];
+  customerCreditReceivedData: { customer: string; credit: number; received: number }[];
+  paymentMethodsData: { method: string; total: number }[];
 };
 
 export function BalanceSheetExport({
@@ -23,6 +25,8 @@ export function BalanceSheetExport({
   customerCreditsData,
   expenseCategoriesData,
   bankDepositsData,
+  customerCreditReceivedData,
+  paymentMethodsData,
 }: BalanceSheetExportProps) {
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
@@ -144,6 +148,63 @@ export function BalanceSheetExport({
       footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
       tableWidth: tableWidth,
       margin: { left: rightStartX, right: 40 },
+    });
+
+    // Add new page for additional tables
+    doc.addPage();
+
+    // Customer Credit & Received Table
+    doc.setFontSize(12);
+    doc.text("Customer Credit & Received", 40, 40);
+
+    autoTable(doc, {
+      startY: 55,
+      head: [["Customer Name", "Credit Given", "Amount Received"]],
+      body: customerCreditReceivedData.map((item) => [
+        item.customer,
+        item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+      ]),
+      foot: [
+        [
+          "TOTAL",
+          customerCreditReceivedData.reduce((sum, item) => sum + item.credit, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          customerCreditReceivedData.reduce((sum, item) => sum + item.received, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        ],
+      ],
+      theme: "grid",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [253, 224, 71], textColor: 0 },
+      footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
+      tableWidth: 280,
+      margin: { left: 40, right: 40 },
+    });
+
+    // Payment Methods Table
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const paymentMethodsStartY = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(12);
+    doc.text("Payment Methods Total", 40, paymentMethodsStartY);
+
+    autoTable(doc, {
+      startY: paymentMethodsStartY + 15,
+      head: [["Payment Method", "Total Amount"]],
+      body: paymentMethodsData.map((item) => [
+        item.method,
+        item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+      ]),
+      foot: [
+        [
+          "TOTAL",
+          paymentMethodsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        ],
+      ],
+      theme: "grid",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [253, 224, 71], textColor: 0 },
+      footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
+      tableWidth: 280,
+      margin: { left: 40, right: 40 },
     });
 
     // Save the PDF

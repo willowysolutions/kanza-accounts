@@ -23,6 +23,7 @@ const readingSchema = z.object({
 
 const bulkSchema = z.object({
   items: z.array(readingSchema).min(1),
+  branchId: z.string().optional(),
 });
 
 // -----------------------------
@@ -52,10 +53,12 @@ async function runWithRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch || undefined;
-
+    
     const body = await req.json();
     const parsed = bulkSchema.safeParse(body);
+    
+    // Use branchId from request body, fallback to session branch
+    const branchId = body.branchId || session?.user?.branch || undefined;
 
     if (!parsed.success) {
       console.error("Validation failed", parsed.error.format());

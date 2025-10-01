@@ -33,15 +33,19 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BankDepositeFormProps } from "@/types/bank-deposite";
 import { bankDepositeSchema } from "@/schemas/bank-deposite-schema";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 export const BankDepositeFormDialog = ({
   bankDeposite,
   open,
   openChange,
   branchId,
-}: BankDepositeFormProps & { branchId?: string }) => {
+  userRole,
+  userBranchId,
+}: BankDepositeFormProps & { branchId?: string; userRole?: string; userBranchId?: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bankOptions, setBankOptions] = useState<{ bankName: string; id: string;}[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(branchId || userBranchId || "");
   const router = useRouter();
 
 
@@ -69,7 +73,10 @@ export const BankDepositeFormDialog = ({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       const response = await res.json();
@@ -137,6 +144,13 @@ export const BankDepositeFormDialog = ({
           </FormDialogDescription>
         </FormDialogHeader>
 
+        {/* Branch Selector */}
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
 
         {/* Title */}
         <div className="grid grid-cols-2 gap-4">

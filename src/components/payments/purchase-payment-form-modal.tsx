@@ -37,18 +37,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { SupplierPaymentFormData } from "@/types/payment";
 import { supplierPaymentSchema } from "@/schemas/supplier-payment-schema";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 
 export function PurchasePaymentFormDialog({
   payments,
   open,
   openChange,
+  userRole,
+  userBranchId,
 }: {
   payments?: SupplierPaymentFormData;
   open?: boolean;
   openChange?: (open: boolean) => void;
+  userRole?: string;
+  userBranchId?: string;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof supplierPaymentSchema>>({
@@ -79,7 +85,10 @@ export function PurchasePaymentFormDialog({
       const res = await fetch("/api/payments/purchase-payment-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       const response = await res.json();
@@ -114,6 +123,14 @@ export function PurchasePaymentFormDialog({
             Fill out the payment details.
           </FormDialogDescription>
         </FormDialogHeader>
+
+        {/* Branch Selector */}
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
 
         {/* Supplier */}
         <FormField

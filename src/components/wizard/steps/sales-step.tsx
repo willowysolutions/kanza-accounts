@@ -10,8 +10,6 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 // import { parseProducts } from '@/lib/product-utils'; // Unused import removed
 
@@ -211,25 +209,17 @@ export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" className="w-full text-left">
-                            {field.value
-                              ? new Date(field.value).toLocaleDateString()
-                              : "Pick date"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <Calendar
-                          mode="single"
-                          selected={new Date(field.value)}
-                          onSelect={field.onChange}
-                          captionLayout="dropdown"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Button 
+                        variant="outline" 
+                        disabled
+                        className="w-full text-left bg-muted cursor-not-allowed"
+                      >
+                        {field.value
+                          ? new Date(field.value).toLocaleDateString()
+                          : "Pick date"}
+                      </Button>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

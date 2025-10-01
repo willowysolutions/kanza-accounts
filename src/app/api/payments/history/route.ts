@@ -39,10 +39,41 @@ export async function GET(req: NextRequest) {
       take: limit,
     });
 
+    // Get credits for the same dates and customers
+    const paymentDates = paymentHistory.map(p => p.paidOn);
+    const customerIds = paymentHistory.filter(p => p.customerId).map(p => p.customerId).filter((id): id is string => id !== null);
+    
+    const credits = await prisma.credit.findMany({
+      where: {
+        customerId: { in: customerIds },
+        date: { in: paymentDates }
+      },
+      select: {
+        amount: true,
+        date: true,
+        customerId: true
+      }
+    });
+
+    // Merge credits with payments
+    const paymentHistoryWithCredits = paymentHistory.map(payment => {
+      const creditsForPayment = credits.filter(credit => 
+        credit.customerId === payment.customerId && 
+        credit.date.toDateString() === payment.paidOn.toDateString()
+      );
+      
+      const totalCredits = creditsForPayment.reduce((sum, credit) => sum + credit.amount, 0);
+      
+      return {
+        ...payment,
+        creditGiven: totalCredits
+      };
+    });
+
     const totalPages = Math.ceil(totalCount / limit);
 
     return NextResponse.json({ 
-      paymentHistory,
+      paymentHistory: paymentHistoryWithCredits,
       pagination: {
         currentPage: page,
         totalPages,

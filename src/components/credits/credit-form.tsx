@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 
 export function CreditFormDialog({
@@ -46,17 +47,22 @@ export function CreditFormDialog({
   open,
   openChange,
   branchId,
+  userRole,
+  userBranchId,
 }: {
   credits?: Credit;
   open?: boolean;
   openChange?: (open: boolean) => void;
   branchId?: string;
+  userRole?: string;
+  userBranchId?: string;
 }) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments:number; limit?: number; }[]>([]);
   const [products, setProducts] = useState<{id:string; productName :string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(branchId || userBranchId || "");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof creditSchema>>({
@@ -108,7 +114,10 @@ export function CreditFormDialog({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       const response = await res.json();
@@ -238,6 +247,14 @@ export function CreditFormDialog({
               : "Fill out the credits details. Click save when you're done."}
           </FormDialogDescription>
         </FormDialogHeader>
+
+        {/* Branch Selector */}
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
 
         {/* Customer Select */}
         <FormField

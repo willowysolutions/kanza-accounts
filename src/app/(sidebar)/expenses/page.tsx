@@ -59,7 +59,10 @@ const expensesByBranch = visibleBranches.map((branch: { id: string; name: string
               <h1 className="text-2xl font-bold tracking-tight">Expense Management</h1>
               <p className="text-muted-foreground">Manage your expenses by branch</p>
             </div>
-              <ExpenseFormDialog />
+              <ExpenseFormDialog 
+                userRole={session.user.role || undefined}
+                userBranchId={userBranchId}
+              />
           </div>
 
           <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">

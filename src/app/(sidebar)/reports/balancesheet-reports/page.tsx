@@ -26,7 +26,7 @@ export default async function BalanceSheetReportPage() {
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
 
   // Fetch all required data
-  const [salesRes, creditsRes, expensesRes, bankDepositsRes, branchesRes] = await Promise.all([
+  const [salesRes, creditsRes, expensesRes, bankDepositsRes, paymentsRes, branchesRes] = await Promise.all([
     fetch(`${proto}://${host}/api/sales`, {
       cache: "no-store",
       headers: { cookie },
@@ -39,7 +39,11 @@ export default async function BalanceSheetReportPage() {
       cache: "no-store",
       headers: { cookie },
     }),
-    fetch(`${proto}://${host}/api/bank-deposite`, {
+    fetch(`${proto}://${host}/api/bank-deposite?limit=1000`, {
+      cache: "no-store",
+      headers: { cookie },
+    }),
+    fetch(`${proto}://${host}/api/payments/history`, {
       cache: "no-store",
       headers: { cookie },
     }),
@@ -53,6 +57,7 @@ export default async function BalanceSheetReportPage() {
   const { data: credits } = await creditsRes.json();
   const { data: expenses } = await expensesRes.json();
   const { bankDeposite } = await bankDepositsRes.json();
+  const { paymentHistory } = await paymentsRes.json();
   const { data: allBranches } = await branchesRes.json();
 
   // Filter branches based on user role
@@ -93,6 +98,7 @@ export default async function BalanceSheetReportPage() {
                   credits={credits.filter((credit: any) => credit.branchId === branch.id)}
                   expenses={expenses.filter((expense: any) => expense.branchId === branch.id)}
                   bankDeposits={bankDeposite.filter((deposit: any) => deposit.branchId === branch.id)}
+                  payments={paymentHistory.filter((payment: any) => payment.branchId === branch.id)}
                 />
               </TabsContent>
             ))}

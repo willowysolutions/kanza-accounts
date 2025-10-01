@@ -20,6 +20,8 @@ interface BalanceSheetReportProps {
   expenses: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   bankDeposits: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payments: any[];
 }
 
 export function BalanceSheetReport({
@@ -28,6 +30,7 @@ export function BalanceSheetReport({
   credits,
   expenses,
   bankDeposits,
+  payments,
 }: BalanceSheetReportProps) {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
 
@@ -56,13 +59,19 @@ export function BalanceSheetReport({
       return depositDate.getFullYear() === year && depositDate.getMonth() === month;
     });
 
+    const filteredPayments = payments.filter((payment) => {
+      const paymentDate = new Date(payment.paidOn);
+      return paymentDate.getFullYear() === year && paymentDate.getMonth() === month;
+    });
+
     return {
       sales: filteredSales,
       credits: filteredCredits,
       expenses: filteredExpenses,
       bankDeposits: filteredBankDeposits,
+      payments: filteredPayments,
     };
-  }, [sales, credits, expenses, bankDeposits, selectedMonth]);
+  }, [sales, credits, expenses, bankDeposits, payments, selectedMonth]);
 
   // Calculate products sold data
   const productsData = useMemo(() => {
@@ -140,6 +149,62 @@ export function BalanceSheetReport({
     }));
   }, [filteredData.bankDeposits]);
 
+  // Calculate customer credit and received data (enhanced version)
+  const customerCreditReceivedData = useMemo(() => {
+    const customerTotals: { [key: string]: { credit: number; received: number } } = {};
+    
+    // Process credits
+    filteredData.credits.forEach((credit) => {
+      const customerName = credit.customer?.name || 'Unknown';
+      if (!customerTotals[customerName]) {
+        customerTotals[customerName] = { credit: 0, received: 0 };
+      }
+      customerTotals[customerName].credit += credit.amount || 0;
+    });
+
+    // Process payments received
+    filteredData.payments.forEach((payment) => {
+      if (payment.customer?.name) {
+        const customerName = payment.customer.name;
+        if (!customerTotals[customerName]) {
+          customerTotals[customerName] = { credit: 0, received: 0 };
+        }
+        customerTotals[customerName].received += payment.paidAmount || 0;
+      }
+    });
+
+    return Object.entries(customerTotals).map(([customer, totals]) => ({
+      customer,
+      credit: totals.credit,
+      received: totals.received,
+    }));
+  }, [filteredData.credits, filteredData.payments]);
+
+  // Calculate payment methods data from sales
+  const paymentMethodsData = useMemo(() => {
+    const methodTotals: { [key: string]: number } = {
+      'Cash': 0,
+      'ATM': 0,
+      'Paytm': 0,
+      'Fleet': 0,
+    };
+    
+    filteredData.sales.forEach((sale) => {
+      methodTotals['Cash'] += sale.cashPayment || 0;
+      methodTotals['ATM'] += sale.atmPayment || 0;
+      methodTotals['Paytm'] += sale.paytmPayment || 0;
+      methodTotals['Fleet'] += sale.fleetPayment || 0;
+    });
+
+    // Only return methods that have values > 0
+    return Object.entries(methodTotals)
+      .filter(([, total]) => total > 0)
+      .map(([method, total]) => ({
+        method,
+        total,
+      }));
+  }, [filteredData.sales]);
+
   return (
     <div className="space-y-6">
       {/* Month Selector and Export Button */}
@@ -177,6 +242,8 @@ export function BalanceSheetReport({
           customerCreditsData={customerCreditsData}
           expenseCategoriesData={expenseCategoriesData}
           bankDepositsData={bankDepositsData}
+          customerCreditReceivedData={customerCreditReceivedData}
+          paymentMethodsData={paymentMethodsData}
         />
       </div>
 
@@ -362,6 +429,101 @@ export function BalanceSheetReport({
                       <td className="border border-gray-300 px-4 py-2">TOTAL</td>
                       <td className="border border-gray-300 px-4 py-2 text-right">
                         {bankDepositsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Customer Credit and Received Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Credit & Received - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
+                      <th className="border border-gray-300 px-4 py-2 text-right">Credit Given (₹)</th>
+                      <th className="border border-gray-300 px-4 py-2 text-right">Amount Received (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerCreditReceivedData.map((item, index) => (
+                      <tr key={index}>
+                        <td className="border border-gray-300 px-4 py-2">{item.customer}</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">
+                          {item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">
+                          {item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                    {customerCreditReceivedData.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                          No data available for this month
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100 font-semibold">
+                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
+                      <td className="border border-gray-300 px-4 py-2 text-right">
+                        {customerCreditReceivedData.reduce((sum, item) => sum + item.credit, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-right">
+                        {customerCreditReceivedData.reduce((sum, item) => sum + item.received, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Methods Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Methods Total - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 px-4 py-2 text-left">Payment Method</th>
+                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentMethodsData.map((item, index) => (
+                      <tr key={index}>
+                        <td className="border border-gray-300 px-4 py-2">{item.method}</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">
+                          {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                    {paymentMethodsData.length === 0 && (
+                      <tr>
+                        <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                          No data available for this month
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100 font-semibold">
+                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
+                      <td className="border border-gray-300 px-4 py-2 text-right">
+                        {paymentMethodsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tfoot>

@@ -6,6 +6,8 @@ import {  Fuel, Truck, } from "lucide-react";
 import { Purchase } from "@/types/purchase";
 import PurchaseManagement from "@/components/purchase/purchase-management";
 import { headers, cookies } from "next/headers";
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function PurchasePage() {
   const hdrs = await headers();
@@ -14,6 +16,17 @@ export default async function PurchasePage() {
     hdrs.get("x-forwarded-proto") ??
     (process.env.NODE_ENV === "production" ? "https" : "http");
   const cookie = (await cookies()).toString();
+
+  // Get session to check user role and branch
+  const session = await auth.api.getSession({
+    headers: hdrs,
+  });
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
   // Fetch purchases, purchase orders, and branches
   const [purchaseRes, orderRes, branchesRes] = await Promise.all([
@@ -115,7 +128,12 @@ export default async function PurchasePage() {
                 </Card>
               </div>
               
-              <PurchaseManagement purchase={purchases} purchaseOrder={purchaseOrder}/>
+              <PurchaseManagement 
+                purchase={purchases} 
+                purchaseOrder={purchaseOrder}
+                userRole={session.user.role || undefined}
+                userBranchId={userBranchId}
+              />
             </TabsContent>
           );
         })}

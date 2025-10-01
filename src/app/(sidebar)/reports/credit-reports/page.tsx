@@ -3,9 +3,9 @@ export const dynamic = "force-dynamic";
 import { auth } from "@/lib/auth";
 import { headers, cookies } from "next/headers";
 import { redirect } from 'next/navigation';
-import { PaymentReportsWithBranchTabs } from "@/components/reports/payment-reports-with-branch-tabs";
+import { CreditReportWithBranchTabs } from "@/components/reports/credit-report-with-branch-tabs";
 
-export default async function PaymentHistoryPage({
+export default async function CreditReportPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -14,6 +14,8 @@ export default async function PaymentHistoryPage({
   const filter = typeof params.filter === "string" ? params.filter : "all";
   const from = params.from ? new Date(params.from as string) : undefined;
   const to = params.to ? new Date(params.to as string) : undefined;
+  const customerFilter = typeof params.customer === "string" ? params.customer : "";
+  const page = typeof params.page === "string" ? parseInt(params.page) : 1;
 
   const hdrs = await headers();
   const host = hdrs.get("host");
@@ -36,9 +38,18 @@ export default async function PaymentHistoryPage({
   // Forward cookies
   const cookie = cookies().toString();
   
-  // Fetch payment history and branches in parallel
-  const [paymentHistoryRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/payments/history?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}`, {
+  // Build API URL with only defined parameters
+  const apiUrl = new URL(`${proto}://${host}/api/credits`);
+  apiUrl.searchParams.set('filter', 'all'); // Force 'all' filter to get all credits
+  apiUrl.searchParams.set('page', page.toString());
+  apiUrl.searchParams.set('limit', '50');
+  // Temporarily remove date filtering to test
+  // if (from) apiUrl.searchParams.set('from', from.toISOString());
+  // if (to) apiUrl.searchParams.set('to', to.toISOString());
+
+  // Fetch credits and branches in parallel
+  const [creditsRes, branchesRes] = await Promise.all([
+    fetch(apiUrl.toString(), {
       cache: "no-store",
       headers: { cookie },
     }),
@@ -48,46 +59,36 @@ export default async function PaymentHistoryPage({
     })
   ]);
   
-  const { paymentHistory = [] } = await paymentHistoryRes.json();
+  const { data: credits = [], pagination } = await creditsRes.json();
   const { data: allBranches = [] } = await branchesRes.json();
+
 
   // Filter branches based on user role
   const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
-  // Group payments by visible branches only
-  const paymentsByBranch = visibleBranches.map((branch: { id: string; name: string }) => {
+  // Group credits by visible branches only
+  const creditsByBranch = visibleBranches.map((branch: { id: string; name: string }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const branchPayments = (paymentHistory || []).filter((p: any) => 
-      p.branchId === branch.id || 
-      p.customer?.branchId === branch.id || 
-      p.supplier?.branchId === branch.id
-    );
-    
-    // Remove duplicates by using a Set of payment IDs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const uniquePayments = branchPayments.filter((payment: any, index: number, self: any[]) => 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      index === self.findIndex((p: any) => p.id === payment.id)
-    );
+    const branchCredits = (credits || []).filter((c: any) => c.branchId === branch.id);
     
     return {
       branchId: branch.id,
       branchName: branch.name,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      customerPayments: uniquePayments.filter((p: any) => p.customerId && !p.supplierId),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supplierPayments: uniquePayments.filter((p: any) => p.supplierId && !p.customerId)
+      credits: branchCredits
     };
   });
 
   return (
     <div className="flex flex-1 flex-col">
-      <PaymentReportsWithBranchTabs 
+      <CreditReportWithBranchTabs 
         branches={visibleBranches} 
-        paymentsByBranch={paymentsByBranch}
+        creditsByBranch={creditsByBranch}
         filter={filter}
         from={from}
         to={to}
+        customerFilter={customerFilter}
+        pagination={pagination}
+        currentPage={page}
       />
     </div>
   );

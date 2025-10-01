@@ -51,7 +51,12 @@ const depositsByBranch = visibleBranches.map((branch: { id: string; name: string
 
   return (
     <div className="flex flex-1 flex-col">
-      <BankDepositsWithBranchTabs branches={visibleBranches} depositsByBranch={depositsByBranch} />
+      <BankDepositsWithBranchTabs 
+        branches={visibleBranches} 
+        depositsByBranch={depositsByBranch}
+        userRole={session.user.role || undefined}
+        userBranchId={userBranchId}
+      />
     </div>
   );
 }

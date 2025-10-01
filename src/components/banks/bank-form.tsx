@@ -26,19 +26,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BankFormProps } from "@/types/bank";
 import { bankSchema } from "@/schemas/bank-schema";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 export const BankFormDialog = ({
   bank,
   open,
   openChange,
-}: BankFormProps) => {
+  userRole,
+  userBranchId,
+}: BankFormProps & { userRole?: string; userBranchId?: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
 
   const router = useRouter();
 
@@ -68,7 +70,10 @@ export const BankFormDialog = ({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       const response = await res.json();
@@ -89,19 +94,6 @@ export const BankFormDialog = ({
     }
   };
 
-  useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const res = await fetch("/api/branch");
-        const json = await res.json();
-        setBranchOptions(json.data || []);
-      } catch (error) {
-        console.error("Failed to fetch branches", error);
-      }
-    };
-
-    fetchBranches();
-  }, []);
 
 
   return (
@@ -202,29 +194,11 @@ export const BankFormDialog = ({
         />
         </div>
 
-        <FormField
-          control={form.control}
-          name="branchId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Branch</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Branch" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {branchOptions.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
         />
 
 

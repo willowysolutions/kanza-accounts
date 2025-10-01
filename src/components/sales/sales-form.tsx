@@ -30,16 +30,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useEffect, useState } from "react";
 import { parseProducts } from "@/lib/product-utils";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 
 export function SalesFormModal({
   sales,
   open,
   openChange,
+  userRole,
+  userBranchId,
 }: {
   sales?: Sales;
   open?: boolean;
   openChange?: (open: boolean) => void;
+  userRole?: string;
+  userBranchId?: string;
 }) {
   const [meterReading, setMeterReading] = useState<{ 
     totalAmount: number;
@@ -58,6 +63,8 @@ export function SalesFormModal({
     price: number;
     productType:string;
   }[]>([]);
+
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
 
 
   const router = useRouter();
@@ -92,7 +99,10 @@ const form = useForm<SalesFormValues>({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       if (!res.ok) {
@@ -382,6 +392,14 @@ useEffect(() => {
               : "Enter details for a new fuel sale transaction."}
           </FormDialogDescription>
         </FormDialogHeader>
+
+        {/* Branch Selector */}
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField

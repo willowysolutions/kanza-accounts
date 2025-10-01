@@ -23,7 +23,11 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole }: C
             <h1 className="text-2xl font-bold tracking-tight">Credit Management</h1>
             <p className="text-muted-foreground">Manage customer credits by branch</p>
           </div>
-          <CreditFormDialog branchId={activeBranch} />
+          <CreditFormDialog 
+            branchId={activeBranch} 
+            userRole={userRole}
+            userBranchId={branches.find(b => b.id === activeBranch)?.id}
+          />
         </div>
 
         <Tabs value={activeBranch} onValueChange={setActiveBranch} className="w-full">

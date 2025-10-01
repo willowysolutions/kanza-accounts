@@ -4,11 +4,11 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChevronLeft, ChevronRight, Check, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // Wizard Step Types
 export interface WizardStep {
@@ -82,6 +82,9 @@ interface WizardContextType {
   // Common date for all steps
   commonDate: Date;
   setCommonDate: React.Dispatch<React.SetStateAction<Date>>;
+  // Branch selection
+  selectedBranchId: string;
+  setSelectedBranchId: React.Dispatch<React.SetStateAction<string>>;
   // Persistent data across steps
   addedExpenses: AddedExpense[];
   setAddedExpenses: React.Dispatch<React.SetStateAction<AddedExpense[]>>;
@@ -112,6 +115,9 @@ interface WizardProviderProps {
   steps: WizardStep[];
   onComplete?: () => void;
   onStepChange?: (step: number) => void;
+  initialBranchId?: string;
+  userRole?: string;
+  userBranchId?: string;
 }
 
 export const WizardProvider: React.FC<WizardProviderProps> = ({
@@ -119,6 +125,9 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
   steps,
   onComplete,
   onStepChange,
+  initialBranchId,
+  userRole,
+  userBranchId,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -126,8 +135,22 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
   const [isStepDisabled, setIsStepDisabled] = useState(false);
   const [isCurrentStepCompleted, setIsCurrentStepCompleted] = useState(false);
   
-  // Common date for all steps - initialized to today and persists across navigation
-  const [commonDate, setCommonDate] = useState<Date>(new Date());
+  // Branch selection state
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
+    // For non-admin users, use their assigned branch
+    if (userRole?.toLowerCase() !== 'admin' && userBranchId) {
+      return userBranchId;
+    }
+    // For admin users, use the initial branch or first available
+    return initialBranchId || '';
+  });
+  
+  // Common date for all steps - initialized to yesterday and persists across navigation
+  const [commonDate, setCommonDate] = useState<Date>(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday;
+  });
   
   // Persistent data across all steps
   const [addedExpenses, setAddedExpenses] = useState<AddedExpense[]>([]);
@@ -222,6 +245,9 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     // Common date
     commonDate,
     setCommonDate,
+    // Branch selection
+    selectedBranchId,
+    setSelectedBranchId,
     // Persistent data
     addedExpenses,
     setAddedExpenses,
@@ -419,6 +445,9 @@ interface FormWizardProps {
   title?: string;
   description?: string;
   className?: string;
+  initialBranchId?: string;
+  userRole?: string;
+  userBranchId?: string;
 }
 
 export const FormWizard: React.FC<FormWizardProps> = ({
@@ -428,16 +457,29 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   title = "Form Wizard",
   description = "Complete all steps to finish the process",
   className,
+  initialBranchId,
+  userRole,
+  userBranchId,
 }) => {
   return (
-    <WizardProvider steps={steps} onComplete={onComplete} onStepChange={onStepChange}>
+    <WizardProvider 
+      steps={steps} 
+      onComplete={onComplete} 
+      onStepChange={onStepChange}
+      initialBranchId={initialBranchId}
+      userRole={userRole}
+      userBranchId={userBranchId}
+    >
       <div className={cn("w-full mx-auto", className)}>
 
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">{title}</CardTitle>
             <p className="text-muted-foreground">{description}</p>
-            <CommonDatePicker />
+            <div className="flex gap-4 items-center">
+              <CommonDatePicker />
+              <BranchSelector />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <StepIndicator />
@@ -467,5 +509,54 @@ const WizardContent: React.FC = () => {
   );
 };
 
+// Branch Selector Component for Wizard
+const BranchSelector: React.FC = () => {
+  const { selectedBranchId, setSelectedBranchId } = useWizard();
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch branches on mount
+  React.useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const response = await fetch('/api/branch');
+        const data = await response.json();
+        setBranches(data.data || []);
+      } catch (error) {
+        console.error('Failed to fetch branches:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBranches();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Loading branches...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-medium">Branch:</span>
+      <select
+        value={selectedBranchId}
+        onChange={(e) => setSelectedBranchId(e.target.value)}
+        className="px-3 py-1 border rounded-md text-sm"
+      >
+        {branches.map((branch) => (
+          <option key={branch.id} value={branch.id}>
+            {branch.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 // Export all components
-export { WizardNavigation, StepIndicator, ProgressBar, CommonDatePicker };
+export { WizardNavigation, StepIndicator, ProgressBar, CommonDatePicker, BranchSelector };

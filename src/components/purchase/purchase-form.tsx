@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { Purchase } from "@prisma/client";
 import { useRouter } from "next/navigation";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
@@ -44,10 +45,14 @@ export function PurchaseFormModal({
   purchase,
   open,
   openChange,
+  userRole,
+  userBranchId,
 }: {
   purchase?: Purchase;
   open?: boolean;
   openChange?: (open: boolean) => void;
+  userRole?: string;
+  userBranchId?: string;
 }) {
   const [supplierOptions, setSupplierOptions] = useState<{ name: string; id: string, phone:string}[]>([]);
   const [productOption, setProductOptions] = useState<{ 
@@ -58,9 +63,9 @@ export function PurchaseFormModal({
   productUnit:string;
   branchId: string | null;
   }[]>([]);
-  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [purchasePrice, setPurchasePrice] = useState<number>(0);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
 
   const router = useRouter();
 
@@ -79,7 +84,6 @@ export function PurchaseFormModal({
 
   const quantity = useWatch({ control: form.control, name: "quantity" });
   const productType = useWatch({ control: form.control, name: "productType" });
-  const selectedBranchId = useWatch({ control: form.control, name: "branchId" });
 
 
   const handleSubmit = async (values: PurchaseFormValues, close: () => void) => {
@@ -93,7 +97,10 @@ export function PurchaseFormModal({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       if (!res.ok) {
@@ -141,19 +148,6 @@ export function PurchaseFormModal({
   fetchProducts();
   }, []);
 
-  useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const res = await fetch("/api/branch");
-        const json = await res.json();
-        setBranchOptions(json.data || []);
-      } catch (error) {
-        console.error("Failed to fetch branches", error);
-      }
-    };
-
-    fetchBranches();
-  }, []);
 
 
  useEffect(() => {
@@ -240,29 +234,11 @@ export function PurchaseFormModal({
             </FormItem>
           )} />
 
-          <FormField
-            control={form.control}
-            name="branchId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Branch</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Branch" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {branchOptions.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+          <BranchSelector
+            value={selectedBranchId}
+            onValueChange={setSelectedBranchId}
+            userRole={userRole}
+            userBranchId={userBranchId}
           />
         </div>
 

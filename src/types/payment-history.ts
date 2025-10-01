@@ -10,4 +10,5 @@ export interface PaymentHistory extends PrismaPaymentHistory {
 export interface PaymentHistoryTableProps<TValue> {
   columns: ColumnDef<PaymentHistory, TValue>[];
   data: PaymentHistory[];
+  userRole?: string;
 }

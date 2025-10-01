@@ -10,10 +10,12 @@ import { IconCash } from "@tabler/icons-react";
 
 
 
-export const customerPaymentColumns: ColumnDef<PaymentWithCustomer>[] = [
+export const customerPaymentColumns = (userRole?: string, userBranchId?: string): ColumnDef<PaymentWithCustomer>[] => [
   {
     accessorKey: "name",
     header: "Name",
+    cell: ({ row }) =>
+      row.original && <CustomerNameButton customer={row.original} userRole={userRole} userBranchId={userBranchId} />,
   },
   {
     accessorKey: "outstandingPayments",
@@ -22,11 +24,45 @@ export const customerPaymentColumns: ColumnDef<PaymentWithCustomer>[] = [
   {
     id: "action",
     cell: ({ row }) =>
-      row.original && <PaymentButton customer={row.original} />,
+      row.original && <PaymentButton customer={row.original} userRole={userRole} userBranchId={userBranchId} />,
   },
 ];
 
-export const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) => {
+export const CustomerNameButton = ({ customer, userRole, userBranchId }: { customer: PaymentWithCustomer; userRole?: string; userBranchId?: string }) => {
+  const [openPayment, setOpenPayment] = useState(false);
+  const [paymentFormData, setPaymentFormData] = useState<PaymentFormData | null>(null);
+
+  const handleOpenPayment = () => {
+    setPaymentFormData({
+      customerId: customer.id,
+      amount: Math.abs(customer.outstandingPayments),
+      paymentMethod: "",
+      paidOn: new Date(),
+      customerName: customer.name,
+    });
+    setOpenPayment(true);
+  };
+
+  return (
+    <div>
+      <Button variant="link" className="p-0 h-auto font-normal text-left justify-start" onClick={handleOpenPayment}>
+        {customer.name}
+      </Button>
+
+      {paymentFormData && (
+        <PaymentFormDialog
+          open={openPayment}
+          openChange={setOpenPayment}
+          payments={paymentFormData}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
+      )}
+    </div>
+  );
+};
+
+export const PaymentButton = ({ customer, userRole, userBranchId }: { customer: PaymentWithCustomer; userRole?: string; userBranchId?: string }) => {
   const [openPayment, setOpenPayment] = useState(false);
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData | null>(null);
 
@@ -52,6 +88,8 @@ export const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) =
           open={openPayment}
           openChange={setOpenPayment}
           payments={paymentFormData}
+          userRole={userRole}
+          userBranchId={userBranchId}
         />
       )}
     </div>

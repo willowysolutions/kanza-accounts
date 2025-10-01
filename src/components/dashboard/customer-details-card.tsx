@@ -3,6 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Customer } from '@/types/customer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CustomerHistoryModal } from '@/components/customers/customer -history-modal';
+import { CustomerDownloadButton } from './customer-download-button';
+import { useState } from 'react';
 
 interface CustomerDetailsCardProps {
   customers: Customer[];
@@ -97,6 +100,7 @@ function CustomerTabs({
                 <th className="p-2">Opening</th>
                 <th className="p-2">Pending</th>
                 <th className="p-2">Branch</th>
+                <th className="p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -141,21 +145,31 @@ function CustomerRow({ customer }: { customer: Customer }) {
         ₹{customer.outstandingPayments?.toFixed(2) || '0.00'}
       </td>
       <td className="p-2">{customer.branch?.name || '...'}</td>
+      <td className="p-2">
+        <CustomerDownloadButton customers={[customer]} />
+      </td>
     </tr>
   );
 }
 
 // Separate component for the button to avoid useState in the main component
 function CustomerNameButton({ customer }: { customer: Customer }) {
+  const [openHistory, setOpenHistory] = useState(false);
+
   return (
-    <button
-      className="text-blue-600 hover:underline cursor-pointer"
-      onClick={() => {
-        // This will be handled by the modal component itself
-        console.log('Customer clicked:', customer.id);
-      }}
-    >
-      {customer.name}
-    </button>
+    <>
+      <button
+        className="text-blue-600 hover:underline cursor-pointer"
+        onClick={() => setOpenHistory(true)}
+      >
+        {customer.name}
+      </button>
+      
+      <CustomerHistoryModal
+        customerId={customer.id}
+        open={openHistory}
+        onOpenChange={setOpenHistory}
+      />
+    </>
   );
 }

@@ -41,7 +41,11 @@ export default async function WizardPage() {
   
   return (
     <div className="flex flex-1 flex-col">
-      <WizardWithBranchTabs branches={visibleBranches} />
+      <WizardWithBranchTabs 
+        branches={visibleBranches} 
+        userRole={session.user.role || undefined}
+        userBranchId={userBranchId}
+      />
     </div>
   );
 }

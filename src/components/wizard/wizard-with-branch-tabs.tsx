@@ -6,16 +6,19 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FormWizard, WizardStep } from '@/components/wizard/form-wizard';
 import { MeterReadingStep } from '@/components/wizard/steps/meter-reading-step';
 import { ProductsStep } from '@/components/wizard/steps/products-step';
-import { SalesStep } from '@/components/wizard/steps/sales-step';
-import { ExpenseStep } from '@/components/wizard/steps/expense-step';
+import { PaymentStep } from '@/components/wizard/steps/payment-step';
 import { CreditStep } from '@/components/wizard/steps/credit-step';
+import { ExpenseStep } from '@/components/wizard/steps/expense-step';
 import { BankDepositStep } from '@/components/wizard/steps/bank-deposit-step';
+import { SalesStep } from '@/components/wizard/steps/sales-step';
 
 type WizardWithBranchTabsProps = {
   branches: { id: string; name: string }[];
+  userRole?: string;
+  userBranchId?: string;
 };
 
-export function WizardWithBranchTabs({ branches }: WizardWithBranchTabsProps) {
+export function WizardWithBranchTabs({ branches, userRole, userBranchId }: WizardWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
   const router = useRouter();
 
@@ -41,6 +44,12 @@ export function WizardWithBranchTabs({ branches }: WizardWithBranchTabsProps) {
       title: 'Products',
       description: 'Add oil, AdBlue, and other products',
       component: () => <ProductsStep branchId={branchId} />,
+    },
+    {
+      id: 'payment',
+      title: 'Payment (Customer Dues)',
+      description: 'Record customer payments and outstanding dues',
+      component: () => <PaymentStep branchId={branchId} />,
     },
     {
       id: 'credit',
@@ -103,6 +112,9 @@ export function WizardWithBranchTabs({ branches }: WizardWithBranchTabsProps) {
                 onStepChange={handleStepChange}
                 title={`${branch.name} Daily Reading Records`}
                 description={`Complete all steps in order to finish your daily reading records for ${branch.name}.`}
+                initialBranchId={branch.id}
+                userRole={userRole}
+                userBranchId={userBranchId}
               />
             </TabsContent>
           ))}

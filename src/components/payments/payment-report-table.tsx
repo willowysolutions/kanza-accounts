@@ -16,6 +16,7 @@ export default function PaymentTable({
     paidAmount: number;
     paymentMethod: string;
     paidOn: string | Date;
+    creditGiven?: number;
     customer?: { name?: string; outstandingPayments?: number };
     supplier?: { name?: string; outstandingPayments?: number };
   }[];
@@ -23,7 +24,12 @@ export default function PaymentTable({
 }) {
   const [search, setSearch] = useState("");
 
-  const filteredRows = rows.filter((p) => {
+  // Remove duplicates and filter
+  const uniqueRows = rows.filter((payment, index, self) => 
+    index === self.findIndex(p => p.id === payment.id)
+  );
+  
+  const filteredRows = uniqueRows.filter((p) => {
     const name =
       type === "customer" ? p.customer?.name ?? "" : p.supplier?.name ?? "";
     return name.toLowerCase().includes(search.toLowerCase());
@@ -50,35 +56,41 @@ export default function PaymentTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{type === "customer" ? "Customer" : "Supplier"}</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Method</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>{type === "customer" ? "Customer" : "Supplier"}</TableHead>
+              <TableHead>Amount Received</TableHead>
               <TableHead>Outstanding Payments</TableHead>
+              <TableHead>Method</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRows.length > 0 ? (
-              filteredRows.map((p) => (
-                <TableRow key={p.id}>
+              filteredRows.map((p, index) => (
+                <TableRow key={`${p.id}-${index}`}>
+                  <TableCell>
+                    {new Date(p.paidOn).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit', 
+                      year: 'numeric'
+                    })}
+                  </TableCell>
                   <TableCell>
                     {type === "customer"
                       ? p.customer?.name ?? "N/A"
                       : p.supplier?.name ?? "N/A"}
                   </TableCell>
                   <TableCell>{p.paidAmount}</TableCell>
-                  <TableCell>{p.paymentMethod}</TableCell>
-                  <TableCell>{new Date(p.paidOn).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {type === "customer"
                       ? p.customer?.outstandingPayments ?? 0
                       : p.supplier?.outstandingPayments ?? 0}
                   </TableCell>
+                  <TableCell>{p.paymentMethod}</TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
+                <TableCell colSpan={5} className="text-center">
                   No {type} payments found
                 </TableCell>
               </TableRow>

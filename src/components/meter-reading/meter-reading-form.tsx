@@ -33,6 +33,7 @@ import { Card } from '../ui/card';
 import { MeterReading } from '@/types/meter-reading';
 import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { BranchSelector } from '@/components/common/branch-selector';
 
 
 type MachineWithNozzles = {
@@ -55,11 +56,15 @@ export function MeterReadingFormSheet({
   open,
   openChange,
   branchId,
+  userRole,
+  userBranchId,
 }: {
   meterReading? : MeterReading;
   open?: boolean;
   openChange?: (open: boolean) => void;
   branchId?: string;
+  userRole?: string;
+  userBranchId?: string;
 }) {
   const router = useRouter();
   const isControlled = typeof open === "boolean";
@@ -68,6 +73,14 @@ export function MeterReadingFormSheet({
   const [products, setProducts] = useState<ProductType[]>([]);
   const [tankLevels, setTankLevels] = useState<Record<string, { currentLevel: number; tankName: string; fuelType: string }>>({});
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(branchId || "");
+
+  // Update selectedBranchId when branchId prop changes
+  useEffect(() => {
+    if (branchId) {
+      setSelectedBranchId(branchId);
+    }
+  }, [branchId]);
 
   const form = useForm<BulkForm>({
     resolver: zodResolver(bulkSchema),
@@ -170,8 +183,8 @@ useEffect(() => {
     setLoading(true);
     try {
       // Fetch machines and tank levels in parallel
-      const machinesUrl = branchId ? `/api/machines/with-nozzles?branchId=${branchId}` : '/api/machines/with-nozzles';
-      const tankLevelsUrl = branchId ? `/api/tanks/current-levels?branchId=${branchId}` : '/api/tanks/current-levels';
+      const machinesUrl = selectedBranchId ? `/api/machines/with-nozzles?branchId=${selectedBranchId}` : '/api/machines/with-nozzles';
+      const tankLevelsUrl = selectedBranchId ? `/api/tanks/current-levels?branchId=${selectedBranchId}` : '/api/tanks/current-levels';
       const [machinesRes, tankLevelsRes] = await Promise.all([
         fetch(machinesUrl),
         fetch(tankLevelsUrl)
@@ -227,7 +240,7 @@ useEffect(() => {
   };
 
   load();
-}, [products, form, branchId]);
+}, [products, form, selectedBranchId]);
 
   const rows = form.watch('rows');
 
@@ -297,7 +310,10 @@ useEffect(() => {
     const res = await fetch("/api/meterreadings/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ 
+        items,
+        branchId: selectedBranchId,
+      }),
     });
 
     if (!res.ok) {
@@ -356,6 +372,15 @@ return (
               Enter opening/closing for all available nozzles.
             </SheetDescription>
           </SheetHeader>
+
+          {/* Branch Selector */}
+          <BranchSelector
+            value={selectedBranchId}
+            onValueChange={setSelectedBranchId}
+            userRole={userRole}
+            userBranchId={userBranchId}
+            className="mb-4"
+          />
 
           {/* Body */}
           <Card className="flex-1 overflow-auto pr-2 p-5">

@@ -33,6 +33,7 @@ import { BalanceReceiptFormProps } from "@/types/balance-receipt";
 import { Calendar } from "../ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 
 
@@ -43,8 +44,11 @@ export const BalanceReceiptFormDialog = ({
   balanceReceipt,
   open,
   openChange,
-}: BalanceReceiptFormProps) => {
+  userRole,
+  userBranchId,
+}: BalanceReceiptFormProps & { userRole?: string; userBranchId?: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
   const router = useRouter();
 
   const form = useForm<BalanceReceiptFormValues>({
@@ -73,6 +77,7 @@ export const BalanceReceiptFormDialog = ({
         body: JSON.stringify({
           ...values,
           date: new Date(values.date), // ensure DateTime for Prisma
+          branchId: selectedBranchId,
         }),
       });
 
@@ -121,6 +126,14 @@ export const BalanceReceiptFormDialog = ({
             Fill out the balance receipt details. Click save when you’re done.
           </FormDialogDescription>
         </FormDialogHeader>
+
+        {/* Branch Selector */}
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
 
         <div className="grid gap-4">
           {/* Date */}
