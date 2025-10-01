@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import { SalesTable } from "@/components/sales/sales-table";
+import { SalesTableWrapper } from "@/components/sales/sales-table-wrapper";
 import { SalesFormModal } from "@/components/sales/sales-form";
-import { salesColumns } from "@/components/sales/sales-column";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Coins, CoinsIcon } from "lucide-react";
@@ -142,9 +141,8 @@ export default async function SalesPage() {
                     </Card>
                   </div>
 
-                  <SalesTable 
+                  <SalesTableWrapper 
                     data={sales} 
-                    columns={salesColumns(session.user.role || undefined)}
                     userRole={session.user.role || undefined} 
                     branchId={branchId}
                   />
