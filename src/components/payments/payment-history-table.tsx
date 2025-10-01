@@ -138,7 +138,7 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData, branch
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="bg-primary text-primary-foreground font-black">
+                    <TableHead key={header.id} className="">
                       {header.isPlaceholder
                         ? null
                         : flexRender(

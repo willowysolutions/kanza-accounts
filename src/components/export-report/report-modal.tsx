@@ -405,7 +405,7 @@ if (report.oils.length > 0) {
               {/* Expenses */}
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-primary text-primary-foreground">
+                  <TableRow>
                     <TableHead>EXPENSES</TableHead>
                     <TableHead className="text-right">AMOUNT</TableHead>
                   </TableRow>
@@ -469,7 +469,7 @@ if (report.oils.length > 0) {
               {/* Receipts */}
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-primary text-primary-foreground">
+                  <TableRow>
                     <TableHead>RECEIPT</TableHead>
                     <TableHead className="text-right">AMOUNT</TableHead>
                   </TableRow>

@@ -16,6 +16,8 @@ import { formatDate } from "@/lib/utils";
 import { FilterSelect } from "@/components/filters/filter-select";
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
 import { GeneralReportExport } from "@/components/reports/general-report-export";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/use-pagination";
 
 type Rows = {
   date: Date;
@@ -50,6 +52,16 @@ export function GeneralReportsWithBranchTabs({
   to 
 }: GeneralReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
+  
+  // Use pagination hook
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: paginatedRows,
+    goToPage,
+    totalItems,
+    itemsPerPage,
+  } = usePagination({ data: rows, itemsPerPage: 15 });
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -109,7 +121,7 @@ export function GeneralReportsWithBranchTabs({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rows.map((row: Rows) => (
+                      {paginatedRows.map((row: Rows) => (
                         <TableRow key={new Date(row.date).toISOString()}>
                           <TableCell>{formatDate(row.date)}</TableCell>
                           <TableCell className="text-right">
@@ -159,6 +171,17 @@ export function GeneralReportsWithBranchTabs({
                       </TableRow>
                     </TableFooter>
                   </Table>
+                  
+                  {/* Pagination Controls */}
+                  {totalItems > 0 && (
+                    <PaginationControls
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={goToPage}
+                      totalItems={totalItems}
+                      itemsPerPage={itemsPerPage}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

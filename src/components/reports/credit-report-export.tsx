@@ -14,7 +14,6 @@ interface CreditReportExportProps {
 }
 
 export function CreditReportExport({ 
-  credits, 
   branchName, 
   filter, 
   from, 
@@ -38,26 +37,59 @@ export function CreditReportExport({
       }
       doc.text(title, 40, 40);
 
+      // Calculate running balance for each customer
+      const customerCredits: { [key: string]: unknown[] } = {};
+      allCredits.forEach((credit: unknown) => {
+        const customerId = (credit as { customer?: { id?: string } }).customer?.id;
+        if (customerId) {
+          if (!customerCredits[customerId]) {
+            customerCredits[customerId] = [];
+          }
+          customerCredits[customerId].push(credit);
+        }
+      });
+
+      // Sort credits by date for each customer and calculate running balance
+      const creditsWithBalance: unknown[] = [];
+      Object.values(customerCredits).forEach((customerCreditList) => {
+        // Sort by date
+        const sortedCredits = customerCreditList.sort((a, b) => new Date((a as { date: string }).date).getTime() - new Date((b as { date: string }).date).getTime());
+        
+        let runningBalance = 0;
+        sortedCredits.forEach((credit) => {
+          runningBalance += (credit as { amount?: number }).amount || 0;
+          creditsWithBalance.push({
+            ...(credit as Record<string, unknown>),
+            runningBalance: runningBalance
+          });
+        });
+      });
+
+      // Sort all results by date
+      const sortedCreditsWithBalance = creditsWithBalance.sort((a, b) => new Date((a as { date: string }).date).getTime() - new Date((b as { date: string }).date).getTime());
+
       // Prepare table data
-      const tableData = allCredits.map((credit: any) => [ // eslint-disable-line @typescript-eslint/no-explicit-any
-        new Date(credit.date).toLocaleDateString('en-GB'),
-        credit.customer?.name ?? "N/A",
-        `₹${credit.amount?.toFixed(2) ?? "0.00"}`,
-        credit.description ?? "-"
+      const tableData = sortedCreditsWithBalance.map((credit: unknown) => [
+        new Date((credit as { date: string }).date).toLocaleDateString('en-GB'),
+        (credit as { customer?: { name?: string } }).customer?.name ?? "N/A",
+        `₹${(credit as { amount?: number }).amount?.toFixed(2) ?? "0.00"}`,
+        `₹${(credit as { runningBalance?: number }).runningBalance?.toFixed(2) ?? "0.00"}`,
+        (credit as { description?: string }).description ?? "-"
       ]);
 
       // Add totals row
-      const totalAmount = allCredits.reduce((sum: number, credit: any) => sum + (credit.amount || 0), 0); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const totalAmount = allCredits.reduce((sum: number, credit: unknown) => sum + ((credit as { amount?: number }).amount || 0), 0);
       tableData.push([
         "TOTAL",
         "",
         `₹${totalAmount.toFixed(2)}`,
+        "",
         ""
       ]);
 
     autoTable(doc, {
       startY: 60,
-      head: [["Date", "Customer Name", "Credit Amount", "Description"]],
+      head: [["Date", "Customer Name", "Credit Amount", "Balance Due", "Description"]],
       body: tableData,
       theme: "grid",
       styles: { fontSize: 9, cellPadding: 3 },
@@ -65,7 +97,7 @@ export function CreditReportExport({
       bodyStyles: { fontSize: 9 },
       didParseCell: (data) => {
         // Style the totals row
-        if (data.row.index === credits.length) {
+        if (data.row.index === sortedCreditsWithBalance.length) {
           data.cell.styles.fontStyle = "bold";
           data.cell.styles.fillColor = [230, 230, 230];
         }

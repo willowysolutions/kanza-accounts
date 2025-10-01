@@ -84,6 +84,40 @@ export function CreditReportTable({
     return customerName.toLowerCase().includes(search.toLowerCase());
   });
 
+  // Calculate running balance for each customer
+  const creditsWithBalance = useMemo(() => {
+    // Group credits by customer
+    const customerCredits: { [key: string]: unknown[] } = {};
+    filteredRows.forEach((credit: unknown) => {
+      const customerId = (credit as { customer?: { id?: string } }).customer?.id;
+      if (customerId) {
+        if (!customerCredits[customerId]) {
+          customerCredits[customerId] = [];
+        }
+        customerCredits[customerId].push(credit);
+      }
+    });
+
+    // Sort credits by date for each customer and calculate running balance
+    const result: unknown[] = [];
+    Object.values(customerCredits).forEach((customerCreditList) => {
+      // Sort by date
+      const sortedCredits = customerCreditList.sort((a, b) => new Date((a as { date: string }).date).getTime() - new Date((b as { date: string }).date).getTime());
+      
+      let runningBalance = 0;
+      sortedCredits.forEach((credit) => {
+        runningBalance += (credit as { amount?: number }).amount || 0;
+        result.push({
+          ...(credit as Record<string, unknown>),
+          runningBalance: runningBalance
+        });
+      });
+    });
+
+    // Sort all results by date
+    return result.sort((a, b) => new Date((a as { date: string }).date).getTime() - new Date((b as { date: string }).date).getTime());
+  }, [filteredRows]);
+
   return (
     <Card>
       <CardHeader>
@@ -127,28 +161,32 @@ export function CreditReportTable({
               <TableHead>Date</TableHead>
               <TableHead>Customer Name</TableHead>
               <TableHead>Credit Amount</TableHead>
+              <TableHead>Balance Due</TableHead>
               <TableHead>Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRows.length > 0 ? (
-              filteredRows.map((credit: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
-                <TableRow key={credit.id}>
+            {creditsWithBalance.length > 0 ? (
+              creditsWithBalance.map((credit: unknown) => (
+                <TableRow key={(credit as { id: string }).id}>
                   <TableCell>
-                    {new Date(credit.date).toLocaleDateString('en-GB', {
+                    {new Date((credit as { date: string }).date).toLocaleDateString('en-GB', {
                       day: '2-digit',
                       month: '2-digit', 
                       year: 'numeric'
                     })}
                   </TableCell>
-                  <TableCell>{credit.customer?.name ?? "N/A"}</TableCell>
-                  <TableCell>₹{credit.amount?.toFixed(2) ?? "0.00"}</TableCell>
-                  <TableCell>{credit.description ?? "-"}</TableCell>
+                  <TableCell>{(credit as { customer?: { name?: string } }).customer?.name ?? "N/A"}</TableCell>
+                  <TableCell>₹{((credit as { amount?: number }).amount?.toFixed(2) ?? "0.00")}</TableCell>
+                  <TableCell className="font-medium">
+                    ₹{((credit as { runningBalance?: number }).runningBalance?.toFixed(2) ?? "0.00")}
+                  </TableCell>
+                  <TableCell>{(credit as { description?: string }).description ?? "-"}</TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
+                <TableCell colSpan={5} className="text-center">
                   No credit records found
                 </TableCell>
               </TableRow>

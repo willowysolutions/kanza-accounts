@@ -18,6 +18,8 @@ import { formatCurrency } from "@/lib/utils";
 import { FilterSelect } from "@/components/filters/filter-select";
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
 import { SalesReportExport } from "@/components/reports/sales-report-export";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/use-pagination";
 
 type SalesReportsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
@@ -36,6 +38,20 @@ export function SalesReportsWithBranchTabs({
   to 
 }: SalesReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
+  
+  // Get current branch data
+  const currentBranchData = salesByBranch.find(branch => branch.branchId === activeBranch);
+  const currentSales = currentBranchData?.sales || [];
+  
+  // Use pagination hook
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: paginatedSales,
+    goToPage,
+    totalItems,
+    itemsPerPage,
+  } = usePagination({ data: currentSales, itemsPerPage: 15 });
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -95,7 +111,7 @@ export function SalesReportsWithBranchTabs({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sales.map((sale: any) => (
+                      {paginatedSales.map((sale: any) => (
                         <TableRow key={sale.id.toString()}>
                           <TableCell>
                             {new Date(sale.date).toLocaleDateString('en-GB', {
@@ -171,6 +187,17 @@ export function SalesReportsWithBranchTabs({
                       </TableRow>
                     </TableFooter>
                   </Table>
+                  
+                  {/* Pagination Controls */}
+                  {totalItems > 0 && (
+                    <PaginationControls
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={goToPage}
+                      totalItems={totalItems}
+                      itemsPerPage={itemsPerPage}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

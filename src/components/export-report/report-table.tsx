@@ -118,7 +118,7 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
-                      className="bg-primary text-primary-foreground font-black"
+                      className=""
                     >
                       {header.isPlaceholder
                         ? null

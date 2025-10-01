@@ -62,7 +62,7 @@ export default function CustomerReportTable({ customers }: { customers: Customer
           <Table>
             <TableCaption>A summary of customer details.</TableCaption>
             <TableHeader>
-              <TableRow className="bg-primary text-primary-foreground">
+              <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead className="text-right">Opening Balance</TableHead>

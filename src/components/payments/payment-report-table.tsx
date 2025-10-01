@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { PaymentReportExport } from "@/components/reports/payment-report-export";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/use-pagination";
 import { useState } from "react";
 
 export default function PaymentTable({
@@ -35,6 +37,16 @@ export default function PaymentTable({
     return name.toLowerCase().includes(search.toLowerCase());
   });
 
+  // Use pagination hook
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: paginatedRows,
+    goToPage,
+    totalItems,
+    itemsPerPage,
+  } = usePagination({ data: filteredRows, itemsPerPage: 15 });
+
   return (
     <Card>
       <CardContent>
@@ -55,7 +67,7 @@ export default function PaymentTable({
 
         <Table>
           <TableHeader>
-            <TableRow className="bg-primary text-primary-foreground">
+            <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>{type === "customer" ? "Customer" : "Supplier"}</TableHead>
               <TableHead>Amount Received</TableHead>
@@ -64,8 +76,8 @@ export default function PaymentTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRows.length > 0 ? (
-              filteredRows.map((p, index) => (
+            {paginatedRows.length > 0 ? (
+              paginatedRows.map((p, index) => (
                 <TableRow key={`${p.id}-${index}`}>
                   <TableCell>
                     {new Date(p.paidOn).toLocaleDateString('en-GB', {
@@ -97,6 +109,17 @@ export default function PaymentTable({
             )}
           </TableBody>
         </Table>
+        
+        {/* Pagination Controls */}
+        {totalItems > 0 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+          />
+        )}
       </CardContent>
     </Card>
   );
