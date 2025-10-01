@@ -46,12 +46,14 @@ export function PaymentFormDialog({
   openChange,
   userRole,
   userBranchId,
+  onPaymentAdded,
 }: {
   payments?: PaymentFormData;
   open?: boolean;
   openChange?: (open: boolean) => void;
   userRole?: string;
   userBranchId?: string;
+  onPaymentAdded?: (paymentData: PaymentFormData) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
@@ -82,6 +84,22 @@ export function PaymentFormDialog({
   ) => {
     setIsSubmitting(true);
     try {
+      // If onPaymentAdded callback is provided, use it instead of saving to database
+      if (onPaymentAdded) {
+        const paymentData: PaymentFormData = {
+          customerId: values.customerId,
+          customerName: payments?.customerName,
+          amount: values.amount,
+          paymentMethod: values.paymentMethod,
+          paidOn: values.paidOn,
+        };
+        onPaymentAdded(paymentData);
+        toast.success("Payment added to session");
+        close();
+        return;
+      }
+
+      // Original database save logic
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

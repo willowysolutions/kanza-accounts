@@ -247,290 +247,241 @@ export function BalanceSheetReport({
         />
       </div>
 
-      {/* Grid Layout: 2 Rows x 2 Columns */}
+      {/* Customer Credit and Received Table - Moved to Top */}
       <div className="space-y-6">
-        {/* Top Row: Customer Credits & Expense Categories */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Customer Credits Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Credits & Received - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Credit Given </th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Amount Received</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerCreditsData.map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">{item.customer}</td>
-                        <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
-                    {customerCreditsData.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                          No data available for this month
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Credit & Received - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-primary text-primary-foreground">
+                    <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
+                    <th className="border border-gray-300 px-4 py-2 text-right">Debit (₹)</th>
+                    <th className="border border-gray-300 px-4 py-2 text-right">Credit (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customerCreditReceivedData.map((item, index) => (
+                    <tr key={index}>
+                      <td className="border border-gray-300 px-4 py-2">{item.customer}</td>
                       <td className="border border-gray-300 px-4 py-2 text-right">
-                        {customerCreditsData.reduce((sum, item) => sum + item.credit, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-right">
-                        {customerCreditsData.reduce((sum, item) => sum + item.received, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  {customerCreditReceivedData.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                        No data available for this month
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary text-primary-foreground font-semibold">
+                    <td className="border border-gray-300 px-4 py-2">TOTAL</td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {customerCreditReceivedData.reduce((sum, item) => sum + item.credit, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {customerCreditReceivedData.reduce((sum, item) => sum + item.received, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Expense Categories Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Expense Categories - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left">Expense Category</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenseCategoriesData.map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">{item.category}</td>
+        {/* Grid Layout: 2 Rows x 2 Columns */}
+        <div className="space-y-6">
+          {/* Top Row: Expense Categories & Products Sold */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Expense Categories Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Expense Categories - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-primary text-primary-foreground">
+                        <th className="border border-gray-300 px-4 py-2 text-left">Expense</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">Total Amount </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expenseCategoriesData.map((item, index) => (
+                        <tr key={index}>
+                          <td className="border border-gray-300 px-4 py-2">{item.category}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-right">
+                            {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                      {expenseCategoriesData.length === 0 && (
+                        <tr>
+                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                            No data available for this month
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-primary text-primary-foreground font-semibold">
+                        <td className="border border-gray-300 px-4 py-2">TOTAL</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {expenseCategoriesData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
-                    ))}
-                    {expenseCategoriesData.length === 0 && (
-                      <tr>
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                          No data available for this month
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {expenseCategoriesData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Bottom Row: Products Sold & Bank Deposits */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Products Sold Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Products Sold - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left">Product</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {productsData.map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">{item.product}</td>
+            {/* Products Sold Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Products Sold - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-primary text-primary-foreground">
+                        <th className="border border-gray-300 px-4 py-2 text-left">Product</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">Total Amount </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {productsData.map((item, index) => (
+                        <tr key={index}>
+                          <td className="border border-gray-300 px-4 py-2">{item.product}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-right">
+                            {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                      {productsData.length === 0 && (
+                        <tr>
+                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                            No data available for this month
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-primary text-primary-foreground font-semibold">
+                        <td className="border border-gray-300 px-4 py-2">TOTAL</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {productsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
-                    ))}
-                    {productsData.length === 0 && (
-                      <tr>
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                          No data available for this month
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {productsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Bank Deposits Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Bank Deposits - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left">Bank Name</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Total Deposits (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bankDepositsData.map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">{item.bank}</td>
+          {/* Bottom Row: Bank Deposits & Payment Methods */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Bank Deposits Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Bank Deposits - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-primary text-primary-foreground">
+                        <th className="border border-gray-300 px-4 py-2 text-left">Bank Name</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">Total Deposits (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bankDepositsData.map((item, index) => (
+                        <tr key={index}>
+                          <td className="border border-gray-300 px-4 py-2">{item.bank}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-right">
+                            {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                      {bankDepositsData.length === 0 && (
+                        <tr>
+                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                            No data available for this month
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-primary text-primary-foreground font-semibold">
+                        <td className="border border-gray-300 px-4 py-2">TOTAL</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {bankDepositsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
-                    ))}
-                    {bankDepositsData.length === 0 && (
-                      <tr>
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                          No data available for this month
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {bankDepositsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Customer Credit and Received Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Credit & Received - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Credit Given (₹)</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Amount Received (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerCreditReceivedData.map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">{item.customer}</td>
+            {/* Payment Methods Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Methods Total - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-primary text-primary-foreground">
+                        <th className="border border-gray-300 px-4 py-2 text-left">Payment Method</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">Total Amount (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentMethodsData.map((item, index) => (
+                        <tr key={index}>
+                          <td className="border border-gray-300 px-4 py-2">{item.method}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-right">
+                            {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                      {paymentMethodsData.length === 0 && (
+                        <tr>
+                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                            No data available for this month
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-primary text-primary-foreground font-semibold">
+                        <td className="border border-gray-300 px-4 py-2">TOTAL</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {paymentMethodsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
-                    ))}
-                    {customerCreditReceivedData.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                          No data available for this month
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {customerCreditReceivedData.reduce((sum, item) => sum + item.credit, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {customerCreditReceivedData.reduce((sum, item) => sum + item.received, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment Methods Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Methods Total - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left">Payment Method</th>
-                      <th className="border border-gray-300 px-4 py-2 text-right">Total Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paymentMethodsData.map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">{item.method}</td>
-                        <td className="border border-gray-300 px-4 py-2 text-right">
-                          {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
-                    {paymentMethodsData.length === 0 && (
-                      <tr>
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                          No data available for this month
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="border border-gray-300 px-4 py-2">TOTAL</td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {paymentMethodsData.reduce((sum, item) => sum + item.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

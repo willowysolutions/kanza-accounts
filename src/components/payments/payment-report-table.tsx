@@ -55,7 +55,7 @@ export default function PaymentTable({
 
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-primary text-primary-foreground">
               <TableHead>Date</TableHead>
               <TableHead>{type === "customer" ? "Customer" : "Supplier"}</TableHead>
               <TableHead>Amount Received</TableHead>

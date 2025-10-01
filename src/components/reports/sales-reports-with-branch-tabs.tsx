@@ -98,7 +98,11 @@ export function SalesReportsWithBranchTabs({
                       {sales.map((sale: any) => (
                         <TableRow key={sale.id.toString()}>
                           <TableCell>
-                            {new Date(sale.date).toLocaleDateString()}
+                            {new Date(sale.date).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
                           </TableCell>
                           <TableCell className="text-right">
                             {formatCurrency(sale.atmPayment)}

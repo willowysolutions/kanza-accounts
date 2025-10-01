@@ -47,7 +47,7 @@ export function WizardWithBranchTabs({ branches, userRole, userBranchId }: Wizar
     },
     {
       id: 'payment',
-      title: 'Payment (Customer Dues)',
+      title: 'Payment',
       description: 'Record customer payments and outstanding dues',
       component: () => <PaymentStep branchId={branchId} />,
     },

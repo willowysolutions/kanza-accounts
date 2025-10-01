@@ -32,7 +32,7 @@ export function CreditReportExport({
       doc.setFontSize(16);
       let title = `Credit Report - ${branchName}`;
       if (from && to) {
-        title += ` (${from.toLocaleDateString()} to ${to.toLocaleDateString()})`;
+        title += ` (${from.toLocaleDateString('en-GB')} to ${to.toLocaleDateString('en-GB')})`;
       } else if (filter !== "all") {
         title += ` (${filter})`;
       }
@@ -40,7 +40,7 @@ export function CreditReportExport({
 
       // Prepare table data
       const tableData = allCredits.map((credit: any) => [ // eslint-disable-line @typescript-eslint/no-explicit-any
-        new Date(credit.date).toLocaleDateString(),
+        new Date(credit.date).toLocaleDateString('en-GB'),
         credit.customer?.name ?? "N/A",
         `₹${credit.amount?.toFixed(2) ?? "0.00"}`,
         credit.description ?? "-"

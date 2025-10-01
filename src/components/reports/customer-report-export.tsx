@@ -23,7 +23,6 @@ export function CustomerReportExport({ customers }: { customers: Customer[] }) {
 
     const head = [[
       "Name",
-      "Email",
       "Phone",
       "Opening Balance",
       "Outstanding Payments",
@@ -31,7 +30,6 @@ export function CustomerReportExport({ customers }: { customers: Customer[] }) {
 
     const body = customers.map((c) => [
       c.name,
-      c.email ?? "-",
       c.phone ?? "-",
       c.openingBalance,
       c.outstandingPayments,

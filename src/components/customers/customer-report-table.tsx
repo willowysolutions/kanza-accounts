@@ -62,9 +62,8 @@ export default function CustomerReportTable({ customers }: { customers: Customer
           <Table>
             <TableCaption>A summary of customer details.</TableCaption>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-primary text-primary-foreground">
                 <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead className="text-right">Opening Balance</TableHead>
                 <TableHead className="text-right">Outstanding Payments</TableHead>
@@ -85,7 +84,7 @@ export default function CustomerReportTable({ customers }: { customers: Customer
             </TableBody>
             <TableFooter className="bg-primary text-primary-foreground font-black">
               <TableRow>
-                <TableCell className="text-right font-medium" colSpan={3}>
+                <TableCell className="text-right font-medium" colSpan={2}>
                   Grand Total
                 </TableCell>
                 <TableCell className="text-right font-bold">
@@ -121,7 +120,6 @@ function CustomerRow({ customer }: { customer: Customer }) {
             {customer.name}
           </button>
         </TableCell>
-        <TableCell>{customer.email}</TableCell>
         <TableCell>{customer.phone}</TableCell>
         <TableCell className="text-right">
           {formatCurrency(customer.openingBalance)}

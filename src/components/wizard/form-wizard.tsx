@@ -58,6 +58,16 @@ export interface AddedProduct {
   price: number;
 }
 
+export interface AddedPayment {
+  id?: string;
+  tempId?: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  paymentMethod: string;
+  paidOn: Date;
+}
+
 // Wizard Context
 interface WizardContextType {
   currentStep: number;
@@ -94,6 +104,8 @@ interface WizardContextType {
   setAddedDeposits: React.Dispatch<React.SetStateAction<AddedDeposit[]>>;
   addedProducts: AddedProduct[];
   setAddedProducts: React.Dispatch<React.SetStateAction<AddedProduct[]>>;
+  addedPayments: AddedPayment[];
+  setAddedPayments: React.Dispatch<React.SetStateAction<AddedPayment[]>>;
   // Saved records count
   savedRecords: { [key: string]: number };
   setSavedRecords: React.Dispatch<React.SetStateAction<{ [key: string]: number }>>;
@@ -157,11 +169,13 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
   const [addedCredits, setAddedCredits] = useState<AddedCredit[]>([]);
   const [addedDeposits, setAddedDeposits] = useState<AddedDeposit[]>([]);
   const [addedProducts, setAddedProducts] = useState<AddedProduct[]>([]);
+  const [addedPayments, setAddedPayments] = useState<AddedPayment[]>([]);
   const [savedRecords, setSavedRecords] = useState<{ [key: string]: number }>({
     expenses: 0,
     credits: 0,
     deposits: 0,
     products: 0,
+    payments: 0,
   });
 
   const totalSteps = steps.length;
@@ -257,6 +271,8 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     setAddedDeposits,
     addedProducts,
     setAddedProducts,
+    addedPayments,
+    setAddedPayments,
     savedRecords,
     setSavedRecords,
   };

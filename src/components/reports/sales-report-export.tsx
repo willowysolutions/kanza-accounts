@@ -30,7 +30,7 @@ export function SalesReportExport({ sales, filter, from, to }: SalesReportExport
     doc.setFontSize(16);
     let title = `Sales Report (${filter})`;
     if (from && to) {
-      title += ` - ${from.toLocaleDateString()} to ${to.toLocaleDateString()}`;
+      title += ` - ${from.toLocaleDateString('en-GB')} to ${to.toLocaleDateString('en-GB')}`;
     }
     doc.text(title, 40, 40);
 
@@ -39,7 +39,7 @@ export function SalesReportExport({ sales, filter, from, to }: SalesReportExport
       head: [["Date", "Branch", "ATM", "Paytm", "Fleet", "XG Diesel", "HSD Diesel", "MS Petrol", "Total"]],
       body: [
         ...sales.map((s) => [
-          new Date(s.date).toLocaleDateString(),
+          new Date(s.date).toLocaleDateString('en-GB'),
           s.branch?.name ?? "-",
           s.atmPayment,
           s.paytmPayment,

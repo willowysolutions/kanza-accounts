@@ -40,7 +40,7 @@ export function PaymentReportExport({
       type === "customer" ? p.customer?.name ?? "-" : p.supplier?.name ?? "-",
       p.paidAmount,
       p.paymentMethod,
-      new Date(p.paidOn).toLocaleDateString(),
+      new Date(p.paidOn).toLocaleDateString('en-GB'),
       type === "customer" ? (p.customer?.outstandingPayments ?? 0) : (p.supplier?.outstandingPayments ?? 0),
     ]);
 

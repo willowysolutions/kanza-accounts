@@ -31,7 +31,7 @@ export function PurchaseReportExport({ purchases, filter, from, to }: PurchaseRe
     doc.setFontSize(16);
     let title = `Purchase Report (${filter})`;
     if (from && to) {
-      title += ` - ${from.toLocaleDateString()} to ${to.toLocaleDateString()}`;
+      title += ` - ${from.toLocaleDateString('en-GB')} to ${to.toLocaleDateString('en-GB')}`;
     }
     doc.text(title, 40, 40);
 
@@ -53,7 +53,7 @@ export function PurchaseReportExport({ purchases, filter, from, to }: PurchaseRe
       ],
       body: [
         ...purchases.map((p) => [
-          new Date(p.date).toLocaleDateString(),
+          new Date(p.date).toLocaleDateString('en-GB'),
           p.supplier?.name ?? "-",
           p.branch?.name ?? "-",
           p.phone ?? "-",

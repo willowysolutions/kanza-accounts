@@ -57,15 +57,15 @@ export function truncateText(text: string, maxLength: number): string {
 
 /**
  * Format a Date object or date string into a readable format
- * Default format: DD MMM YYYY (e.g., 22 Jul 2025)
- * Handles UTC dates that represent IST dates (e.g., 2025-09-21T18:30:00.000Z = Sep 22 IST)
+ * Default format: DD/MM/YYYY (e.g., 22/09/2025)
+ * Uses consistent formatting to prevent hydration mismatches
  */
 export function formatDate(
   date: Date | string,
-  locale: string = 'en-IN',
+  locale: string = 'en-GB', // Use en-GB for consistent DD/MM/YYYY format
   options: Intl.DateTimeFormatOptions = {
     day: '2-digit',
-    month: 'short',
+    month: '2-digit',
     year: 'numeric',
     timeZone: 'Asia/Kolkata'
   }
@@ -81,15 +81,15 @@ export function formatDate(
 
 /**
  * Format a Date object or date string into a readable date and time format
- * Default format: DD MMM YYYY, HH:mm (e.g., 07 Aug 2025, 15:45)
- * Handles UTC dates that represent IST dates
+ * Default format: DD/MM/YYYY, HH:mm (e.g., 07/08/2025, 15:45)
+ * Uses consistent formatting to prevent hydration mismatches
  */
 export function formatDateTime(
   date: Date | string,
-  locale: string = 'en-IN',
+  locale: string = 'en-GB', // Use en-GB for consistent DD/MM/YYYY format
   options: Intl.DateTimeFormatOptions = {
     day: '2-digit',
-    month: 'short',
+    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',

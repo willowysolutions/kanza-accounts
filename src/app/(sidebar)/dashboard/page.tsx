@@ -84,7 +84,7 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
       <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className='bg-red-900 text-white'>
+          <Card className='bg-red-600 text-white'>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardDescription className='text-white'>MS-PETROL PRICE</CardDescription>
               <IconCurrencyDollar className="h-4 w-4" />
@@ -99,7 +99,7 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
             </CardContent>
           </Card>
 
-          <Card className='bg-blue-900 text-white'>
+          <Card className='bg-slate-700 text-white'>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardDescription className='text-white'>XG-DIESEL PRICE</CardDescription>
               <IconCurrencyDollar className="h-4 w-4" />
@@ -115,7 +115,7 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
           </Card>
 
 
-          <Card className='bg-green-900 text-white'>
+          <Card className='bg-blue-600 text-white'>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardDescription className='text-white'>HSD-DIESEL PRICE</CardDescription>
               <Fuel className="h-4 w-4 text-white" />
@@ -130,7 +130,7 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
             </CardContent>
           </Card>
 
-          <Card className='bg-black text-white'>
+          <Card className='bg-amber-600 text-white'>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardDescription className='text-white'>OIL PRICE</CardDescription>
               <IconBottle className="h-4 w-4 text-white" />

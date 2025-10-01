@@ -50,7 +50,7 @@ export function BalanceSheetExport({
 
     autoTable(doc, {
       startY: startY + 15,
-      head: [["Customer Name", "Credit Given", "Amount Received"]],
+      head: [["Customer Name", "Debit", "Credit"]],
       body: customerCreditsData.map((item) => [
         item.customer,
         item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
@@ -78,7 +78,7 @@ export function BalanceSheetExport({
 
     autoTable(doc, {
       startY: startY + 15,
-      head: [["Expense Category", "Total Amount"]],
+      head: [["Expense", "Total Amount"]],
       body: expenseCategoriesData.map((item) => [
         item.category,
         item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
@@ -159,7 +159,7 @@ export function BalanceSheetExport({
 
     autoTable(doc, {
       startY: 55,
-      head: [["Customer Name", "Credit Given", "Amount Received"]],
+      head: [["Customer Name", "Debit", "Credit"]],
       body: customerCreditReceivedData.map((item) => [
         item.customer,
         item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),

@@ -339,7 +339,7 @@ if (report.oils.length > 0) {
             {/* Products / Meter Readings */}
             <Table>
               <TableHeader>
-                <TableRow className="bg-yellow-200">
+                <TableRow className="bg-primary text-primary-foreground">
                   <TableHead>NOZZLE</TableHead>
                   <TableHead className="text-right">OP.READING </TableHead>
                   <TableHead className="text-right">CL.READING </TableHead>
@@ -367,7 +367,7 @@ if (report.oils.length > 0) {
             {/* Oils */}
             <Table>
               <TableHeader>
-                <TableRow className="bg-yellow-200">
+                <TableRow className="bg-primary text-primary-foreground">
                   <TableHead>OIL</TableHead>
                   <TableHead>QUANTITY</TableHead>
                   <TableHead className="text-right">AMOUNT</TableHead>
@@ -405,7 +405,7 @@ if (report.oils.length > 0) {
               {/* Expenses */}
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-yellow-200">
+                  <TableRow className="bg-primary text-primary-foreground">
                     <TableHead>EXPENSES</TableHead>
                     <TableHead className="text-right">AMOUNT</TableHead>
                   </TableRow>
@@ -469,7 +469,7 @@ if (report.oils.length > 0) {
               {/* Receipts */}
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-yellow-200">
+                  <TableRow className="bg-primary text-primary-foreground">
                     <TableHead>RECEIPT</TableHead>
                     <TableHead className="text-right">AMOUNT</TableHead>
                   </TableRow>

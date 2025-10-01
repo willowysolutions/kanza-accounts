@@ -43,7 +43,7 @@ export function GeneralReportExport({
     doc.setFontSize(16);
     let title = `General Report (${filter})`;
     if (from && to) {
-      title += ` - ${from.toLocaleDateString()} to ${to.toLocaleDateString()}`;
+      title += ` - ${from.toLocaleDateString('en-GB')} to ${to.toLocaleDateString('en-GB')}`;
     }
     doc.text(title, 40, 40);
 
@@ -53,7 +53,7 @@ export function GeneralReportExport({
         ["Date", "Sales", "Purchases", "Expenses", "Credit Received", "Final Total"],
       ],
       body: rows.map((r) => [
-        new Date(r.date).toLocaleDateString(),
+        new Date(r.date).toLocaleDateString('en-GB'),
         r.sales,
         r.purchases,
         r.expenses,
