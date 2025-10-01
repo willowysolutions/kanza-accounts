@@ -34,6 +34,7 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   const [products, setProducts] = useState<{id: string; productName: string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof creditSchema>>({
@@ -258,7 +259,7 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
   const fetchCustomers = useCallback(async (searchTerm: string = "") => {
     try {
       const params = new URLSearchParams({
-        limit: '20', // Only fetch 20 customers at a time
+        limit: '100', // Increased limit to fetch more customers
         search: searchTerm
       });
       
@@ -269,10 +270,12 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
       const res = await fetch(`/api/customers?${params.toString()}`);
       const json = await res.json();
       
-      return json.data?.map((customer: { id: string; name: string; branchId?: string }) => ({
-        value: customer.id,
-        label: customer.name,
-        ...customer
+      return json.data?.map((customer: { id: string; name: string; openingBalance: number; outstandingPayments: number; limit?: number }) => ({
+        id: customer.id,
+        name: customer.name,
+        openingBalance: customer.openingBalance || 0,
+        outstandingPayments: customer.outstandingPayments || 0,
+        limit: customer.limit
       })) || [];
     } catch (error) {
       console.error("Failed to fetch customers", error);
@@ -280,15 +283,15 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     }
   }, [branchId]);
 
-  // Load initial customers (recent ones)
+  // Load customers when search term changes
   useEffect(() => {
-    const loadInitialCustomers = async () => {
-      const customers = await fetchCustomers("");
+    const loadCustomers = async () => {
+      const customers = await fetchCustomers(customerSearch);
       setCustomerOptions(customers);
     };
     
-    loadInitialCustomers();
-  }, [branchId, fetchCustomers]);
+    loadCustomers();
+  }, [branchId, customerSearch, fetchCustomers]);
 
   // Fetch products
   useEffect(() => {
@@ -348,6 +351,17 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     </CardHeader>
     <CardContent className="space-y-6">
       <form className="space-y-4">
+        {/* Customer Search */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Search Customer</label>
+          <Input
+            placeholder="Type to search customers..."
+            value={customerSearch}
+            onChange={(e) => setCustomerSearch(e.target.value)}
+            className="w-full"
+          />
+        </div>
+
         {/* Customer Select */}
         <FormField
           control={form.control}
