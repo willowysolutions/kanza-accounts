@@ -15,7 +15,7 @@ import { SalesDeleteDialog } from "./sales-delete-dialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Sales } from "@/types/sales";
 
-export const salesColumns: ColumnDef<Sales>[] = [
+export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => [
   {
     accessorKey: "date",
     header: "Date & Time",
@@ -117,13 +117,20 @@ export const salesColumns: ColumnDef<Sales>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <SalesActions sales={row.original} />,
+    cell: ({ row }) => <SalesActions sales={row.original} userRole={userRole} />,
   },
 ];
 
-const SalesActions = ({ sales }: { sales: Sales }) => {
+const SalesActions = ({ sales, userRole }: { sales: Sales; userRole?: string }) => {
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
+
+  // Only show actions for admin users
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  
+  if (!isAdmin) {
+    return null; // Don't show actions for non-admin users
+  }
 
   return (
     <>

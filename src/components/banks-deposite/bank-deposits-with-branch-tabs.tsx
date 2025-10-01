@@ -4,15 +4,15 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankDepositeFormDialog } from "@/components/banks-deposite/banks-deposite-form";
 import { BankDepositeTable } from "@/components/banks-deposite/banks-deposite-table";
-import { bankDepositeColumns } from "@/components/banks-deposite/banks-deposite-colums";
 
 type BankDepositsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   depositsByBranch: { branchId: string; branchName: string; deposits: any[] }[];
+  userRole?: string;
 };
 
-export function BankDepositsWithBranchTabs({ branches, depositsByBranch }: BankDepositsWithBranchTabsProps) {
+export function BankDepositsWithBranchTabs({ branches, depositsByBranch, userRole }: BankDepositsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (
@@ -43,7 +43,7 @@ export function BankDepositsWithBranchTabs({ branches, depositsByBranch }: BankD
                   {deposits.length} deposit{deposits.length !== 1 ? 's' : ''} in this branch
                 </p>
               </div>
-              <BankDepositeTable data={deposits} columns={bankDepositeColumns} branchId={branchId} />
+              <BankDepositeTable data={deposits} userRole={userRole} branchId={branchId} />
             </TabsContent>
           ))}
         </Tabs>

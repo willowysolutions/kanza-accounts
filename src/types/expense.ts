@@ -13,6 +13,6 @@ export interface ExpenseFormProps {
 }
 
 export interface ExpenseTableProps<TValue> {
-  columns: ColumnDef<Expense, TValue>[];
+  columns?: ColumnDef<Expense, TValue>[];
   data: Expense[];
 }

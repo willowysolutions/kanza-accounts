@@ -31,8 +31,10 @@ import { CreditTableProps } from "@/types/credits";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { creditColumns } from "./credit-columns";
 
-export function CreditTable<TValue>({ columns, data: initialData, branchId }: CreditTableProps<TValue> & { branchId?: string }) {
+export function CreditTable<TValue>({ data: initialData, branchId, userRole }: CreditTableProps<TValue> & { branchId?: string; userRole?: string }) {
+  const columns = creditColumns(userRole);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);

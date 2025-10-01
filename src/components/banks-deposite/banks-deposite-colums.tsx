@@ -19,7 +19,7 @@ import { BankDepositeDeleteDialog } from "./banks-deposite-delete-dailog";
 import { BankDeposite } from "@/types/bank-deposite";
 import { formatDate } from "@/lib/utils";
 
-export const bankDepositeColumns: ColumnDef<BankDeposite>[] = [
+export const bankDepositeColumns = (userRole?: string): ColumnDef<BankDeposite>[] => [
   {
     accessorKey: "date",
     header :"Date",
@@ -47,13 +47,20 @@ export const bankDepositeColumns: ColumnDef<BankDeposite>[] = [
   {
     id: "action",
     cell: ({ row }) =>
-      row.original && <BankDepositeDropdeownMenu bankDeposite={row.original} />,
+      row.original && <BankDepositeDropdeownMenu bankDeposite={row.original} userRole={userRole} />,
   },
 ];
 
-export const BankDepositeDropdeownMenu = ({ bankDeposite }: { bankDeposite: BankDeposite }) => {
+export const BankDepositeDropdeownMenu = ({ bankDeposite, userRole }: { bankDeposite: BankDeposite; userRole?: string }) => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+
+  // Only show actions for admin users
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  
+  if (!isAdmin) {
+    return null; // Don't show actions for non-admin users
+  }
 
   return (
     <div className="text-right">

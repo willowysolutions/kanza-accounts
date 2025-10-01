@@ -2,7 +2,6 @@
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MeterReadingTable } from "../meter-reading/meter-reading-table";
-import { meterReadinColumns } from "../meter-reading/meter-reading-column";
 import { MeterReading } from "@/types/meter-reading";
 import { useState, useEffect } from "react";
 import { MeterReadingFormSheet } from "../meter-reading/meter-reading-form";
@@ -22,9 +21,10 @@ type MeterTabManagementProps = {
   oil: Oil[];
   sales: Sales[];
   branches: { id: string; name: string }[];
+  userRole?: string;
 };
 
-export default function MeterTabManagement({ meterReading, oil, sales, branches }: MeterTabManagementProps) {
+export default function MeterTabManagement({ meterReading, oil, sales, branches, userRole }: MeterTabManagementProps) {
     const [activeTab, setActiveTab] = useState("meter-reading");
     const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
     const router = useRouter();
@@ -97,7 +97,7 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches 
                 </TabsList>
 
                 <TabsContent value="meter-reading">
-                  <MeterReadingTable data={branchMeterReading} columns={meterReadinColumns} branchId={branchId}/>
+                  <MeterReadingTable data={branchMeterReading} userRole={userRole} branchId={branchId}/>
                 </TabsContent>
 
                 <TabsContent value="other-Products">

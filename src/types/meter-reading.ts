@@ -8,7 +8,7 @@ export interface MeterReading extends PrismaMeterReading {
 }
 
 export interface MeterReadingTableProps<TValue> {
-  columns: ColumnDef<MeterReading, TValue>[];
+  columns?: ColumnDef<MeterReading, TValue>[];
   data: MeterReading[];
 }
 

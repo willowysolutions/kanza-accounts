@@ -56,6 +56,7 @@ export default async function MeterReadingPage() {
         oil={[]} 
         sales={sales}
         branches={visibleBranches}
+        userRole={session.user.role || undefined}
       />
     </div>
   );

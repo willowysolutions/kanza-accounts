@@ -47,7 +47,7 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
 
   const table = useReactTable({
     data,
-    columns,
+    columns: columns || [],
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
@@ -66,6 +66,10 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
       pagination,
     },
   });
+
+  if (!columns) {
+    return <div>No columns provided</div>;
+  }
 
   // 🔹 Apply date filter on paginated rows
   const filteredRows = selectedDate

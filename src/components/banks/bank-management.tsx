@@ -7,16 +7,16 @@ import { BankDeposite } from "@/types/bank-deposite";
 import { BankFormDialog } from "./bank-form";
 import { BankDepositeFormDialog } from "../banks-deposite/banks-deposite-form";
 import { bankColumns } from "./bank-colums";
-import { bankDepositeColumns } from "../banks-deposite/banks-deposite-colums";
 import { BankTable } from "./bank-table";
 import { BankDepositeTable } from "../banks-deposite/banks-deposite-table";
 
 type BankManagementProps = {
   bank: Bank[];
   bankDeposite: BankDeposite[];
+  userRole?: string;
 };
 
-export default function BankManagement({ bank, bankDeposite }: BankManagementProps) {
+export default function BankManagement({ bank, bankDeposite, userRole }: BankManagementProps) {
   const [activeTab, setActiveTab] = useState("bank");
 
   return (
@@ -45,7 +45,7 @@ export default function BankManagement({ bank, bankDeposite }: BankManagementPro
           </TabsContent>
 
           <TabsContent value="bankdeposite">
-            <BankDepositeTable data={bankDeposite} columns={bankDepositeColumns} />
+            <BankDepositeTable data={bankDeposite} userRole={userRole} />
           </TabsContent>
         </Tabs>
       </div>

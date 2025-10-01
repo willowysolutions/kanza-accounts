@@ -28,12 +28,14 @@ import { useState, useEffect, useCallback } from "react";
 import { BankDepositeTableProps } from "@/types/bank-deposite";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { bankDepositeColumns } from "./banks-deposite-colums";
 
 export function BankDepositeTable<TValue>({
-  columns,
   data: initialData,
   branchId,
-}: BankDepositeTableProps<TValue> & { branchId?: string }) {
+  userRole,
+}: BankDepositeTableProps<TValue> & { branchId?: string; userRole?: string }) {
+  const columns = bankDepositeColumns(userRole);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);

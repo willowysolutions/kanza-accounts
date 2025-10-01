@@ -14,6 +14,6 @@ export interface BankDepositeFormProps {
 }
 
 export interface BankDepositeTableProps<TValue> {
-  columns: ColumnDef<BankDeposite, TValue>[];
+  columns?: ColumnDef<BankDeposite, TValue>[];
   data: BankDeposite[];
 }

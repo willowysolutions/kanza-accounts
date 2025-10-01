@@ -19,7 +19,7 @@ import { ExpenseDeleteDialog } from "./expense-delete-dailog"
 import { useState } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-export const expenseColumns: ColumnDef<Expense>[] = [
+export const expenseColumns = (userRole?: string): ColumnDef<Expense>[] => [
   {
     accessorKey: "date",
     header: "Date",
@@ -67,13 +67,20 @@ export const expenseColumns: ColumnDef<Expense>[] = [
   {
     id: "action",
     cell: ({ row }) =>
-      row.original && <ExpenseDropdeownMenu expense={row.original} />,
+      row.original && <ExpenseDropdeownMenu expense={row.original} userRole={userRole} />,
   },
 ];
 
-export const ExpenseDropdeownMenu = ({ expense }: { expense: Expense }) => {
+export const ExpenseDropdeownMenu = ({ expense, userRole }: { expense: Expense; userRole?: string }) => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+
+  // Only show actions for admin users
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  
+  if (!isAdmin) {
+    return null; // Don't show actions for non-admin users
+  }
 
   return (
     <div className="text-right">

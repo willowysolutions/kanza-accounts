@@ -100,7 +100,7 @@ export function SalesTable<TValue>({ columns, data: initialData, branchId }: Sal
 
   const table = useReactTable({
     data,
-    columns,
+    columns: columns || [],
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -146,7 +146,7 @@ export function SalesTable<TValue>({ columns, data: initialData, branchId }: Sal
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={columns?.length || 0}
                     className="h-24 text-center"
                   >
                     <div className="flex items-center justify-center">
@@ -174,7 +174,7 @@ export function SalesTable<TValue>({ columns, data: initialData, branchId }: Sal
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={columns?.length || 0}
                     className="h-24 text-center"
                   >
                     No results.

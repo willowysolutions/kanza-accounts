@@ -32,12 +32,14 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { MeterReadingTableProps } from "@/types/meter-reading";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { meterReadinColumns } from "./meter-reading-column";
 
 export function MeterReadingTable<TValue>({
-  columns,
   data: initialData,
   branchId,
-}: MeterReadingTableProps<TValue> & { branchId?: string }) {
+  userRole,
+}: MeterReadingTableProps<TValue> & { branchId?: string; userRole?: string }) {
+  const columns = meterReadinColumns(userRole);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);

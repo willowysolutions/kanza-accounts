@@ -2,10 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { SalesTable } from "@/components/sales/sales-table";
 import { SalesFormModal } from "@/components/sales/sales-form";
+import { salesColumns } from "@/components/sales/sales-column";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Coins, CoinsIcon } from "lucide-react";
-import { salesColumns } from "@/components/sales/sales-column";
 import { Sales } from "@/types/sales";
 import { headers, cookies } from "next/headers";
 import { auth } from '@/lib/auth';
@@ -142,7 +142,12 @@ export default async function SalesPage() {
                     </Card>
                   </div>
 
-                  <SalesTable data={sales} columns={salesColumns} branchId={branchId}/>
+                  <SalesTable 
+                    data={sales} 
+                    columns={salesColumns(session.user.role || undefined)}
+                    userRole={session.user.role || undefined} 
+                    branchId={branchId}
+                  />
                 </TabsContent>
               );
             })}

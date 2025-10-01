@@ -58,6 +58,7 @@ export function truncateText(text: string, maxLength: number): string {
 /**
  * Format a Date object or date string into a readable format
  * Default format: DD MMM YYYY (e.g., 22 Jul 2025)
+ * Handles UTC dates that represent IST dates (e.g., 2025-09-21T18:30:00.000Z = Sep 22 IST)
  */
 export function formatDate(
   date: Date | string,
@@ -66,15 +67,22 @@ export function formatDate(
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'Asia/Kolkata'
   }
 ): string {
   const parsedDate = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat(locale, options).format(parsedDate);
+  
+  // If the date is stored as UTC but represents IST date (like 2025-09-21T18:30:00.000Z for Sep 22 IST)
+  // We need to add 5.5 hours to get the correct IST date
+  const istDate = new Date(parsedDate.getTime() + (5.5 * 60 * 60 * 1000));
+  
+  return new Intl.DateTimeFormat(locale, options).format(istDate);
 }
 
 /**
  * Format a Date object or date string into a readable date and time format
  * Default format: DD MMM YYYY, HH:mm (e.g., 07 Aug 2025, 15:45)
+ * Handles UTC dates that represent IST dates
  */
 export function formatDateTime(
   date: Date | string,
@@ -86,8 +94,13 @@ export function formatDateTime(
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: 'Asia/Kolkata'
   }
 ): string {
   const parsedDate = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat(locale, options).format(parsedDate);
+  
+  // If the date is stored as UTC but represents IST date, add 5.5 hours
+  const istDate = new Date(parsedDate.getTime() + (5.5 * 60 * 60 * 1000));
+  
+  return new Intl.DateTimeFormat(locale, options).format(istDate);
 }

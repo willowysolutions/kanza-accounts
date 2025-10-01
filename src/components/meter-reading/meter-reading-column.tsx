@@ -15,7 +15,7 @@ import { MeterReading } from "@/types/meter-reading";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MeterReadingUpdateForm } from "./meter-reading-update-form";
 
-export const meterReadinColumns: ColumnDef<MeterReading>[] = [
+export const meterReadinColumns = (userRole?: string): ColumnDef<MeterReading>[] => [
   {
     accessorKey: "date",
     header: "Date & Time",
@@ -92,14 +92,20 @@ export const meterReadinColumns: ColumnDef<MeterReading>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <MeterReadingActions meterReading={row.original} />,
+    cell: ({ row }) => <MeterReadingActions meterReading={row.original} userRole={userRole} />,
   },
 ];
 
-const MeterReadingActions = ({ meterReading }: { meterReading: MeterReading }) => {
+const MeterReadingActions = ({ meterReading, userRole }: { meterReading: MeterReading; userRole?: string }) => {
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);  
 
+  // Only show actions for admin users
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  
+  if (!isAdmin) {
+    return null; // Don't show actions for non-admin users
+  }
 
   return (
     <>

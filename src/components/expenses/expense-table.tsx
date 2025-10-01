@@ -30,8 +30,10 @@ import { useState, useEffect, useCallback } from "react";
 import { ExpenseTableProps } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { expenseColumns } from "./expense-colums";
 
-export function ExpenseTable<TValue>({ columns, data: initialData, branchId }: ExpenseTableProps<TValue> & { branchId?: string }) {
+export function ExpenseTable<TValue>({ data: initialData, branchId, userRole }: ExpenseTableProps<TValue> & { branchId?: string; userRole?: string }) {
+  const columns = expenseColumns(userRole);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);

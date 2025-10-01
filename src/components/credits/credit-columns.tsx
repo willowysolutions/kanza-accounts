@@ -19,7 +19,7 @@ import { CreditFormDialog } from "./credit-form";
 import { CreditDeleteDialog } from "./credit-delete-dailog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-export const creditColumns: ColumnDef<Credit>[] = [
+export const creditColumns = (userRole?: string): ColumnDef<Credit>[] => [
   {
     accessorFn: (row) => row.customer?.name ?? "",
     id: "customerName",
@@ -59,13 +59,20 @@ export const creditColumns: ColumnDef<Credit>[] = [
   {
     id: "action",
     cell: ({ row }) =>
-      row.original && <CreditDropdownMenu credit={row.original} />,
+      row.original && <CreditDropdownMenu credit={row.original} userRole={userRole} />,
   },
 ];
 
-export const CreditDropdownMenu = ({ credit }: { credit: Credit }) => {
+export const CreditDropdownMenu = ({ credit, userRole }: { credit: Credit; userRole?: string }) => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+
+  // Only show actions for admin users
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  
+  if (!isAdmin) {
+    return null; // Don't show actions for non-admin users
+  }
 
   return (
     <div className="text-right">

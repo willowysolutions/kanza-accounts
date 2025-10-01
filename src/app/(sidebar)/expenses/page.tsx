@@ -1,5 +1,4 @@
 export const dynamic = "force-dynamic";
-import { expenseColumns } from "@/components/expenses/expense-colums";
 import { ExpenseTable } from "@/components/expenses/expense-table";
 import { ExpenseFormDialog } from "@/components/expenses/expense-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,7 +80,7 @@ const expensesByBranch = visibleBranches.map((branch: { id: string; name: string
                     {expenses.length} expense{expenses.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <ExpenseTable columns={expenseColumns} data={expenses} branchId={branchId} />
+                <ExpenseTable userRole={session.user.role || undefined} data={expenses} branchId={branchId} />
               </TabsContent>
             ))}
           </Tabs>

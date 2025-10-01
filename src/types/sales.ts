@@ -8,6 +8,7 @@ export interface Sales extends PrismaSales {
 }
 
 export interface SalesTableProps<TValue> {
-  columns: ColumnDef<Sales, TValue>[];
+  columns?: ColumnDef<Sales, TValue>[];
   data: Sales[];
+  userRole?: string;
 }

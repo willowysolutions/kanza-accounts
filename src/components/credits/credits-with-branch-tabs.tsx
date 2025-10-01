@@ -4,15 +4,15 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreditFormDialog } from "@/components/credits/credit-form";
 import { CreditTable } from "@/components/credits/credit-table";
-import { creditColumns } from "@/components/credits/credit-columns";
 
 type CreditsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   creditsByBranch: { branchId: string; branchName: string; credits: any[] }[];
+  userRole?: string;
 };
 
-export function CreditsWithBranchTabs({ branches, creditsByBranch }: CreditsWithBranchTabsProps) {
+export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole }: CreditsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (
@@ -43,7 +43,7 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch }: CreditsWith
                   {credits.length} credit{credits.length !== 1 ? 's' : ''} in this branch
                 </p>
               </div>
-              <CreditTable data={credits} columns={creditColumns} branchId={branchId} />
+              <CreditTable data={credits} userRole={userRole} branchId={branchId} />
             </TabsContent>
           ))}
         </Tabs>

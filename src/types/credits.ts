@@ -8,6 +8,6 @@ export interface Credit extends PrismaCredit {
 }
 
 export interface CreditTableProps<TValue> {
-  columns: ColumnDef<Credit, TValue>[];
+  columns?: ColumnDef<Credit, TValue>[];
   data: Credit[];
 }
