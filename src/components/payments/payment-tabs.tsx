@@ -21,9 +21,18 @@ interface Payment {
 export default function PaymentTabs({
   customerPayments,
   supplierPayments,
+  pagination,
 }: {
   customerPayments: Payment[];
   supplierPayments: Payment[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
 }) {
   return (
     <Tabs defaultValue="customers" className="w-full">
@@ -33,11 +42,11 @@ export default function PaymentTabs({
       </TabsList>
 
       <TabsContent value="customers">
-        <PaymentTable rows={customerPayments} type="customer" />
+        <PaymentTable rows={customerPayments} type="customer" pagination={pagination} />
       </TabsContent>
 
       <TabsContent value="suppliers">
-        <PaymentTable rows={supplierPayments} type="supplier" />
+        <PaymentTable rows={supplierPayments} type="supplier" pagination={pagination} />
       </TabsContent>
     </Tabs>
   );

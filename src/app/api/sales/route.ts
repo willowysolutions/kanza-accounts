@@ -61,6 +61,11 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '15');
     const skip = (page - 1) * limit;
+    
+    // For custom date range, disable pagination and return all data
+    const isCustomDateRange = filter === 'custom' && (from || to);
+    const finalLimit = isCustomDateRange ? undefined : limit;
+    const finalSkip = isCustomDateRange ? undefined : skip;
 
     const { start, end } = getDateRange(filter, from, to);
 
@@ -74,7 +79,10 @@ export async function GET(req: Request) {
       { branchId };
     
     // Add date filtering
-    const dateFilter = start && end ? { gte: start, lte: end } : {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateFilter: any = {};
+    if (start) dateFilter.gte = start;
+    if (end) dateFilter.lte = end;
 
     // Get total count for pagination info
     const totalCount = await prisma.sale.count({
@@ -84,7 +92,7 @@ export async function GET(req: Request) {
       },
     });
 
-    // Get paginated sales
+    // Get sales (paginated or all based on filter)
     const sales = await prisma.sale.findMany({
       where: {
         ...whereClause,
@@ -92,15 +100,15 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
       include: { branch: true },
-      skip,
-      take: limit,
+      skip: finalSkip,
+      take: finalLimit,
     });
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = isCustomDateRange ? 1 : Math.ceil(totalCount / limit);
 
     return NextResponse.json({ 
       sales,
-      pagination: {
+      pagination: isCustomDateRange ? undefined : {
         currentPage: page,
         totalPages,
         totalCount,

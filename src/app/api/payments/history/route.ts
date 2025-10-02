@@ -3,16 +3,74 @@ import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+function getDateRange(filter?: string, from?: string, to?: string) {
+  const now = new Date();
+  let start: Date | undefined;
+  let end: Date | undefined;
+
+  switch (filter) {
+    case "today":
+      start = new Date(now.setHours(0, 0, 0, 0));
+      end = new Date();
+      break;
+    case "yesterday":
+      start = new Date(now);
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "week":
+      start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      end = new Date();
+      break;
+    case "month":
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date();
+      break;
+    case "year":
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date();
+      break;
+    case "custom":
+      if (from) start = new Date(from);
+      if (to) {
+        end = new Date(to);
+        end.setHours(23, 59, 59, 999);
+      }
+      break;
+    case "all":
+    default:
+      start = undefined;
+      end = undefined;
+  }
+
+  return { start, end };
+}
+
 //get sales list
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     const { searchParams } = new URL(req.url);
+    const filter = searchParams.get("filter") || "all";
+    const from = searchParams.get("from") || undefined;
+    const to = searchParams.get("to") || undefined;
     const requestedBranchId = searchParams.get('branchId');
+    
+    const { start, end } = getDateRange(filter, from, to);
     
     // Use requested branchId if provided, otherwise use session branchId
     const branchId = requestedBranchId || session?.user?.branch;
     const isAdmin = session?.user?.role?.toLowerCase() === 'admin';
+    
+    // Add date filtering
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateFilter: any = {};
+    if (start) dateFilter.gte = start;
+    if (end) dateFilter.lte = end;
+    
     const whereClause = isAdmin || !branchId
       ? (requestedBranchId ? { branchId: requestedBranchId } : {})
       : {
@@ -21,22 +79,34 @@ export async function GET(req: NextRequest) {
             { customer: { is: { branchId } } },
           ],
         };
+    
+    // Add date filter to where clause
+    const finalWhereClause = {
+      ...whereClause,
+      paidOn: dateFilter,
+    };
+    
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '15');
     const skip = (page - 1) * limit;
+    
+    // For custom date range, disable pagination and return all data
+    const isCustomDateRange = filter === 'custom' && (from || to);
+    const finalLimit = isCustomDateRange ? undefined : limit;
+    const finalSkip = isCustomDateRange ? undefined : skip;
 
     // Get total count for pagination info
     const totalCount = await prisma.paymentHistory.count({
-      where: whereClause,
+      where: finalWhereClause,
     });
 
-    // Get paginated payment history
+    // Get payment history (paginated or all based on filter)
     const paymentHistory = await prisma.paymentHistory.findMany({
-      where: whereClause,
+      where: finalWhereClause,
       orderBy: { paidOn: "desc" },
       include:{customer:true,supplier:true},
-      skip,
-      take: limit,
+      skip: finalSkip,
+      take: finalLimit,
     });
 
     // Get credits for the same dates and customers
@@ -70,11 +140,11 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = isCustomDateRange ? 1 : Math.ceil(totalCount / limit);
 
     return NextResponse.json({ 
       paymentHistory: paymentHistoryWithCredits,
-      pagination: {
+      pagination: isCustomDateRange ? undefined : {
         currentPage: page,
         totalPages,
         totalCount,

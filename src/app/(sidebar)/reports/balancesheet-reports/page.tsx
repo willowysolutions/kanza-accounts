@@ -27,15 +27,15 @@ export default async function BalanceSheetReportPage() {
 
   // Fetch all required data
   const [salesRes, creditsRes, expensesRes, bankDepositsRes, paymentsRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/sales`, {
+    fetch(`${proto}://${host}/api/sales?limit=1000`, {
       cache: "no-store",
       headers: { cookie },
     }),
-    fetch(`${proto}://${host}/api/credits`, {
+    fetch(`${proto}://${host}/api/credits?limit=1000`, {
       cache: "no-store",
       headers: { cookie },
     }),
-    fetch(`${proto}://${host}/api/expenses`, {
+    fetch(`${proto}://${host}/api/expenses?limit=1000`, {
       cache: "no-store",
       headers: { cookie },
     }),
@@ -43,7 +43,7 @@ export default async function BalanceSheetReportPage() {
       cache: "no-store",
       headers: { cookie },
     }),
-    fetch(`${proto}://${host}/api/payments/history`, {
+    fetch(`${proto}://${host}/api/payments/history?limit=1000`, {
       cache: "no-store",
       headers: { cookie },
     }),

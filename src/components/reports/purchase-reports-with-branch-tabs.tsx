@@ -19,7 +19,6 @@ import { FilterSelect } from "@/components/filters/filter-select";
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
 import { PurchaseReportExport } from "@/components/reports/purchase-report-export";
 import { PaginationControls } from "@/components/ui/pagination-controls";
-import { usePagination } from "@/hooks/use-pagination";
 
 type PurchaseReportsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
@@ -28,6 +27,15 @@ type PurchaseReportsWithBranchTabsProps = {
   filter: string;
   from?: Date;
   to?: Date;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  currentPage: number;
 };
 
 export function PurchaseReportsWithBranchTabs({ 
@@ -35,7 +43,9 @@ export function PurchaseReportsWithBranchTabs({
   purchasesByBranch, 
   filter, 
   from, 
-  to 
+  to,
+  pagination,
+  currentPage // eslint-disable-line @typescript-eslint/no-unused-vars
 }: PurchaseReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
   
@@ -43,15 +53,12 @@ export function PurchaseReportsWithBranchTabs({
   const currentBranchData = purchasesByBranch.find(branch => branch.branchId === activeBranch);
   const currentPurchases = currentBranchData?.purchases || [];
   
-  // Use pagination hook
-  const {
-    currentPage,
-    totalPages,
-    paginatedData: paginatedPurchases,
-    goToPage,
-    totalItems,
-    itemsPerPage,
-  } = usePagination({ data: currentPurchases, itemsPerPage: 15 });
+  // Server-side pagination navigation
+  const goToPage = (page: number) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page.toString());
+    window.location.href = url.toString();
+  };
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -111,7 +118,7 @@ export function PurchaseReportsWithBranchTabs({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedPurchases.map((purchase: any) => (
+                      {currentPurchases.map((purchase: any) => (
                         <TableRow key={purchase.id.toString()}>
                           <TableCell>
                           {formatDate(purchase.date)}
@@ -159,13 +166,13 @@ export function PurchaseReportsWithBranchTabs({
                   </Table>
                   
                   {/* Pagination Controls */}
-                  {totalItems > 0 && (
+                  {pagination && pagination.totalCount > 0 && (
                     <PaginationControls
-                      currentPage={currentPage}
-                      totalPages={totalPages}
+                      currentPage={pagination.currentPage}
+                      totalPages={pagination.totalPages}
                       onPageChange={goToPage}
-                      totalItems={totalItems}
-                      itemsPerPage={itemsPerPage}
+                      totalItems={pagination.totalCount}
+                      itemsPerPage={pagination.limit}
                     />
                   )}
                 </CardContent>

@@ -19,12 +19,25 @@ type PaymentReportsWithBranchTabsProps = {
   filter: string;
   from?: Date;
   to?: Date;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  currentPage: number;
 };
 
 export function PaymentReportsWithBranchTabs({ 
   branches, 
   paymentsByBranch, 
-  filter
+  filter,
+  from, // eslint-disable-line @typescript-eslint/no-unused-vars
+  to, // eslint-disable-line @typescript-eslint/no-unused-vars
+  pagination,
+  currentPage // eslint-disable-line @typescript-eslint/no-unused-vars
 }: PaymentReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
@@ -62,6 +75,7 @@ export function PaymentReportsWithBranchTabs({
               <PaymentTabs
                 customerPayments={customerPayments}
                 supplierPayments={supplierPayments}
+                pagination={pagination}
               />
             </TabsContent>
           ))}

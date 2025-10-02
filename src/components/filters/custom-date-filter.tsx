@@ -19,11 +19,21 @@ export function CustomDateFilter() {
 });
 
   function applyFilter() {
-    const query = new URLSearchParams(params.toString());
-    query.set("filter", "custom");
-    if (range?.from) query.set("from", range.from.toISOString());
-    if (range?.to) query.set("to", range.to.toISOString());
-    router.push("?" + query.toString());
+    const url = new URL(window.location.href);
+    url.searchParams.set("filter", "custom");
+    if (range?.from) {
+      url.searchParams.set("from", range.from.toISOString());
+    } else {
+      url.searchParams.delete("from");
+    }
+    if (range?.to) {
+      url.searchParams.set("to", range.to.toISOString());
+    } else {
+      url.searchParams.delete("to");
+    }
+    // Reset page to 1 when applying new filters
+    url.searchParams.set("page", "1");
+    router.push(url.pathname + url.search);
   }
 
   return (

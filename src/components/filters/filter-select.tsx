@@ -16,7 +16,14 @@ export function FilterSelect({ defaultValue }: { defaultValue: string }) {
     <Select
       defaultValue={defaultValue}
       onValueChange={(value) => {
-        router.push(`?filter=${value}`);
+        const url = new URL(window.location.href);
+        url.searchParams.set('filter', value);
+        // Clear date parameters when switching to predefined filters
+        if (value !== 'custom') {
+          url.searchParams.delete('from');
+          url.searchParams.delete('to');
+        }
+        router.push(url.pathname + url.search);
       }}
     >
       <SelectTrigger className="w-[200px]">

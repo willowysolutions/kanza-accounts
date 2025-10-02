@@ -18,7 +18,10 @@ export async function GET(req: Request) {
     const branchClause = session?.user?.role === "admin" ? {} : { branchId };
 
     // Shared date filter
-    const dateFilter = start && end ? { gte: start, lte: end } : {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateFilter: any = {};
+    if (start) dateFilter.gte = start;
+    if (end) dateFilter.lte = end;
 
     // Sales grouped by date
     const sales = await prisma.sale.groupBy({

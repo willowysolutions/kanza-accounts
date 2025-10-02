@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/use-pagination";
 
 type SupplierReportsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
@@ -24,6 +26,20 @@ type SupplierReportsWithBranchTabsProps = {
 
 export function SupplierReportsWithBranchTabs({ branches, suppliersByBranch }: SupplierReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
+  
+  // Get current branch data
+  const currentBranchData = suppliersByBranch.find(branch => branch.branchId === activeBranch);
+  const currentSuppliers = currentBranchData?.suppliers || [];
+  
+  // Use pagination hook
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: paginatedSuppliers,
+    goToPage,
+    totalItems,
+    itemsPerPage,
+  } = usePagination({ data: currentSuppliers, itemsPerPage: 15 });
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -44,12 +60,17 @@ export function SupplierReportsWithBranchTabs({ branches, suppliersByBranch }: S
             ))}
           </TabsList>
 
-          {suppliersByBranch.map(({ branchId, branchName, suppliers }) => (
+          {suppliersByBranch.map(({ branchId, branchName, suppliers }) => {
+            // Get paginated data for this branch
+            const branchSuppliers = branchId === activeBranch ? paginatedSuppliers : suppliers;
+            const totalBranchSuppliers = suppliers.length;
+            
+            return (
             <TabsContent key={branchId} value={branchId}>
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">{branchName} Supplier Report</h2>
                 <p className="text-sm text-muted-foreground">
-                  {suppliers.length} supplier{suppliers.length !== 1 ? 's' : ''} in this branch
+                  {totalBranchSuppliers} supplier{totalBranchSuppliers !== 1 ? 's' : ''} in this branch
                 </p>
               </div>
               
@@ -73,7 +94,7 @@ export function SupplierReportsWithBranchTabs({ branches, suppliersByBranch }: S
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {suppliers.map((supplier: any) => (
+                      {branchSuppliers.map((supplier: any) => (
                         <TableRow key={supplier.id.toString()}>
                           <TableCell className="font-medium">{supplier.name}</TableCell>
                           <TableCell>{supplier.email}</TableCell>
@@ -105,10 +126,22 @@ export function SupplierReportsWithBranchTabs({ branches, suppliersByBranch }: S
                       </TableRow>
                     </TableFooter>
                   </Table>
+                  
+                  {/* Pagination Controls - only show for active branch */}
+                  {branchId === activeBranch && totalItems > 0 && (
+                    <PaginationControls
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={goToPage}
+                      totalItems={totalItems}
+                      itemsPerPage={itemsPerPage}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
-          ))}
+            );
+          })}
         </Tabs>
       </div>
     </div>

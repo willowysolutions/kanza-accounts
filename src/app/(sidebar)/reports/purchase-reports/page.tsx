@@ -15,6 +15,7 @@ export default async function PurchaseReportPage({
   const filter = typeof params.filter === "string" ? params.filter : "all";
   const from = params.from ? new Date(params.from as string) : undefined;
   const to = params.to ? new Date(params.to as string) : undefined;
+  const page = typeof params.page === "string" ? parseInt(params.page) : 1;
 
   const hdrs = await headers();
   const host = hdrs.get("host");
@@ -39,7 +40,7 @@ export default async function PurchaseReportPage({
   
   // Fetch purchases and branches in parallel
   const [purchasesRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/purchases?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}`, {
+    fetch(`${proto}://${host}/api/purchases?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&page=${page}&limit=15`, {
       cache: "no-store",
       headers: { cookie },
     }),
@@ -49,7 +50,7 @@ export default async function PurchaseReportPage({
     })
   ]);
   
-  const { purchase: purchases = [] } = await purchasesRes.json();
+  const { purchase: purchases = [], pagination } = await purchasesRes.json();
   const { data: allBranches = [] } = await branchesRes.json();
 
   // Filter branches based on user role
@@ -71,6 +72,8 @@ export default async function PurchaseReportPage({
         filter={filter}
         from={from}
         to={to}
+        pagination={pagination}
+        currentPage={page}
       />
     </div>
   );

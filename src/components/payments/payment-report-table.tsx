@@ -6,12 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { PaymentReportExport } from "@/components/reports/payment-report-export";
 import { PaginationControls } from "@/components/ui/pagination-controls";
-import { usePagination } from "@/hooks/use-pagination";
 import { useState } from "react";
 
 export default function PaymentTable({
   rows,
   type,
+  pagination,
 }: {
   rows: {
     id: string | number;
@@ -23,6 +23,14 @@ export default function PaymentTable({
     supplier?: { name?: string; outstandingPayments?: number };
   }[];
   type: "customer" | "supplier";
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
 }) {
   const [search, setSearch] = useState("");
 
@@ -37,15 +45,12 @@ export default function PaymentTable({
     return name.toLowerCase().includes(search.toLowerCase());
   });
 
-  // Use pagination hook
-  const {
-    currentPage,
-    totalPages,
-    paginatedData: paginatedRows,
-    goToPage,
-    totalItems,
-    itemsPerPage,
-  } = usePagination({ data: filteredRows, itemsPerPage: 15 });
+  // Server-side pagination navigation
+  const goToPage = (page: number) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page.toString());
+    window.location.href = url.toString();
+  };
 
   return (
     <Card>
@@ -76,8 +81,8 @@ export default function PaymentTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedRows.length > 0 ? (
-              paginatedRows.map((p, index) => (
+            {filteredRows.length > 0 ? (
+              filteredRows.map((p, index) => (
                 <TableRow key={`${p.id}-${index}`}>
                   <TableCell>
                     {new Date(p.paidOn).toLocaleDateString('en-GB', {
@@ -110,16 +115,16 @@ export default function PaymentTable({
           </TableBody>
         </Table>
         
-        {/* Pagination Controls */}
-        {totalItems > 0 && (
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={goToPage}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-          />
-        )}
+          {/* Pagination Controls */}
+          {pagination && pagination.totalCount > 0 && (
+            <PaginationControls
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={goToPage}
+              totalItems={pagination.totalCount}
+              itemsPerPage={pagination.limit}
+            />
+          )}
       </CardContent>
     </Card>
   );

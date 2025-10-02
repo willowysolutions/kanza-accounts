@@ -19,7 +19,6 @@ import { FilterSelect } from "@/components/filters/filter-select";
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
 import { SalesReportExport } from "@/components/reports/sales-report-export";
 import { PaginationControls } from "@/components/ui/pagination-controls";
-import { usePagination } from "@/hooks/use-pagination";
 
 type SalesReportsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
@@ -28,6 +27,15 @@ type SalesReportsWithBranchTabsProps = {
   filter: string;
   from?: Date;
   to?: Date;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  currentPage: number;
 };
 
 export function SalesReportsWithBranchTabs({ 
@@ -35,7 +43,9 @@ export function SalesReportsWithBranchTabs({
   salesByBranch, 
   filter, 
   from, 
-  to 
+  to,
+  pagination,
+  currentPage // eslint-disable-line @typescript-eslint/no-unused-vars
 }: SalesReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
   
@@ -43,15 +53,12 @@ export function SalesReportsWithBranchTabs({
   const currentBranchData = salesByBranch.find(branch => branch.branchId === activeBranch);
   const currentSales = currentBranchData?.sales || [];
   
-  // Use pagination hook
-  const {
-    currentPage,
-    totalPages,
-    paginatedData: paginatedSales,
-    goToPage,
-    totalItems,
-    itemsPerPage,
-  } = usePagination({ data: currentSales, itemsPerPage: 15 });
+  // Server-side pagination navigation
+  const goToPage = (page: number) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page.toString());
+    window.location.href = url.toString();
+  };
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -111,7 +118,7 @@ export function SalesReportsWithBranchTabs({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedSales.map((sale: any) => (
+                      {currentSales.map((sale: any) => (
                         <TableRow key={sale.id.toString()}>
                           <TableCell>
                             {new Date(sale.date).toLocaleDateString('en-GB', {
@@ -189,13 +196,13 @@ export function SalesReportsWithBranchTabs({
                   </Table>
                   
                   {/* Pagination Controls */}
-                  {totalItems > 0 && (
+                  {pagination && pagination.totalCount > 0 && (
                     <PaginationControls
-                      currentPage={currentPage}
-                      totalPages={totalPages}
+                      currentPage={pagination.currentPage}
+                      totalPages={pagination.totalPages}
                       onPageChange={goToPage}
-                      totalItems={totalItems}
-                      itemsPerPage={itemsPerPage}
+                      totalItems={pagination.totalCount}
+                      itemsPerPage={pagination.limit}
                     />
                   )}
                 </CardContent>

@@ -53,7 +53,8 @@ export function GeneralReportsWithBranchTabs({
 }: GeneralReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
   
-  // Use pagination hook
+  // Use pagination hook only if not custom date range
+  const isCustomDateRange = filter === 'custom' && (from || to);
   const {
     currentPage,
     totalPages,
@@ -62,6 +63,9 @@ export function GeneralReportsWithBranchTabs({
     totalItems,
     itemsPerPage,
   } = usePagination({ data: rows, itemsPerPage: 15 });
+  
+  // Use all data for custom date range, paginated data otherwise
+  const displayRows = isCustomDateRange ? rows : paginatedRows;
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -121,7 +125,7 @@ export function GeneralReportsWithBranchTabs({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedRows.map((row: Rows) => (
+                      {displayRows.map((row: Rows) => (
                         <TableRow key={new Date(row.date).toISOString()}>
                           <TableCell>{formatDate(row.date)}</TableCell>
                           <TableCell className="text-right">
@@ -172,8 +176,8 @@ export function GeneralReportsWithBranchTabs({
                     </TableFooter>
                   </Table>
                   
-                  {/* Pagination Controls */}
-                  {totalItems > 0 && (
+                  {/* Pagination Controls - only show if not custom date range */}
+                  {!isCustomDateRange && totalItems > 0 && (
                     <PaginationControls
                       currentPage={currentPage}
                       totalPages={totalPages}
