@@ -59,7 +59,7 @@ export function PurchasePaymentTable<TData, TValue>({
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
+            <TableHeader className=" bg-blue-950">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (

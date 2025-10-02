@@ -29,9 +29,9 @@ export default async function SalesPage() {
     const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
     const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
     
-    // Fetch sales and branches
+    // Fetch sales and branches with pagination
     const [salesRes, branchesRes] = await Promise.all([
-      fetch(`${proto}://${host}/api/sales`, {
+      fetch(`${proto}://${host}/api/sales?limit=50`, {
         cache: "no-store",
         headers: { cookie },
       }),

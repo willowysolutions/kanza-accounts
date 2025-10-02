@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { PaymentReportExport } from "@/components/reports/payment-report-export";
 import { PaginationControls } from "@/components/ui/pagination-controls";
@@ -71,13 +71,13 @@ export default function PaymentTable({
         </div>
 
         <Table>
-          <TableHeader>
+          <TableHeader className=" bg-blue-950">
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>{type === "customer" ? "Customer" : "Supplier"}</TableHead>
-              <TableHead>Amount Received</TableHead>
-              <TableHead>Outstanding Payments</TableHead>
-              <TableHead>Method</TableHead>
+              <TableHead className="text-white">Date</TableHead>
+              <TableHead className="text-white">{type === "customer" ? "Customer" : "Supplier"}</TableHead>
+              <TableHead className="text-white">Amount Received</TableHead>
+              <TableHead className="text-white">Outstanding Payments</TableHead>
+              <TableHead className="text-white">Method</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -113,6 +113,23 @@ export default function PaymentTable({
               </TableRow>
             )}
           </TableBody>
+          <TableFooter className="bg-primary text-primary-foreground font-black">
+            <TableRow className="font-semibold">
+              <TableCell colSpan={2} className="text-right">Total</TableCell>
+              <TableCell>
+                ₹{filteredRows.reduce((sum, p) => sum + p.paidAmount, 0).toLocaleString()}
+              </TableCell>
+              <TableCell>
+                ₹{filteredRows.reduce((sum, p) => {
+                  const outstanding = type === "customer" 
+                    ? p.customer?.outstandingPayments ?? 0 
+                    : p.supplier?.outstandingPayments ?? 0;
+                  return sum + outstanding;
+                }, 0).toLocaleString()}
+              </TableCell>
+              <TableCell>-</TableCell>
+            </TableRow>
+          </TableFooter>
         </Table>
         
           {/* Pagination Controls */}

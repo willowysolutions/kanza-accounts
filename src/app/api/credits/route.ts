@@ -20,10 +20,27 @@ export async function GET(req: NextRequest) {
       { branchId };
 
     // Add date filtering
-    if (from || to) {
+    if (from && to && from === to) {
+      // Single date filter - handle UTC dates properly
+      const singleDate = new Date(from);
+      // Create date range that accounts for timezone differences
+      const startOfDay = new Date(singleDate.getFullYear(), singleDate.getMonth(), singleDate.getDate());
+      const endOfDay = new Date(singleDate.getFullYear(), singleDate.getMonth(), singleDate.getDate() + 1);
+      
+      whereClause.date = {
+        gte: startOfDay,
+        lt: endOfDay
+      };
+    } else if (from || to) {
       whereClause.date = {};
-      if (from) whereClause.date.gte = new Date(from);
-      if (to) whereClause.date.lte = new Date(to);
+      if (from) {
+        const fromDate = new Date(from);
+        whereClause.date.gte = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+      }
+      if (to) {
+        const toDate = new Date(to);
+        whereClause.date.lte = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + 1);
+      }
     } else if (filter !== 'all') {
       const now = new Date();
       switch (filter) {
@@ -67,27 +84,34 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '15');
     const skip = (page - 1) * limit;
+    
+    // For single date or custom date range, disable pagination and return all data
+    const isSingleDate = from && to && from === to;
+    const isCustomDateRange = filter === 'custom' && (from || to);
+    const shouldDisablePagination = isSingleDate || isCustomDateRange;
+    const finalLimit = shouldDisablePagination ? 1000 : limit; // Max 1000 records for date filtering
+    const finalSkip = shouldDisablePagination ? undefined : skip;
 
     // Get total count for pagination info
     const totalCount = await prisma.credit.count({
       where: whereClause,
     });
 
-    // Get paginated credits
+    // Get credits (paginated or all based on filter)
     const credits = await prisma.credit.findMany({
       where: whereClause,
       orderBy: { createdAt: "desc" },
       include: {customer:true, branch:true},
-      skip,
-      take: limit,
+      skip: finalSkip,
+      take: finalLimit,
     });
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = shouldDisablePagination ? 1 : Math.ceil(totalCount / limit);
 
 
     return NextResponse.json({ 
       data: credits,
-      pagination: {
+      pagination: shouldDisablePagination ? undefined : {
         currentPage: page,
         totalPages,
         totalCount,

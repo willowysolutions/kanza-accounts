@@ -105,16 +105,16 @@ export function PurchaseReportsWithBranchTabs({
                 <CardContent className="overflow-x-auto">
                   <Table>
                     <TableCaption>A summary of purchase details.</TableCaption>
-                    <TableHeader>
+                    <TableHeader className=" bg-blue-950">
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Supplier</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Quantity</TableHead>
-                        <TableHead className="text-right">Purchase Price</TableHead>
-                        <TableHead className="text-right">Paid Amount</TableHead>
-                        <TableHead className="text-right">Pending Amount</TableHead>
+                        <TableHead className="text-white">Date</TableHead>
+                        <TableHead className="text-white">Supplier</TableHead>
+                        <TableHead className="text-white">Phone</TableHead>
+                        <TableHead className="text-white">Product</TableHead>
+                        <TableHead className="text-white text-right">Quantity</TableHead>
+                        <TableHead className="text-white text-right">Purchase Price</TableHead>
+                        <TableHead className="text-white text-right">Paid Amount</TableHead>
+                        <TableHead className="text-white text-right">Pending Amount</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

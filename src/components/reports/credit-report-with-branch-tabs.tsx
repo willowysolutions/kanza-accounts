@@ -29,9 +29,6 @@ interface CreditReportWithBranchTabsProps {
 export function CreditReportWithBranchTabs({
   branches,
   creditsByBranch,
-  filter,
-  from,
-  to,
   customerFilter,
   pagination,
   currentPage,
@@ -62,9 +59,6 @@ export function CreditReportWithBranchTabs({
               <CreditReportTable 
                 credits={credits}
                 branchName={branchName}
-                filter={filter}
-                from={from}
-                to={to}
                 customerFilter={customerFilter}
                 pagination={pagination}
                 currentPage={currentPage}

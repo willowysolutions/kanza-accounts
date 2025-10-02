@@ -105,16 +105,16 @@ export function SalesReportsWithBranchTabs({
                 <CardContent className="overflow-x-auto">
                   <Table>
                     <TableCaption>A summary of sales details.</TableCaption>
-                    <TableHeader>
+                    <TableHeader className=" bg-blue-950">
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">ATM Payment</TableHead>
-                        <TableHead className="text-right">Paytm Payment</TableHead>
-                        <TableHead className="text-right">Fleet Payment</TableHead>
-                        <TableHead className="text-right">XG Diesel Total</TableHead>
-                        <TableHead className="text-right">HSD Diesel Total</TableHead>
-                        <TableHead className="text-right">MS Petrol Total</TableHead>
-                        <TableHead className="text-right">Grand Total</TableHead>
+                        <TableHead className="text-white text-left">Date</TableHead>
+                        <TableHead className="text-white text-right">ATM Payment</TableHead>
+                        <TableHead className="text-white text-right">Paytm Payment</TableHead>
+                        <TableHead className="text-white text-right">Fleet Payment</TableHead>
+                        <TableHead className="text-white text-right">XG Diesel Total</TableHead>
+                        <TableHead className="text-white text-right">HSD Diesel Total</TableHead>
+                        <TableHead className="text-white text-right">MS Petrol Total</TableHead>
+                        <TableHead className="text-white text-right">Grand Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

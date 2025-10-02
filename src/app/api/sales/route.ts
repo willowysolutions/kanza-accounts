@@ -57,14 +57,14 @@ export async function GET(req: Request) {
     const from = searchParams.get("from") || undefined;
     const to = searchParams.get("to") || undefined;
     
-    // Get pagination parameters
+    // Get pagination parameters with reasonable limits
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '15');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '15'), 100); // Max 100 records
     const skip = (page - 1) * limit;
     
-    // For custom date range, disable pagination and return all data
+    // For custom date range, disable pagination but limit to prevent timeouts
     const isCustomDateRange = filter === 'custom' && (from || to);
-    const finalLimit = isCustomDateRange ? undefined : limit;
+    const finalLimit = isCustomDateRange ? 1000 : limit; // Max 1000 records for custom date range
     const finalSkip = isCustomDateRange ? undefined : skip;
 
     const { start, end } = getDateRange(filter, from, to);

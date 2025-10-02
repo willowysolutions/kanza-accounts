@@ -1,26 +1,19 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CreditReportExport } from "./credit-report-export";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface CreditReportTableProps {
   credits: unknown[];
   branchName: string;
-  filter: string;
-  from?: Date;
-  to?: Date;
   customerFilter: string;
   pagination?: {
     currentPage: number;
@@ -36,53 +29,64 @@ interface CreditReportTableProps {
 export function CreditReportTable({
   credits,
   branchName,
-  filter,
-  from,
-  to,
   customerFilter,
   pagination,
   currentPage,
 }: CreditReportTableProps) {
   const [search, setSearch] = useState(customerFilter);
-  const [dateFilter, setDateFilter] = useState(filter);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [allCredits, setAllCredits] = useState<unknown[]>(credits);
+  const [loading, setLoading] = useState(false);
 
-  // Filter credits by date range
+  // Fetch all credits when a date is selected
+  useEffect(() => {
+    if (selectedDate) {
+      setLoading(true);
+      const fetchAllCredits = async () => {
+        try {
+          // Use local date instead of UTC to avoid timezone issues
+          const year = selectedDate.getFullYear();
+          const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+          const day = String(selectedDate.getDate()).padStart(2, '0');
+          const dateStr = `${year}-${month}-${day}`;
+          const response = await fetch(`/api/credits?from=${dateStr}&to=${dateStr}&limit=1000`);
+          const data = await response.json();
+          setAllCredits(data.data || []);
+        } catch (error) {
+          console.error('Error fetching credits:', error);
+          setAllCredits(credits);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchAllCredits();
+    } else {
+      setAllCredits(credits);
+    }
+  }, [selectedDate, credits]);
+
+  // Filter credits by selected date
   const filteredByDate = useMemo(() => {
-    const now = new Date();
-    return credits.filter((credit: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      const creditDate = new Date(credit.date);
-      switch (dateFilter) {
-        case "today":
-          return creditDate.toDateString() === now.toDateString();
-        case "yesterday": {
-          const yesterday = new Date();
-          yesterday.setDate(now.getDate() - 1);
-          return creditDate.toDateString() === yesterday.toDateString();
-        }
-        case "week": {
-          const startOfWeek = new Date(now);
-          startOfWeek.setDate(now.getDate() - now.getDay());
-          startOfWeek.setHours(0, 0, 0, 0);
-          return creditDate >= startOfWeek;
-        }
-        case "month":
-          return (
-            creditDate.getMonth() === now.getMonth() &&
-            creditDate.getFullYear() === now.getFullYear()
-          );
-        case "year":
-          return creditDate.getFullYear() === now.getFullYear();
-        default:
-          return true;
-      }
-    });
-  }, [credits, dateFilter]);
+    if (!selectedDate) {
+      // If no date selected, show paginated credits
+      return credits;
+    }
+    
+    // When date is selected, use allCredits (fetched from server)
+    return allCredits;
+  }, [credits, allCredits, selectedDate]);
 
-  // Filter by customer name
-  const filteredRows = filteredByDate.filter((credit: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const customerName = credit.customer?.name ?? "";
-    return customerName.toLowerCase().includes(search.toLowerCase());
-  });
+  // Filter by customer name and sort by date (newest first)
+  const filteredRows = filteredByDate
+    .filter((credit: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const customerName = credit.customer?.name ?? "";
+      return customerName.toLowerCase().includes(search.toLowerCase());
+    })
+    .sort((a: any, b: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
+    });
 
   // Calculate running balance for each customer
   const creditsWithBalance = useMemo(() => {
@@ -114,8 +118,8 @@ export function CreditReportTable({
       });
     });
 
-    // Sort all results by date
-    return result.sort((a, b) => new Date((a as { date: string }).date).getTime() - new Date((b as { date: string }).date).getTime());
+    // Sort all results by date (newest first)
+    return result.sort((a, b) => new Date((b as { date: string }).date).getTime() - new Date((a as { date: string }).date).getTime());
   }, [filteredRows]);
 
   return (
@@ -126,19 +130,32 @@ export function CreditReportTable({
       <CardContent>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Filter by date" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-[240px] justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedDate(undefined)}
+              className="w-[100px]"
+            >
+              Clear
+            </Button>
             <Input
               placeholder="Search customer name..."
               value={search}
@@ -149,24 +166,30 @@ export function CreditReportTable({
           <CreditReportExport 
             credits={filteredRows} 
             branchName={branchName}
-            filter={dateFilter}
-            from={from}
-            to={to}
+            filter={selectedDate ? "custom" : "all"}
+            from={selectedDate}
+            to={selectedDate}
           />
         </div>
 
         <Table>
-          <TableHeader>
+          <TableHeader className=" bg-blue-950">
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Customer Name</TableHead>
-              <TableHead>Credit Amount</TableHead>
-              <TableHead>Balance Due</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead className="text-white">Date</TableHead>
+              <TableHead className="text-white">Customer Name</TableHead>
+              <TableHead className="text-white">Credit Amount</TableHead>
+              <TableHead className="text-white">Balance Due</TableHead>
+              <TableHead className="text-white">Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {creditsWithBalance.length > 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Loading credits for selected date...
+                </TableCell>
+              </TableRow>
+            ) : creditsWithBalance.length > 0 ? (
               creditsWithBalance.map((credit: unknown) => (
                 <TableRow key={(credit as { id: string }).id}>
                   <TableCell>
@@ -192,10 +215,25 @@ export function CreditReportTable({
               </TableRow>
             )}
           </TableBody>
+          <TableFooter className="bg-primary text-primary-foreground font-black">
+            <TableRow className="font-semibold">
+              <TableCell colSpan={2} className="text-right">Total</TableCell>
+              <TableCell>
+                ₹{creditsWithBalance.reduce((sum: number, credit: unknown) => sum + ((credit as { amount?: number }).amount || 0), 0).toFixed(2)}
+              </TableCell>
+              <TableCell>
+                ₹{creditsWithBalance.length > 0 ? 
+                  ((creditsWithBalance[creditsWithBalance.length - 1] as { runningBalance?: number }).runningBalance || 0).toFixed(2) 
+                  : "0.00"
+                }
+              </TableCell>
+              <TableCell>-</TableCell>
+            </TableRow>
+          </TableFooter>
         </Table>
         
-        {/* Pagination */}
-        {pagination && (
+        {/* Pagination - only show if pagination is available and no date filter */}
+        {!selectedDate && pagination && pagination.totalCount > 0 && (
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
               Showing {((currentPage - 1) * (pagination.limit || 50)) + 1} to {Math.min(currentPage * (pagination.limit || 50), pagination.totalCount)} of {pagination.totalCount} results
