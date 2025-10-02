@@ -48,9 +48,10 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 3. Create payment history
+      // 3. Create payment history with the same ID as CustomerPayment
       const createdPaymentHistory = await tx.paymentHistory.create({
         data: {
+          id: createdPayment.id, // Use the same ID as CustomerPayment
           customerId,
           branchId,
           paymentMethod: paymentMethod,

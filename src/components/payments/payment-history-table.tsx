@@ -29,13 +29,34 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { PaymentHistoryTableProps } from "@/types/payment-history";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { PaymentEditModal } from "./payment-edit-modal";
+import { PaymentDeleteModal } from "./payment-delete-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function PaymentHistoryTable<TValue>({ columns, data: initialData, branchId }: PaymentHistoryTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<{
+    id: string;
+    paidAmount: number;
+    paymentMethod: string;
+    paidOn: Date;
+    customerId?: string;
+    supplierId?: string;
+    branchId?: string;
+    customer?: { name: string; id: string; branchId?: string };
+    supplier?: { name: string; id: string; branchId?: string };
+  } | null>(null);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -76,6 +97,77 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData, branch
     }
   }, [branchId]);
 
+  const handleEditPayment = (payment: {
+    id: string | number;
+    paidAmount: number;
+    paymentMethod: string;
+    paidOn: string | Date;
+    customerId?: string;
+    supplierId?: string;
+    branchId?: string;
+    customer?: { name?: string; id?: string; branchId?: string };
+    supplier?: { name?: string; id?: string; branchId?: string };
+  }) => {
+    setSelectedPayment({
+      id: String(payment.id),
+      paidAmount: payment.paidAmount,
+      paymentMethod: payment.paymentMethod,
+      paidOn: new Date(payment.paidOn),
+      customerId: payment.customerId,
+      supplierId: payment.supplierId,
+      branchId: payment.branchId,
+      customer: payment.customer?.name ? { 
+        name: payment.customer.name, 
+        id: payment.customer.id || payment.customerId || '',
+        branchId: payment.customer.branchId || payment.branchId
+      } : undefined,
+      supplier: payment.supplier?.name ? { 
+        name: payment.supplier.name, 
+        id: payment.supplier.id || payment.supplierId || '',
+        branchId: payment.supplier.branchId || payment.branchId
+      } : undefined,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleDeletePayment = (payment: {
+    id: string | number;
+    paidAmount: number;
+    paymentMethod: string;
+    paidOn: string | Date;
+    customerId?: string;
+    supplierId?: string;
+    branchId?: string;
+    customer?: { name?: string; id?: string; branchId?: string };
+    supplier?: { name?: string; id?: string; branchId?: string };
+  }) => {
+    setSelectedPayment({
+      id: String(payment.id),
+      paidAmount: payment.paidAmount,
+      paymentMethod: payment.paymentMethod,
+      paidOn: new Date(payment.paidOn),
+      customerId: payment.customerId,
+      supplierId: payment.supplierId,
+      branchId: payment.branchId,
+      customer: payment.customer?.name ? { 
+        name: payment.customer.name, 
+        id: payment.customer.id || payment.customerId || '',
+        branchId: payment.customer.branchId || payment.branchId
+      } : undefined,
+      supplier: payment.supplier?.name ? { 
+        name: payment.supplier.name, 
+        id: payment.supplier.id || payment.supplierId || '',
+        branchId: payment.supplier.branchId || payment.branchId
+      } : undefined,
+    });
+    setDeleteModalOpen(true);
+  };
+
+  const handlePaymentUpdated = () => {
+    // Refresh the data
+    fetchData(pagination.currentPage, globalFilter);
+  };
+
   // Initial data load
   useEffect(() => {
     if (initialData && initialData.length > 0) {
@@ -98,9 +190,50 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData, branch
     return () => clearTimeout(timeoutId);
   }, [globalFilter, fetchData]);
 
+  // Create columns with handlers
+  const columnsWithHandlers = columns.map((column: unknown) => {
+    if ((column as { id?: string }).id === "actions") {
+      return {
+        ...(column as Record<string, unknown>),
+        cell: ({ row }: { row: { original: unknown } }) => {
+          const payment = row.original as {
+            id: string | number;
+            paidAmount: number;
+            paymentMethod: string;
+            paidOn: string | Date;
+            customer?: { name?: string };
+            supplier?: { name?: string };
+          };
+
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleEditPayment(payment)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDeletePayment(payment)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      };
+    }
+    return column;
+  });
+
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsWithHandlers as typeof columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -218,6 +351,22 @@ export function PaymentHistoryTable<TValue>({ columns, data: initialData, branch
           </div>
         </CardContent>
       </Card>
+      
+      {/* Edit Modal */}
+      <PaymentEditModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        payment={selectedPayment}
+        onPaymentUpdated={handlePaymentUpdated}
+      />
+      
+      {/* Delete Modal */}
+      <PaymentDeleteModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        payment={selectedPayment}
+        onPaymentDeleted={handlePaymentUpdated}
+      />
     </div>
   );
 }

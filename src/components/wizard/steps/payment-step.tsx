@@ -9,13 +9,14 @@ import { PaymentFormData, PaymentWithCustomer } from "@/types/payment";
 import { IconCash } from "@tabler/icons-react";
 import { useWizard } from '@/components/wizard/form-wizard';
 import { Edit2, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 
 // PaymentButton component for handling customer payments
 const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) => {
   const [openPayment, setOpenPayment] = useState(false);
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData | null>(null);
-  const { commonDate, addedPayments, setAddedPayments } = useWizard();
+  const { commonDate, addedPayments, setAddedPayments, selectedBranchId } = useWizard();
 
   const handleOpenPayment = () => {
     setPaymentFormData({
@@ -28,18 +29,47 @@ const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) => {
     setOpenPayment(true);
   };
 
-  const handleAddPayment = (paymentData: PaymentFormData) => {
-    const newPayment = {
-      tempId: `temp-${Date.now()}`,
-      customerId: paymentData.customerId,
-      customerName: paymentData.customerName || 'Unknown Customer',
-      amount: paymentData.amount,
-      paymentMethod: paymentData.paymentMethod,
-      paidOn: paymentData.paidOn,
-    };
-    
-    setAddedPayments([...addedPayments, newPayment]);
-    setOpenPayment(false);
+  const handleAddPayment = async (paymentData: PaymentFormData) => {
+    try {
+      // Save payment to database
+      const response = await fetch('/api/payments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: paymentData.customerId,
+          amount: paymentData.amount, // Use 'amount' for customerPaymentSchema
+          paymentMethod: paymentData.paymentMethod,
+          paidOn: paymentData.paidOn,
+          branchId: selectedBranchId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save payment');
+      }
+
+      const result = await response.json();
+      const savedPayment = result.data;
+
+      // Add to local state with the actual ID from database
+      const newPayment = {
+        tempId: `temp-${Date.now()}`,
+        id: savedPayment.id,
+        customerId: paymentData.customerId,
+        customerName: paymentData.customerName || 'Unknown Customer',
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod,
+        paidOn: paymentData.paidOn,
+      };
+      
+      setAddedPayments([...addedPayments, newPayment]);
+      setOpenPayment(false);
+      toast.success('Payment saved successfully');
+    } catch (error) {
+      console.error('Error saving payment:', error);
+      toast.error('Failed to save payment');
+    }
   };
 
   return (
@@ -64,6 +94,9 @@ export const PaymentStep: React.FC<{ branchId?: string }> = () => {
   const { selectedBranchId, addedPayments, setAddedPayments, markCurrentStepCompleted } = useWizard();
   const [pendingCustomers, setPendingCustomers] = useState<PaymentWithCustomer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editPaymentData, setEditPaymentData] = useState<PaymentFormData | null>(null);
 
   // Load pending customers for the specific branch
   useEffect(() => {
@@ -94,14 +127,91 @@ export const PaymentStep: React.FC<{ branchId?: string }> = () => {
 
   // Handle edit payment
   const handleEditPayment = (index: number) => {
-    // TODO: Implement edit functionality
-    console.log('Edit payment at index:', index);
+    const payment = addedPayments[index];
+    setEditPaymentData({
+      customerId: payment.customerId,
+      amount: payment.amount,
+      paymentMethod: payment.paymentMethod,
+      paidOn: payment.paidOn,
+      customerName: payment.customerName,
+    });
+    setEditingIndex(index);
+    setEditModalOpen(true);
+  };
+
+  // Handle update payment
+  const handleUpdatePayment = async (paymentData: PaymentFormData) => {
+    if (editingIndex !== null) {
+      try {
+        const payment = addedPayments[editingIndex];
+        
+        // If payment has an ID, update in database
+        if (payment.id) {
+          const response = await fetch(`/api/payments/${payment.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customerId: paymentData.customerId,
+              paidAmount: paymentData.amount, // Map amount to paidAmount
+              paymentMethod: paymentData.paymentMethod,
+              paidOn: paymentData.paidOn,
+              branchId: selectedBranchId
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update payment');
+          }
+        }
+
+        // Update local state
+        const updatedPayments = [...addedPayments];
+        updatedPayments[editingIndex] = {
+          ...updatedPayments[editingIndex],
+          customerId: paymentData.customerId,
+          customerName: paymentData.customerName || 'Unknown Customer',
+          amount: paymentData.amount,
+          paymentMethod: paymentData.paymentMethod,
+          paidOn: paymentData.paidOn,
+        };
+        setAddedPayments(updatedPayments);
+        setEditingIndex(null);
+        setEditModalOpen(false);
+        setEditPaymentData(null);
+        toast.success('Payment updated successfully');
+      } catch (error) {
+        console.error('Error updating payment:', error);
+        toast.error('Failed to update payment');
+      }
+    }
   };
 
   // Handle delete payment
-  const handleDeletePayment = (index: number) => {
-    const updatedPayments = addedPayments.filter((_, i) => i !== index);
-    setAddedPayments(updatedPayments);
+  const handleDeletePayment = async (index: number) => {
+    try {
+      const payment = addedPayments[index];
+      
+      // If payment has an ID, delete from database
+      if (payment.id) {
+        const response = await fetch(`/api/payments/${payment.id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to delete payment');
+        }
+      }
+
+      // Remove from local state
+      const updatedPayments = addedPayments.filter((_, i) => i !== index);
+      setAddedPayments(updatedPayments);
+      toast.success('Payment deleted successfully');
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast.error('Failed to delete payment');
+    }
   };
 
   return (
@@ -220,6 +330,16 @@ export const PaymentStep: React.FC<{ branchId?: string }> = () => {
           Complete
         </Button>
       </div>
+
+      {/* Edit Payment Modal */}
+      {editPaymentData && (
+        <PaymentFormDialog
+          open={editModalOpen}
+          openChange={setEditModalOpen}
+          payments={editPaymentData}
+          onPaymentAdded={handleUpdatePayment}
+        />
+      )}
     </div>
   );
 };
