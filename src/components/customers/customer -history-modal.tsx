@@ -102,9 +102,9 @@ export function CustomerHistoryModal({
     let runningBalance = 0;
     return sorted.map((item) => {
       if (item.type === "credit") {
-        runningBalance += item.amount; // debit increases balance
+        runningBalance -= item.amount; // credit decreases balance (customer owes less)
       } else {
-        runningBalance -= item.amount; // payment decreases balance
+        runningBalance += item.amount; // payment increases balance (customer owes more)
       }
       return { ...item, balance: runningBalance };
     });
@@ -214,7 +214,7 @@ export function CustomerHistoryModal({
                   </TableCell>
                   <TableCell>{item.fuelType ?? "-"}</TableCell>
                   <TableCell>{item.quantity ?? "-"}</TableCell>
-                  <TableCell className="text-right text-red-500">
+                  <TableCell className="text-right text-red-600">
                     {item.type === "credit" ? `₹${item.amount}` : "-"}
                   </TableCell>
                   <TableCell className="text-right text-green-600">

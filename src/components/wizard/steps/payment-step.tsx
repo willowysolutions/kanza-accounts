@@ -90,7 +90,7 @@ const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) => {
   );
 };
 
-export const PaymentStep: React.FC<{ branchId?: string }> = () => {
+export const PaymentStep: React.FC = () => {
   const { selectedBranchId, addedPayments, setAddedPayments, markCurrentStepCompleted } = useWizard();
   const [pendingCustomers, setPendingCustomers] = useState<PaymentWithCustomer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

@@ -34,7 +34,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { Product } from "@prisma/client";
+import { ProductType } from "@/types/product";
 import { useRouter } from "next/navigation";
 import { productSchema } from "@/schemas/product-schema";
 import { BranchSelector } from "@/components/common/branch-selector";
@@ -46,7 +46,7 @@ export function ProductFormDialog({
   userRole,
   userBranchId,
 }: {
-  products?: Product;
+  products?: ProductType;
   open?: boolean;
   openChange?: (open: boolean) => void;
   userRole?: string;

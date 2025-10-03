@@ -26,7 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Customer } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { customerSchema } from "@/schemas/customers-schema";
@@ -46,8 +46,15 @@ export function CustomerFormDialog({
   userBranchId?: string;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(customers?.branchId || userBranchId || "");
   const router = useRouter();
+
+  // Update selectedBranchId when customers prop changes
+  useEffect(() => {
+    if (customers?.branchId) {
+      setSelectedBranchId(customers.branchId);
+    }
+  }, [customers?.branchId]);
 
   const form = useForm<z.infer<typeof customerSchema>>({
     resolver: zodResolver(customerSchema),

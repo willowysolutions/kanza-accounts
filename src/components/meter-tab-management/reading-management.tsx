@@ -22,9 +22,18 @@ type MeterTabManagementProps = {
   sales: Sales[];
   branches: { id: string; name: string }[];
   userRole?: string;
+  salesPagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  currentPage: number;
 };
 
-export default function MeterTabManagement({ meterReading, oil, sales, branches, userRole }: MeterTabManagementProps) {
+export default function MeterTabManagement({ meterReading, oil, sales, branches, userRole, salesPagination, currentPage }: MeterTabManagementProps) {
     const [activeTab, setActiveTab] = useState("meter-reading");
     const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
     const router = useRouter();
@@ -61,7 +70,7 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches,
               <Plus className="w-4 h-4 mr-2" />
               All Records
             </Button>
-            {activeTab === "meter-reading" ? <MeterReadingFormSheet key={activeBranch} branchId={activeBranch} userRole={userRole} userBranchId={branches.find(b => b.id === activeBranch)?.id} /> : activeTab === "other-Products" ? <OilFormModal key={activeBranch} branchId={activeBranch} /> : ""}
+            {activeTab === "meter-reading" ? <MeterReadingFormSheet key={activeBranch} branchId={activeBranch} userRole={userRole} userBranchId={branches.find(b => b.id === activeBranch)?.id} /> : activeTab === "other-Products" ? <OilFormModal key={activeBranch} branchId={activeBranch} userRole={userRole} userBranchId={branches.find(b => b.id === activeBranch)?.id} /> : ""}
           </div>
         </div>
 
@@ -105,7 +114,12 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches,
                 </TabsContent>
 
                 <TabsContent value="report">
-                  <ReportTable data={branchSales} columns={reportColumns}/>
+                  <ReportTable 
+                    data={branchSales} 
+                    columns={reportColumns}
+                    pagination={salesPagination}
+                    currentPage={currentPage}
+                  />
                 </TabsContent>
               </Tabs>
             </TabsContent>

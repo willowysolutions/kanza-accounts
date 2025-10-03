@@ -6,9 +6,7 @@ import {
   useReactTable,
   getFilteredRowModel,
   getSortedRowModel,
-  getPaginationRowModel,
   SortingState,
-  PaginationState,
 } from "@tanstack/react-table";
 
 import {
@@ -36,25 +34,33 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
-export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) {
+export function ReportTable<TValue>({ 
+  columns, 
+  data, 
+  pagination: serverPagination
+}: SalesTableProps<TValue> & {
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  currentPage?: number;
+}) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 20, // default rows per page
-  });
 
   const table = useReactTable({
     data,
     columns: columns || [],
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: (row, columnId, filterValue) => {
       const item = row.getValue("item") as string;
       const filter = String(filterValue || "").toLowerCase();
@@ -63,7 +69,6 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
     state: {
       sorting,
       globalFilter,
-      pagination,
     },
   });
 
@@ -155,31 +160,45 @@ export function ReportTable<TValue>({ columns, data }: SalesTableProps<TValue>) 
             </TableBody>
           </Table>
 
-          {/* 🔹 Pagination Controls */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-muted-foreground">
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          {/* 🔹 Server-side Pagination Controls */}
+          {serverPagination && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {((serverPagination.currentPage - 1) * serverPagination.limit) + 1} to {Math.min(serverPagination.currentPage * serverPagination.limit, serverPagination.totalCount)} of {serverPagination.totalCount} results
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', (serverPagination.currentPage - 1).toString());
+                    window.location.href = url.toString();
+                  }}
+                  disabled={!serverPagination.hasPrevPage}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center space-x-1">
+                  <span className="text-sm">
+                    Page {serverPagination.currentPage} of {serverPagination.totalPages}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', (serverPagination.currentPage + 1).toString());
+                    window.location.href = url.toString();
+                  }}
+                  disabled={!serverPagination.hasNextPage}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

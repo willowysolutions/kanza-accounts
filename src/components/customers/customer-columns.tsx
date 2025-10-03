@@ -20,7 +20,7 @@ import { useState } from "react";
 import { CustomerHistoryModal } from "./customer -history-modal";
 import { Customer } from "@/types/customer";
 
-export const customerColumns: ColumnDef<Customer>[] = [
+export const customerColumns = (userRole?: string, userBranchId?: string): ColumnDef<Customer>[] => [
   {
     accessorKey: "name",
     header: "Name",
@@ -97,11 +97,11 @@ export const customerColumns: ColumnDef<Customer>[] = [
   {
     id: "action",
     cell: ({ row }) =>
-      row.original && <CustomerDropdownMenu customer={row.original} />,
+      row.original && <CustomerDropdownMenu customer={row.original} userRole={userRole} userBranchId={userBranchId} />,
   },
 ];
 
-export const CustomerDropdownMenu = ({ customer }: { customer: Customer }) => {
+export const CustomerDropdownMenu = ({ customer, userRole, userBranchId }: { customer: Customer; userRole?: string; userBranchId?: string }) => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openHistory, setOpenHistory] = useState(false);
@@ -139,6 +139,8 @@ export const CustomerDropdownMenu = ({ customer }: { customer: Customer }) => {
         open={openEdit}
         openChange={setOpenEdit}
         customers={customer}
+        userRole={userRole}
+        userBranchId={userBranchId}
       />
 
       {/* Delete Dialog */}

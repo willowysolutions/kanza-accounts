@@ -18,7 +18,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 
 // type BankDepositWithId = z.infer<typeof bankDepositeSchema> & { id?: string; tempId?: string };
 
-export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
+export const BankDepositStep: React.FC = () => {
   const { 
     markStepCompleted, 
     markCurrentStepCompleted,
@@ -28,7 +28,8 @@ export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) =
     setAddedDeposits,
     savedRecords,
     setSavedRecords,
-    commonDate
+    commonDate,
+    selectedBranchId
   } = useWizard();
   const [bankOptions, setBankOptions] = useState<{ bankName: string; id: string; }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -225,10 +226,10 @@ export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) =
         const res = await fetch("/api/banks");
         const json = await res.json();
         
-        // Filter banks by branch if branchId is provided
+        // Filter banks by branch if selectedBranchId is provided
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filteredBanks = json.banks?.filter((bank: any) => {
-          return branchId ? bank.branchId === branchId : true;
+          return selectedBranchId ? bank.branchId === selectedBranchId : true;
         }) || [];
         
         setBankOptions(filteredBanks);
@@ -239,7 +240,7 @@ export const BankDepositStep: React.FC<{ branchId?: string }> = ({ branchId }) =
     };
 
     fetchBanks();
-  }, [branchId]);
+  }, [selectedBranchId]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {

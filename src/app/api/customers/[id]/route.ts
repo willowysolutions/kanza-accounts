@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { customerSchemaWithId } from "@/schemas/customers-schema";
+import { customerSchema } from "@/schemas/customers-schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,8 +25,17 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    
+    // Validate ObjectId format
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "Invalid customer ID format" },
+        { status: 400 }
+      );
+    }
+    
     const body = await req.json();
-    const parsed = customerSchemaWithId.safeParse({ id, ...body });
+    const parsed = customerSchema.safeParse(body);  
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -35,11 +44,9 @@ export async function PATCH(
       );
     }
 
-    const { id: _omitId, ...data } = parsed.data; void _omitId;
-
     const customer = await prisma.customer.update({
       where: { id },
-      data,
+      data: parsed.data,
     });
 
     return NextResponse.json({ data: customer }, { status: 200 });

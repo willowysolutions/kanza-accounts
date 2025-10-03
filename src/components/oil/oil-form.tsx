@@ -38,6 +38,7 @@ import { Oil } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { oilSchema } from "@/schemas/oil-schema";
 import { useEffect, useState } from "react";
+import { BranchSelector } from "@/components/common/branch-selector";
 
 
 type OilFormValues = z.infer<typeof oilSchema>;
@@ -47,11 +48,15 @@ export function OilFormModal({
   open,
   openChange,
   branchId,
+  userRole,
+  userBranchId,
 }: {
   oil?: Oil;
   open?: boolean;
   openChange?: (open: boolean) => void;
   branchId?: string;
+  userRole?: string;
+  userBranchId?: string;
 }) {
     const [productOption, setProductOptions] = useState<{ 
       productName: string;
@@ -61,6 +66,7 @@ export function OilFormModal({
       productUnit:string;
       branchId: string | null;
     }[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(oil?.branchId || branchId || userBranchId || "");
 
   const router = useRouter();
 
@@ -85,7 +91,10 @@ export function OilFormModal({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          branchId: selectedBranchId,
+        }),
       });
 
       if (!res.ok) {
@@ -130,8 +139,8 @@ export function OilFormModal({
         // Filter products by branch and exclude fuel products
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filteredProducts = json.data?.filter((product: any) => {
-          // Filter by branch if branchId is provided
-          const branchMatch = branchId ? product.branchId === branchId : true;
+          // Filter by branch if selectedBranchId is provided
+          const branchMatch = selectedBranchId ? product.branchId === selectedBranchId : true;
           // Exclude fuel products
           const notFuelProduct = !["HSD-DIESEL", "MS-PETROL", "XG-DIESEL"].includes(product.productName);
           return branchMatch && notFuelProduct;
@@ -154,15 +163,15 @@ export function OilFormModal({
     };
   
     fetchProducts();
-    }, [branchId]);
+    }, [selectedBranchId]);
 
   // Clear product selection when branch changes
   useEffect(() => {
-    if (branchId) {
+    if (selectedBranchId) {
       form.setValue("productType", "");
       form.setValue("price", 0);
     }
-  }, [branchId, form]);
+  }, [selectedBranchId, form]);
 
   return (
     <FormDialog
@@ -185,6 +194,13 @@ export function OilFormModal({
             {oil ? "Update an existing oil record" : "Log a new oil entry."}
           </FormDialogDescription>
         </FormDialogHeader>
+
+        <BranchSelector
+          value={selectedBranchId}
+          onValueChange={setSelectedBranchId}
+          userRole={userRole}
+          userBranchId={userBranchId}
+        />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField

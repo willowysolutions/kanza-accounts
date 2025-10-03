@@ -57,7 +57,7 @@ export function BranchSelector({
         <Label htmlFor="branch-selector">Branch</Label>
         <Select value={userBranchId} disabled>
           <SelectTrigger className="bg-muted cursor-not-allowed">
-            <SelectValue placeholder="Loading..." />
+            <SelectValue placeholder={loading ? "Loading..." : userBranch?.name || "Select branch"} />
           </SelectTrigger>
         </Select>
         {userBranch && (
@@ -69,12 +69,15 @@ export function BranchSelector({
     );
   }
 
+  // Find the selected branch name
+  const selectedBranch = branches.find(branch => branch.id === value);
+
   return (
     <div className={className}>
       <Label htmlFor="branch-selector">Branch *</Label>
       <Select value={value} onValueChange={onValueChange} required>
         <SelectTrigger>
-          <SelectValue placeholder={loading ? "Loading branches..." : "Select a branch"} />
+          <SelectValue placeholder={loading ? "Loading branches..." : selectedBranch?.name || "Select a branch"} />
         </SelectTrigger>
         <SelectContent>
           {branches.map((branch) => (

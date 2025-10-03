@@ -3,8 +3,16 @@ export const dynamic = "force-dynamic";
 import BankManagement from "@/components/banks/bank-management";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { headers, cookies } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export default async function BankPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const userRole = session?.user?.role ?? undefined;
+  const userBranchId = session?.user?.branch ?? undefined;
+
   const hdrs = await headers();
   const host = hdrs.get("host");
   const proto =
@@ -60,7 +68,12 @@ export default async function BankPage() {
                 {banks.length} bank{banks.length !== 1 ? 's' : ''} and {bankDeposite.length} deposit{bankDeposite.length !== 1 ? 's' : ''} in this branch
               </p>
             </div>
-            <BankManagement bank={banks} bankDeposite={bankDeposite}/>
+            <BankManagement 
+              bank={banks} 
+              bankDeposite={bankDeposite}
+              userRole={userRole}
+              userBranchId={userBranchId}
+            />
           </TabsContent>
         ))}
       </Tabs>

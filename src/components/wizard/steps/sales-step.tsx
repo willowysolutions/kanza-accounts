@@ -13,9 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 // import { parseProducts } from '@/lib/product-utils'; // Unused import removed
 
-export const SalesStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _branchId = branchId;
+export const SalesStep: React.FC = () => {
   const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, commonDate, addedProducts } = useWizard();
   const [meterReading, setMeterReading] = useState<{ 
     totalAmount: number;

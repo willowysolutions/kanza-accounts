@@ -14,9 +14,10 @@ type BankManagementProps = {
   bank: Bank[];
   bankDeposite: BankDeposite[];
   userRole?: string;
+  userBranchId?: string;
 };
 
-export default function BankManagement({ bank, bankDeposite, userRole }: BankManagementProps) {
+export default function BankManagement({ bank, bankDeposite, userRole, userBranchId }: BankManagementProps) {
   const [activeTab, setActiveTab] = useState("bank");
 
   return (
@@ -27,7 +28,7 @@ export default function BankManagement({ bank, bankDeposite, userRole }: BankMan
             <h1 className="text-2xl font-bold tracking-tight">Bank Management</h1>
             <p className="text-muted-foreground">Manage bank account and deposites</p>
           </div>
-          {activeTab === "bank" ? <BankFormDialog /> : <BankDepositeFormDialog />}
+          {activeTab === "bank" ? <BankFormDialog userRole={userRole} userBranchId={userBranchId} /> : <BankDepositeFormDialog userRole={userRole} userBranchId={userBranchId} />}
         </div>
 
         <Tabs

@@ -31,49 +31,49 @@ export function WizardWithBranchTabs({ branches, userRole, userBranchId }: Wizar
     // Optional: Handle step changes if needed
   };
 
-  // Create wizard steps with branch context
-  const createWizardSteps = (branchId: string): WizardStep[] => [
+  // Create wizard steps - they will use selectedBranchId from wizard context
+  const createWizardSteps = (): WizardStep[] => [
     {
       id: 'meter-reading',
       title: 'Meter Reading',
       description: 'Record meter readings for all nozzles',
-      component: () => <MeterReadingStep branchId={branchId} />,
+      component: () => <MeterReadingStep />,
     },
     {
       id: 'products',
       title: 'Products',
       description: 'Add oil, AdBlue, and other products',
-      component: () => <ProductsStep branchId={branchId} />,
+      component: () => <ProductsStep />,
     },
     {
       id: 'payment',
       title: 'Payment',
       description: 'Record customer payments and outstanding dues',
-      component: () => <PaymentStep branchId={branchId} />,
+      component: () => <PaymentStep />,
     },
     {
       id: 'credit',
       title: 'Credit',
       description: 'Record credit transactions',
-      component: () => <CreditStep branchId={branchId} />,
+      component: () => <CreditStep />,
     },
     {
       id: 'expense',
       title: 'Expense',
       description: 'Record daily expenses',
-      component: () => <ExpenseStep branchId={branchId} />,
+      component: () => <ExpenseStep />,
     },
     {
       id: 'bank-deposit',
       title: 'Bank Deposit',
       description: 'Record bank deposits',
-      component: () => <BankDepositStep branchId={branchId} />,
+      component: () => <BankDepositStep />,
     },
     {
       id: 'sales',
       title: 'Sales',
       description: 'Record sales transactions',
-      component: () => <SalesStep branchId={branchId} />,
+      component: () => <SalesStep />,
     },
   ];
 
@@ -107,7 +107,7 @@ export function WizardWithBranchTabs({ branches, userRole, userBranchId }: Wizar
               </div>
 
               <FormWizard
-                steps={createWizardSteps(branch.id)}
+                steps={createWizardSteps()}
                 onComplete={handleComplete}
                 onStepChange={handleStepChange}
                 title={`${branch.name} Daily Reading Records`}

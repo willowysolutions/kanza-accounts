@@ -5,6 +5,7 @@ export const supplierPaymentSchema = z.object({
   amount: z.coerce.number().min(1),
   paymentMethod:z.string().min(1,"Select Payment Method"),
   paidOn: z.coerce.date(),
+  branchId: z.string().optional()
 });
 
 export const supplierPaymentSchemaWithId = supplierPaymentSchema.extend({

@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
       headers: await headers(),
     });
 
-    const branchId = session?.user?.branch;
+    // Use branchId from form data if provided, otherwise fall back to session branch
+    const branchId = result.data.branchId || session?.user?.branch;
     const { customerId, amount, date, ...rest } = result.data;
 
     const customer = await prisma.customer.findUnique({
@@ -49,7 +50,9 @@ export async function POST(req: NextRequest) {
             connect: { id: branchId }
           } : undefined,
           date,
-          ...rest,
+          fuelType: rest.fuelType,
+          quantity: rest.quantity,
+          reason: rest.reason,
         },
       });
 

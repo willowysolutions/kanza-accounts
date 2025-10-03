@@ -86,7 +86,13 @@ export default async function CustomerPage() {
                     {customers.length} customer{customers.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <CustomerTable data={customers} columns={customerColumns} branchId={branchId} />
+                <CustomerTable 
+                  data={customers} 
+                  columns={customerColumns} 
+                  branchId={branchId}
+                  userRole={session.user.role || undefined}
+                  userBranchId={userBranchId}
+                />
               </TabsContent>
             ))}
           </Tabs>

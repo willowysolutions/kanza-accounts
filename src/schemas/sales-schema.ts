@@ -13,6 +13,7 @@ export const salesSchema = z.object({
   hsdDieselTotal: z.coerce.number().min(0),
   msPetrolTotal: z.coerce.number().min(0),
   rate: z.coerce.number().min(0),
+  branchId: z.string().optional()
 });
 
 export const salesSchemaWithId = salesSchema.extend({

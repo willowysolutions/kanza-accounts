@@ -4,7 +4,11 @@ import { headers, cookies } from "next/headers";
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-export default async function MeterReadingPage() {
+export default async function MeterReadingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const hdrs = await headers();
   const host = hdrs.get("host");
   const proto =
@@ -23,6 +27,10 @@ export default async function MeterReadingPage() {
   const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
+  // Get pagination parameters
+  const params = await searchParams;
+  const page = typeof params.page === "string" ? parseInt(params.page) : 1;
+  
   // 🔹 Forward cookies
   const cookie = cookies().toString();
   
@@ -32,7 +40,7 @@ export default async function MeterReadingPage() {
       cache: "no-store",
       headers: { cookie },
     }),
-    fetch(`${proto}://${host}/api/sales`, {
+    fetch(`${proto}://${host}/api/sales?page=${page}&limit=15`, {
       cache: "no-store",
       headers: { cookie },
     }),
@@ -43,7 +51,7 @@ export default async function MeterReadingPage() {
   ]);
   
   const { withDifference } = await meterReadingRes.json();
-  const { sales } = await salesRes.json();
+  const { sales, pagination } = await salesRes.json();
   const { data: allBranches } = await branchesRes.json();
 
   // Filter branches based on user role
@@ -57,6 +65,8 @@ export default async function MeterReadingPage() {
         sales={sales}
         branches={visibleBranches}
         userRole={session.user.role || undefined}
+        salesPagination={pagination}
+        currentPage={page}
       />
     </div>
   );

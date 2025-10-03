@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
       headers: await headers(),
     });
 
-    const branchId = session?.user?.branch;
+    // Use branchId from form data if provided, otherwise fall back to session branch
+    const branchId = result.data.branchId || session?.user?.branch;
     const { bankId, amount, date } = result.data;
 
     const expense = await prisma.$transaction(async (tx) => {

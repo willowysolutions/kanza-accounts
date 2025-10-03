@@ -18,7 +18,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 
 // type CreditWithId = z.infer<typeof creditSchema> & { id?: string; tempId?: string };
 
-export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
+export const CreditStep: React.FC = () => {
   const { 
     markStepCompleted, 
     markCurrentStepCompleted,
@@ -28,7 +28,8 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     setAddedCredits,
     savedRecords,
     setSavedRecords,
-    commonDate
+    commonDate,
+    selectedBranchId
   } = useWizard();
   const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments: number; limit?: number; }[]>([]);
   const [products, setProducts] = useState<{id: string; productName: string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
@@ -263,8 +264,8 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
         search: searchTerm
       });
       
-      if (branchId) {
-        params.append('branchId', branchId);
+      if (selectedBranchId) {
+        params.append('branchId', selectedBranchId);
       }
       
       const res = await fetch(`/api/customers?${params.toString()}`);
@@ -281,7 +282,7 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
       console.error("Failed to fetch customers", error);
       return [];
     }
-  }, [branchId]);
+  }, [selectedBranchId]);
 
   // Load customers when search term changes
   useEffect(() => {
@@ -291,7 +292,7 @@ export const CreditStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     };
     
     loadCustomers();
-  }, [branchId, customerSearch, fetchCustomers]);
+  }, [selectedBranchId, customerSearch, fetchCustomers]);
 
   // Fetch products
   useEffect(() => {

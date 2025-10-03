@@ -34,14 +34,18 @@ import { Customer } from "@/types/customer";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CustomerTableProps<TValue> {
-  columns: ColumnDef<Customer, TValue>[];
+  columns: ((userRole?: string, userBranchId?: string) => ColumnDef<Customer, TValue>[]) | ColumnDef<Customer, TValue>[];
   data: Customer[];
+  userRole?: string;
+  userBranchId?: string;
 }
 
 export function CustomerTable<TValue>({
   columns,
   data: initialData,
   branchId,
+  userRole,
+  userBranchId,
 }: CustomerTableProps<TValue> & { branchId?: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -111,7 +115,7 @@ export function CustomerTable<TValue>({
 
   const table = useReactTable({
     data,
-    columns,
+    columns: typeof columns === 'function' ? columns(userRole, userBranchId) : columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),

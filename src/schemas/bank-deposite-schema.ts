@@ -3,7 +3,8 @@ import { z } from "zod";
 export const bankDepositeSchema = z.object({
   bankId: z.string(),
   date: z.coerce.date(),
-  amount: z.coerce.number()
+  amount: z.coerce.number(),
+  branchId: z.string().optional()
 });
 
 export const bankDepositeSchemaWithId = bankDepositeSchema.extend({

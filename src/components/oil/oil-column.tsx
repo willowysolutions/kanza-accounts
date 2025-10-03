@@ -99,7 +99,13 @@ export const OilsDropdeownMenu = ({ oil }: { oil: Oil }) => {
       </DropdownMenu>
 
       {/* Edit Dialog */}
-      <OilFormModal open={openEdit} openChange={setOpenEdit} oil={oil} />
+      <OilFormModal 
+        open={openEdit} 
+        openChange={setOpenEdit} 
+        oil={oil}
+        userRole="admin"
+        userBranchId={oil.branchId || undefined}
+      />
 
       {/* Dialogs */}
       <OilDeleteDialog

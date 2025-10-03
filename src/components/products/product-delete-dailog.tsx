@@ -11,13 +11,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { FC } from "react";
-import { Product } from "@prisma/client";
+import { ProductType } from "@/types/product";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export const ProductDeleteDialog: FC<{
-  product: Product;
+  product: ProductType;
   open: boolean;
   setOpen: (open: boolean) => void;
 }> = ({ product, open, setOpen }) => {

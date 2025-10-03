@@ -18,7 +18,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 
 type OilFormValues = z.infer<typeof oilSchema>;
 
-export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
+export const ProductsStep: React.FC = () => {
   const { 
     markStepCompleted, 
     markCurrentStepCompleted,
@@ -28,7 +28,8 @@ export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     setAddedProducts,
     savedRecords,
     setSavedRecords,
-    commonDate
+    commonDate,
+    selectedBranchId
   } = useWizard();
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -83,8 +84,8 @@ export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
         // Filter products by branch and exclude fuel products (MS-PETROL, HSD-DIESEL, XG-DIESEL)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filteredProducts = json.data?.filter((product: any) => {
-          // Filter by branch if branchId is provided
-          const branchMatch = branchId ? product.branchId === branchId : true;
+          // Filter by branch if selectedBranchId is provided
+          const branchMatch = selectedBranchId ? product.branchId === selectedBranchId : true;
           // Exclude fuel products
           const notFuelProduct = !["HSD-DIESEL", "MS-PETROL", "XG-DIESEL"].includes(product.productName);
           return branchMatch && notFuelProduct;
@@ -108,7 +109,7 @@ export const ProductsStep: React.FC<{ branchId?: string }> = ({ branchId }) => {
     };
   
     fetchProducts();
-  }, [branchId]);
+  }, [selectedBranchId]);
 
   const handleSubmit = useCallback(async (values: OilFormValues): Promise<boolean> => {
     try {

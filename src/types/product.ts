@@ -11,8 +11,10 @@ export type ProductType = {
 }
 
 export interface ProductTableProps<TValue> {
-  columns: ColumnDef<ProductType, TValue>[];
+  columns: ((userRole?: string, userBranchId?: string) => ColumnDef<ProductType, TValue>[]) | ColumnDef<ProductType, TValue>[];
   data: ProductType[];
+  userRole?: string;
+  userBranchId?: string;
 }
 
 

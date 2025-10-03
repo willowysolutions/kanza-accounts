@@ -4,10 +4,17 @@ import { ProductFormDialog } from "@/components/products/product-form";
 import { ProductTable } from "@/components/products/product-table";
 import { productColumns } from "@/components/products/product-columns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductType } from "@/types/product";
-import { ColumnDef } from "@tanstack/react-table";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function ProductPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const userRole = session?.user?.role ?? undefined;
+  const userBranchId = session?.user?.branch ?? undefined;
+
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
   
   // Fetch products and branches
@@ -35,7 +42,10 @@ export default async function ProductPage() {
               <h1 className="text-2xl font-bold tracking-tight">Products</h1>
               <p className="text-muted-foreground">Manage your Products by Branch</p>
             </div>
-            <ProductFormDialog />
+            <ProductFormDialog 
+              userRole={userRole}
+              userBranchId={userBranchId}
+            />
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">
@@ -55,7 +65,12 @@ export default async function ProductPage() {
                     {products.length} product{products.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <ProductTable data={products} columns={productColumns as ColumnDef<ProductType, unknown>[]} />
+                <ProductTable 
+                  data={products} 
+                  columns={productColumns} 
+                  userRole={userRole}
+                  userBranchId={userBranchId}
+                />
               </TabsContent>
             ))}
           </Tabs>

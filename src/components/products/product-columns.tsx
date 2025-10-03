@@ -1,6 +1,6 @@
 "use client";
 
-import { Product } from "@/types/product";
+import { ProductType } from "@/types/product";
 import { ProductFormDialog } from "./product-form";
 import { ProductDeleteDialog } from "./product-delete-dailog";
 import { ColumnDef } from "@tanstack/react-table";
@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-export const productColumns: ColumnDef<Product>[] = [
+export const productColumns = (userRole?: string, userBranchId?: string): ColumnDef<ProductType>[] => [
   {
     accessorKey: "productName",
     header: "Product Name",
@@ -42,11 +42,11 @@ export const productColumns: ColumnDef<Product>[] = [
   {
     id: "action",
     cell: ({ row }) =>
-      row.original && <ProductDropdownMenu product={row.original} />,
+      row.original && <ProductDropdownMenu product={row.original} userRole={userRole} userBranchId={userBranchId} />,
   },
 ];
 
-export const ProductDropdownMenu = ({ product }: { product: Product }) => {
+export const ProductDropdownMenu = ({ product, userRole, userBranchId }: { product: ProductType; userRole?: string; userBranchId?: string }) => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
 
@@ -78,6 +78,8 @@ export const ProductDropdownMenu = ({ product }: { product: Product }) => {
         open={openEdit}
         openChange={setOpenEdit}
         products={product}
+        userRole={userRole}
+        userBranchId={userBranchId}
       />
 
       <ProductDeleteDialog

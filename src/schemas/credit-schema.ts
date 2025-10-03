@@ -7,6 +7,7 @@ const baseCreditSchema = z.object({
   amount: z.coerce.number().min(1),
   date: z.coerce.date(),
   reason: z.string().optional(),
+  branchId: z.string().optional()
 });
 
 export const creditSchema = baseCreditSchema.refine(() => {

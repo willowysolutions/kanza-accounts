@@ -29,7 +29,7 @@ type MachineWithNozzles = {
 
 type BulkForm = z.infer<typeof bulkSchema>;
 
-export const MeterReadingStep: React.FC<{ branchId?: string }> = () => {
+export const MeterReadingStep: React.FC = () => {
   const { selectedBranchId } = useWizard();
   const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, setIsStepDisabled } = useWizard();
   const [machines, setMachines] = useState<MachineWithNozzles[]>([]);
