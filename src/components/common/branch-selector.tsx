@@ -23,13 +23,18 @@ export function BranchSelector({
   const [loading, setLoading] = useState(true);
 
   const isAdmin = userRole?.toLowerCase() === 'admin';
+  
+  console.log('BranchSelector props:', { value, userRole, userBranchId, isAdmin });
 
   useEffect(() => {
     const fetchBranches = async () => {
       try {
+        console.log('BranchSelector: Fetching branches...');
         const response = await fetch('/api/branch');
+        console.log('BranchSelector: API response status:', response.status);
         if (response.ok) {
           const data = await response.json();
+          console.log('BranchSelector: Branches data:', data);
           setBranches(data.data || []);
         }
       } catch (error) {

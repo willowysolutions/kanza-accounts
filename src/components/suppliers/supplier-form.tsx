@@ -28,6 +28,7 @@ import { supplierSchema } from "@/schemas/supplier-schema";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import * as React from "react";
 import { Supplier } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,8 +60,16 @@ export function SupplierFormDialog({
       phone: suppliers?.phone || "",
       address: suppliers?.address || "",
       openingBalance: suppliers?.openingBalance || undefined,
+      branchId: suppliers?.branchId || "",
     },
   });
+
+  // Sync selectedBranchId with form's branchId field
+  React.useEffect(() => {
+    if (selectedBranchId) {
+      form.setValue("branchId", selectedBranchId);
+    }
+  }, [selectedBranchId, form]);
 
   const handleSubmit = async (
     values: z.infer<typeof supplierSchema>,
@@ -77,10 +86,7 @@ export function SupplierFormDialog({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...values,
-          branchId: selectedBranchId,
-        }),
+        body: JSON.stringify(values),
       });
 
       const response = await res.json();

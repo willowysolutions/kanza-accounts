@@ -3,10 +3,18 @@ import { SupplierFormDialog } from "@/components/suppliers/supplier-form";
 import { SupplierTable } from "@/components/suppliers/supplier-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { headers, cookies } from "next/headers";
+import { auth } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 
 export default async function SupplierPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const userRole = session?.user?.role ?? undefined;
+  const userBranchId = session?.user?.branch ?? undefined;
+
   const hdrs = await headers();
   const host = hdrs.get("host");
   const proto =
@@ -45,7 +53,10 @@ export default async function SupplierPage() {
               <h1 className="text-2xl font-bold tracking-tight">Suppliers</h1>
               <p className="text-muted-foreground">Manage your Suppliers by branch</p>
             </div>
-            <SupplierFormDialog />
+            <SupplierFormDialog 
+              userRole={userRole}
+              userBranchId={userBranchId}
+            />
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">

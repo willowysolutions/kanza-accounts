@@ -34,6 +34,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import * as React from "react";
 import { ProductType } from "@/types/product";
 import { useRouter } from "next/navigation";
 import { productSchema } from "@/schemas/product-schema";
@@ -68,10 +69,28 @@ export function ProductFormDialog({
     },
   });
 
+  // Debug form state
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      console.log("Form field changed:", { name, type, value });
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  // Sync selectedBranchId with form's branchId field
+  React.useEffect(() => {
+    if (selectedBranchId) {
+      form.setValue("branchId", selectedBranchId);
+    }
+  }, [selectedBranchId, form]);
+
   const handleSubmit = async (
     values: z.infer<typeof productSchema>,
     close: () => void
   ) => {
+    console.log("Form submitted with values:", values);
+    console.log("Selected branch ID:", selectedBranchId);
+    
     setIsSubmitting(true);
     try {
       const url = products
@@ -80,19 +99,21 @@ export function ProductFormDialog({
 
       const method = products ? "PATCH" : "POST";
 
+      const requestBody = values;
+      
+      console.log("Request body:", requestBody);
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...values,
-          branchId: selectedBranchId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const response = await res.json();
+      console.log("API response:", response);
 
       if (!res.ok) {
-        toast.error(response.error || "Failed to save supplier");
+        toast.error(response.error || "Failed to save product");
         return;
       }
 
@@ -109,12 +130,15 @@ export function ProductFormDialog({
 
   
   return (
-    <FormDialog
-      open={open}
-      openChange={openChange}
-      form={form}
-      onSubmit={(values) => handleSubmit(values, () => openChange?.(false))}
-    >
+      <FormDialog
+        open={open}
+        openChange={openChange}
+        form={form}
+        onSubmit={(values) => {
+          console.log("FormDialog onSubmit triggered with values:", values);
+          handleSubmit(values, () => openChange?.(false));
+        }}
+      >
       <FormDialogTrigger asChild>
         <Button>
           <Plus className="size-4" />
