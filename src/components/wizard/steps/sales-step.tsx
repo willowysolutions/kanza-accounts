@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 // import { parseProducts } from '@/lib/product-utils'; // Unused import removed
 
 export const SalesStep: React.FC = () => {
-  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, commonDate, addedProducts } = useWizard();
+  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, commonDate } = useWizard();
   const [meterReading, setMeterReading] = useState<{ 
     totalAmount: number;
     id: string;
@@ -22,6 +22,15 @@ export const SalesStep: React.FC = () => {
     fuelType: string;
     fuelRate: number;
     sale: number;
+  }[]>([]);
+
+  const [oilSales, setOilSales] = useState<{ 
+    totalAmount: number;
+    id: string;
+    date: Date;
+    quantity: number;
+    price: number;
+    productType: string;
   }[]>([]);
 
 
@@ -85,6 +94,41 @@ export const SalesStep: React.FC = () => {
     fetchMeterReading();
   }, []);
 
+  // Fetch Oil sales
+  useEffect(() => {
+    const fetchOilSales = async () => {
+      try {
+        const res = await fetch("/api/oils");
+        const json = await res.json();
+        setOilSales(json.oils || []);
+      } catch (error) {
+        console.error("Failed to fetch oils", error);
+      }
+    };
+
+    fetchOilSales();
+  }, []);
+
+  // Fetch oil sales for specific date when needed
+  const fetchOilSalesForDate = async (date: Date) => {
+    try {
+      const formattedDate = date.toISOString().split('T')[0];
+      const res = await fetch(`/api/oils?date=${formattedDate}&limit=100`);
+      const json = await res.json();
+      
+      if (json.oils && json.oils.length > 0) {
+        // Merge with existing oil sales, avoiding duplicates by filtering out all existing IDs
+        setOilSales(prev => {
+          const existingIds = new Set(prev.map(o => o.id));
+          const newOils = json.oils.filter((oil: { id: string }) => !existingIds.has(oil.id));
+          return [...prev, ...newOils];
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch oil sales for date", error);
+    }
+  };
+
   // Initialize when component mounts
   useEffect(() => {
     setIsInitialized(true);
@@ -99,6 +143,9 @@ export const SalesStep: React.FC = () => {
   useEffect(() => {
     if (selectedDate) {
       const formattedDate = new Date(selectedDate).toLocaleDateString();
+      console.log('Wizard Sales: Selected date:', selectedDate);
+      console.log('Wizard Sales: Formatted date:', formattedDate);
+      console.log('Wizard Sales: All oil sales:', oilSales);
 
       // --- Fuel Sales ---
       const matchingReadings = meterReading.filter(
@@ -106,40 +153,57 @@ export const SalesStep: React.FC = () => {
           new Date(reading.date).toLocaleDateString() === formattedDate
       );
 
-      const xgDieselTotal = matchingReadings
-        .filter((p) => p.fuelType === "XG-DIESEL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
-
-      const msPetrolTotal = matchingReadings
-        .filter((p) => p.fuelType === "MS-PETROL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
-
-      const hsdTotal = matchingReadings
-        .filter((p) => p.fuelType === "HSD-DIESEL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0);
-
-      const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
-
       // --- Oil & Gas Sales (Dynamic products) ---
-      const matchingOils = addedProducts.filter(
+      const matchingOils = oilSales.filter(
         (item) =>
           new Date(item.date).toLocaleDateString() === formattedDate
       );
 
       const productsObj: Record<string, number> = {};
+      console.log('Wizard Sales: Matching oils count:', matchingOils.length);
+      console.log('Wizard Sales: Matching oils data:', matchingOils);
+      
       matchingOils.forEach((o) => {
         const key = o.productType?.toUpperCase() || "UNKNOWN";
         const amount = Number(o.price || 0);
+        console.log(`Wizard Sales: Processing ${key}: ${amount} (existing: ${productsObj[key] || 0})`);
         productsObj[key] = (productsObj[key] || 0) + amount;
+        console.log(`Wizard Sales: After adding ${key}: ${productsObj[key]}`);
       });
+      
+      console.log('Wizard Sales: Final products object:', productsObj);
+
+
+      // If no matching data found, fetch data for this specific date and return early
+      if (matchingReadings.length === 0 || matchingOils.length === 0) {
+        if (matchingOils.length === 0) {
+          fetchOilSalesForDate(new Date(selectedDate));
+        }
+        return; // Exit early, calculation will happen when data is fetched
+      }
+
+      // Only calculate if we have data
+      const xgDieselTotal = Math.round(matchingReadings
+        .filter((p) => p.fuelType === "XG-DIESEL")
+        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
+
+      const msPetrolTotal = Math.round(matchingReadings
+        .filter((p) => p.fuelType === "MS-PETROL")
+        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
+
+      const hsdTotal = Math.round(matchingReadings
+        .filter((p) => p.fuelType === "HSD-DIESEL")
+        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
+
+      const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
 
       form.setValue("products", productsObj);
 
       // --- Grand Total ---
-      const dynamicProductsTotal = Object.values(productsObj).reduce(
+      const dynamicProductsTotal = Math.round(Object.values(productsObj).reduce(
         (s, n) => s + (Number(n) || 0),
         0
-      );
+      ));
 
       const total = fuelTotal + dynamicProductsTotal;
       const roundedTotal = Math.round(total);
@@ -154,15 +218,15 @@ export const SalesStep: React.FC = () => {
 
       // --- Auto-fill form fields ---
       form.setValue("rate", roundedTotal);
-      form.setValue("hsdDieselTotal", Math.round(hsdTotal));
-      form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
-      form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
+      form.setValue("hsdDieselTotal", hsdTotal);
+      form.setValue("xgDieselTotal", xgDieselTotal);
+      form.setValue("msPetrolTotal", msPetrolTotal);
       form.setValue("cashPayment", cashPayment);
     }
   }, [
     selectedDate,
     meterReading,
-    addedProducts,
+    oilSales,
     atmPayment,
     paytmPayment,
     fleetPayment,
@@ -306,7 +370,7 @@ export const SalesStep: React.FC = () => {
               {/* Dynamic Oil/Gas products (readonly amounts) */}
               {Array.from(
                 new Set(
-                  addedProducts
+                  oilSales
                     .filter(o => new Date(o.date).toLocaleDateString() === new Date(selectedDate).toLocaleDateString())
                     .map(o => (o.productType || '').toUpperCase())
                 )
