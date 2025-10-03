@@ -27,6 +27,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import * as React from "react";
 import { useRouter } from "next/navigation";
 import { BankFormProps } from "@/types/bank";
 import { bankSchema } from "@/schemas/bank-schema";
@@ -52,8 +53,16 @@ export const BankFormDialog = ({
       accountNumber: bank?.accountNumber ?? undefined,
       ifse: bank?.ifse ?? "",
       balanceAmount: bank?.balanceAmount || undefined,
+      branchId: bank?.branchId || "",
     },
   });
+
+  // Sync selectedBranchId with form's branchId field
+  React.useEffect(() => {
+    if (selectedBranchId) {
+      form.setValue("branchId", selectedBranchId);
+    }
+  }, [selectedBranchId, form]);
 
   const handleSubmit = async (
     values: z.infer<typeof bankSchema>,
@@ -70,10 +79,7 @@ export const BankFormDialog = ({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...values,
-          branchId: selectedBranchId,
-        }),
+        body: JSON.stringify(values),
       });
 
       const response = await res.json();

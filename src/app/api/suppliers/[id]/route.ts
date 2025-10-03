@@ -54,27 +54,47 @@ export async function PATCH(
 
 //DELETE
 export async function DELETE(
-  _req: Request,
-  context: unknown
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = (context as { params?: { id?: string } })?.params ?? {};
-  const id = typeof params.id === "string" ? params.id : null;
-
-  if (!id || !ObjectId.isValid(id)) {
-    return NextResponse.json(
-      { error: "Invalid ID format" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const deletedSuppliers = await prisma.supplier.delete({
+    const { id } = await params;
+
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "Invalid ID format" },
+        { status: 400 }
+      );
+    }
+
+    // Check if supplier has related records
+    const relatedRecords = await Promise.all([
+      prisma.stock.count({ where: { supplierId: id } }),
+      prisma.purchase.count({ where: { supplierId: id } }),
+      prisma.supplierPayment.count({ where: { supplierId: id } }),
+      prisma.tank.count({ where: { supplierId: id } }),
+      prisma.purchaseOrder.count({ where: { supplierId: id } }),
+      prisma.paymentHistory.count({ where: { supplierId: id } }),
+    ]);
+
+    const totalRelatedRecords = relatedRecords.reduce((sum, count) => sum + count, 0);
+
+    if (totalRelatedRecords > 0) {
+      return NextResponse.json(
+        { 
+          error: "Cannot delete supplier. This supplier has related records (stock, purchases, payments, tanks, or orders). Please remove or reassign these records first." 
+        },
+        { status: 400 }
+      );
+    }
+
+    const deletedSupplier = await prisma.supplier.delete({
       where: { id },
     });
 
-    return NextResponse.json({ data: deletedSuppliers }, { status: 200 });
+    return NextResponse.json({ data: deletedSupplier }, { status: 200 });
   } catch (error) {
-    console.error("Error deleting suppliers:", error);
+    console.error("Error deleting supplier:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

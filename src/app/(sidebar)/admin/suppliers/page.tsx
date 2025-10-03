@@ -77,7 +77,12 @@ export default async function SupplierPage() {
                     {suppliers.length} supplier{suppliers.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <SupplierTable data={suppliers} columns={supplierColumns} />
+                <SupplierTable 
+                  data={suppliers} 
+                  columns={supplierColumns} 
+                  userRole={userRole}
+                  userBranchId={userBranchId}
+                />
               </TabsContent>
             ))}
           </Tabs>

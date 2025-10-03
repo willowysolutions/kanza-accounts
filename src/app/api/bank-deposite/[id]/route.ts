@@ -31,9 +31,25 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const parsed = bankDepositeSchemaWithId.safeParse({ id, ...body });
+    console.log("Bank deposit update request body:", body);
+    
+    // Filter out empty strings that could cause ObjectID issues
+    const cleanedBody = Object.fromEntries(
+      Object.entries(body).filter(([key, value]) => {
+        if (value === "" || value === null || value === undefined) {
+          console.log(`Filtering out empty value for key: ${key}`);
+          return false;
+        }
+        return true;
+      })
+    );
+    
+    console.log("Cleaned body:", cleanedBody);
+    
+    const parsed = bankDepositeSchemaWithId.safeParse({ id, ...cleanedBody });
 
     if (!parsed.success) {
+      console.log("Validation errors:", parsed.error.errors);
       return NextResponse.json(
         { error: "Invalid input", issues: parsed.error.errors },
         { status: 400 }
@@ -42,6 +58,14 @@ export async function PATCH(
 
     const { id: _omitId, ...data } = parsed.data;
     void _omitId;
+    
+    // Validate ObjectIDs before proceeding
+    if (data.bankId && !ObjectId.isValid(data.bankId)) {
+      return NextResponse.json({ error: "Invalid bankId format" }, { status: 400 });
+    }
+    if (data.branchId && !ObjectId.isValid(data.branchId)) {
+      return NextResponse.json({ error: "Invalid branchId format" }, { status: 400 });
+    }
 
     const existingDeposite = await prisma.bankDeposite.findUnique({
       where: { id },

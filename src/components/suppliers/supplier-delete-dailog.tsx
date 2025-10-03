@@ -25,16 +25,29 @@ export const SupplierDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`/api/suppliers/${supplier?.id}`,{
+          const response = await fetch(`/api/suppliers/${supplier?.id}`,{
               method:"DELETE"
             });
-          toast.success(`Suppliers "${supplier.name}" deleted.`)
-          setOpen(!open)
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage = errorData.error || 'Failed to delete supplier';
+            
+            // Show specific error message for constraint violations
+            if (errorMessage.includes('related records')) {
+              toast.error(`Cannot delete supplier: ${errorMessage}`);
+            } else {
+              toast.error(`Failed to delete supplier: ${errorMessage}`);
+            }
+            return;
+          }
+          
+          toast.success(`Supplier "${supplier.name}" deleted successfully.`)
+          setOpen(false)
           router.refresh()
       }catch(error){
-          toast.error("Failed to delete supplier.")
-          console.log(error,"Error on deleting supplier");
-          
+          toast.error(`Failed to delete supplier: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          console.error("Error deleting supplier:", error);
       }
     }
   return (

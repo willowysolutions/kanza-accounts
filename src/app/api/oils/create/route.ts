@@ -27,24 +27,48 @@ export async function POST(req: NextRequest) {
 
     const { productType, quantity, ...rest } = result.data;
 
-    // create oil record
-    const oil = await prisma.oil.create({
-      data: {
-        productType,
-        quantity,
-        branchId,
-        ...rest,
-      },
+    // Check if stock is available before creating the oil record
+    const stock = await prisma.stock.findUnique({
+      where: { item: productType },
     });
 
-    // decrement stock for that oil product
-    await prisma.stock.update({
-      where: { item: productType },
-      data: {
-        quantity: {
-          decrement: quantity,
+    if (!stock) {
+      return NextResponse.json(
+        { error: `No stock found for ${productType}` },
+        { status: 400 }
+      );
+    }
+
+    if (stock.quantity < quantity) {
+      return NextResponse.json(
+        { error: `Insufficient stock. Available: ${stock.quantity}, Requested: ${quantity}` },
+        { status: 400 }
+      );
+    }
+
+    // Use transaction to ensure both operations succeed or fail together
+    const [oil] = await prisma.$transaction(async (tx) => {
+      // Create oil record
+      const newOil = await tx.oil.create({
+        data: {
+          productType,
+          quantity,
+          branchId,
+          ...rest,
         },
-      },
+      });
+
+      // Decrement stock for that oil product
+      await tx.stock.update({
+        where: { item: productType },
+        data: {
+          quantity: {
+            decrement: quantity,
+          },
+        },
+      });
+
+      return [newOil];
     });
 
     revalidatePath("/oils");

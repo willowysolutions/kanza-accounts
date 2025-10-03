@@ -28,14 +28,33 @@ import {
 } from "@/components/ui/card";
 
 import { Supplier } from "@prisma/client";
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
+
+// Create context for user data
+const UserContext = createContext<{ userRole?: string; userBranchId?: string }>({});
+
+// Provider component
+export function UserProvider({ children, userRole, userBranchId }: { children: React.ReactNode; userRole?: string; userBranchId?: string }) {
+  return (
+    <UserContext.Provider value={{ userRole, userBranchId }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+// Hook to use user context
+export function useUser() {
+  return useContext(UserContext);
+}
 
 interface SupplierTableProps<TValue> {
   columns: ColumnDef<Supplier, TValue>[];
   data: Supplier[];
+  userRole?: string;
+  userBranchId?: string;
 }
 
-export function SupplierTable<TValue>({ columns, data }: SupplierTableProps<TValue>) {
+export function SupplierTable<TValue>({ columns, data, userRole, userBranchId }: SupplierTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -54,7 +73,8 @@ export function SupplierTable<TValue>({ columns, data }: SupplierTableProps<TVal
   });
 
   return (
-    <div className="flex flex-col gap-5">
+    <UserProvider userRole={userRole} userBranchId={userBranchId}>
+      <div className="flex flex-col gap-5">
       <Card>
         <CardHeader>
           <CardTitle>Suppliers</CardTitle>
@@ -103,6 +123,7 @@ export function SupplierTable<TValue>({ columns, data }: SupplierTableProps<TVal
           </Table>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </UserProvider>
   );
 }

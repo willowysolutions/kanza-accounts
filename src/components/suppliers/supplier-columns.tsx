@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useUser } from "./supplier-table";
 
 export const supplierColumns: ColumnDef<Supplier>[] = [
   {
@@ -125,6 +126,7 @@ export const supplierColumns: ColumnDef<Supplier>[] = [
 export const SupplierDropdownMenu = ({ supplier }: { supplier: Supplier }) => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+  const { userRole, userBranchId } = useUser();
 
   return (
     <div className="text-right">
@@ -154,6 +156,8 @@ export const SupplierDropdownMenu = ({ supplier }: { supplier: Supplier }) => {
         open={openEdit}
         openChange={setOpenEdit}
         suppliers={supplier}
+        userRole={userRole}
+        userBranchId={userBranchId}
       />
 
       <SupplierDeleteDialog
