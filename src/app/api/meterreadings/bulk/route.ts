@@ -173,6 +173,8 @@ export async function POST(req: Request) {
     // 2. Process in separate transactions to avoid timeout
     // -----------------------------
     
+    console.log(`Processing ${readingsToCreate.length} meter readings...`);
+    
     // First: Insert meter readings only
     await runWithRetry(async () => {
       return prisma.$transaction(async (tx) => {
@@ -180,33 +182,67 @@ export async function POST(req: Request) {
           data: readingsToCreate,
         });
       }, {
-        timeout: 10000, // 10 seconds for insert
-      });
+        timeout: 60000, // 60 seconds for insert
+      }); 
     });
+    
+    console.log(`Successfully created ${readingsToCreate.length} meter readings`);
 
-    // Second: Update tanks (outside transaction to avoid timeout)
-    for (const [tankId, totalDifference] of tankUpdates) {
-      await prisma.tank.update({
-        where: { id: tankId },
-        data: { currentLevel: { decrement: totalDifference } },
-      });
-    }
+    // Second: Update tanks in parallel
+    const tankUpdatePromises = Array.from(tankUpdates.entries()).map(
+      async ([tankId, totalDifference]) => {
+        try {
+          await prisma.tank.update({
+            where: { id: tankId },
+            data: { currentLevel: { decrement: totalDifference } },
+          });
+          console.log(`Updated tank ${tankId} by ${totalDifference}`);
+        } catch (error) {
+          console.error(`Failed to update tank ${tankId}:`, error);
+          throw error;
+        }
+      }
+    );
 
-    // Third: Update stocks (outside transaction to avoid timeout)
-    for (const [fuelType, totalDifference] of stockUpdates) {
-      await prisma.stock.update({
-        where: { item: fuelType },
-        data: { quantity: { decrement: totalDifference } },
-      });
-    }
+    // Third: Update stocks in parallel
+    const stockUpdatePromises = Array.from(stockUpdates.entries()).map(
+      async ([fuelType, totalDifference]) => {
+        try {
+          await prisma.stock.update({
+            where: { item: fuelType },
+            data: { quantity: { decrement: totalDifference } },
+          });
+          console.log(`Updated stock ${fuelType} by ${totalDifference}`);
+        } catch (error) {
+          console.error(`Failed to update stock ${fuelType}:`, error);
+          throw error;
+        }
+      }
+    );
 
-    // Fourth: Update nozzles (outside transaction to avoid timeout)
-    for (const [nozzleId, closingReading] of nozzleUpdates) {
-      await prisma.nozzle.update({
-        where: { id: nozzleId },
-        data: { openingReading: closingReading },
-      });
-    }
+    // Execute tank and stock updates in parallel
+    await Promise.all([...tankUpdatePromises, ...stockUpdatePromises]);
+
+    // Fourth: Update nozzles in batches to avoid timeout
+    const nozzleUpdatePromises = Array.from(nozzleUpdates.entries()).map(
+      async ([nozzleId, closingReading]) => {
+        try {
+          await prisma.nozzle.update({
+            where: { id: nozzleId },
+            data: { openingReading: closingReading },
+          });
+          console.log(`Updated nozzle ${nozzleId} with opening reading ${closingReading}`);
+        } catch (error) {
+          console.error(`Failed to update nozzle ${nozzleId}:`, error);
+          throw error;
+        }
+      }
+    );
+
+    // Execute all nozzle updates in parallel
+    console.log(`Updating ${nozzleUpdates.size} nozzles...`);
+    await Promise.all(nozzleUpdatePromises);
+    console.log(`Successfully updated ${nozzleUpdates.size} nozzles`);
 
     // -----------------------------
     // Revalidate cache
