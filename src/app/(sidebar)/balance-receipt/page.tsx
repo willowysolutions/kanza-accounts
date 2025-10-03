@@ -5,12 +5,18 @@ import { BalanceReceiptTable } from "@/components/balance-receipt/balance-receip
 import { balanceReceiptColumn } from "@/components/balance-receipt/balance-receipt-column";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { headers, cookies } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export default async function BalanceReceiptPage() {
 const hdrs = await headers();
 const host = hdrs.get("host");
 const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
 const cookie = (await cookies()).toString();
+
+// Get user session
+const session = await auth.api.getSession({ headers: await headers() });
+const userRole = session?.user?.role ?? undefined;
+const userBranchId = session?.user?.branch ?? undefined;
 
 // Fetch balance receipts and branches
 const [balanceReceiptsRes, branchesRes] = await Promise.all([
@@ -43,7 +49,10 @@ const balanceReceiptsByBranch = branches.map((branch: { id: string; name: string
               <h1 className="text-2xl font-bold tracking-tight">Balance Receipt</h1>
               <p className="text-muted-foreground">Manage Balance Receipts by branch</p>
             </div>
-            <BalanceReceiptFormDialog />
+            <BalanceReceiptFormDialog 
+              userRole={userRole}
+              userBranchId={userBranchId}
+            />
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">

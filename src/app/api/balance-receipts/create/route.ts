@@ -20,7 +20,10 @@ export async function POST(req: NextRequest) {
     }    
 
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
+    const userBranchId = session?.user?.branch;
+    
+    // Use branchId from request body if provided, otherwise use user's branch
+    const branchId = body.branchId || userBranchId;
 
     const balanceReceipts = await prisma.balanceReceipt.create({
       data: {
