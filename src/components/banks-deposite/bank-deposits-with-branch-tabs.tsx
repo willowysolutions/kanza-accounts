@@ -48,7 +48,7 @@ export function BankDepositsWithBranchTabs({ branches, depositsByBranch, userRol
                   {deposits.length} deposit{deposits.length !== 1 ? 's' : ''} in this branch
                 </p>
               </div>
-              <BankDepositeTable data={deposits} userRole={userRole} branchId={branchId} />
+              <BankDepositeTable data={deposits} userRole={userRole} />
             </TabsContent>
           ))}
         </Tabs>

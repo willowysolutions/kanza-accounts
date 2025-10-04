@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       });
 
       // Decrement stock for that oil product in this branch
-      await tx.stock.update({
+      await tx.stock.updateMany({
         where: { 
           item: productType,
           branchId: branchId
