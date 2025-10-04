@@ -150,8 +150,11 @@ export async function POST(req: Request) {
         }
 
         // Check stock availability
-        const stock = await prisma.stock.findUnique({
-          where: { item: reading.fuelType },
+        const stock = await prisma.stock.findFirst({
+          where: { 
+            item: reading.fuelType,
+            branchId: branchId
+          },
         });
 
         if (!stock || stock.quantity - reading.difference < 0) {
@@ -213,11 +216,14 @@ export async function POST(req: Request) {
     const stockUpdatePromises = Array.from(stockUpdates.entries()).map(
       async ([fuelType, totalDifference]) => {
         try {
-          await prisma.stock.update({
-            where: { item: fuelType },
+          await prisma.stock.updateMany({
+            where: { 
+              item: fuelType,
+              branchId: branchId
+            },
             data: { quantity: { decrement: totalDifference } },
           });
-          console.log(`Updated stock ${fuelType} by ${totalDifference}`);
+          console.log(`Updated stock ${fuelType} by ${totalDifference} for branch ${branchId}`);
         } catch (error) {
           console.error(`Failed to update stock ${fuelType}:`, error);
           throw error;

@@ -25,16 +25,23 @@ export const CustomerDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`/api/customers/${customers?.id}`,{
+          const response = await fetch(`/api/customers/${customers?.id}`,{
               method:"DELETE"
             });
-          toast.success(`Customers "${customers.name}" deleted.`)
-          setOpen(!open)
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage = errorData.error || 'Failed to delete customer';
+            toast.error(`Failed to delete customer: ${errorMessage}`);
+            return;
+          }
+
+          toast.success(`Customer "${customers.name}" deleted successfully.`)
+          setOpen(false)
           router.refresh()
       }catch(error){
-          toast.error("Failed to delete customers.")
-          console.log(error,"Error on deleting customers");
-          
+          toast.error("Failed to delete customer.")
+          console.error("Error deleting customer:", error);
       }
     }
   return (

@@ -28,13 +28,16 @@ export async function POST(req: NextRequest) {
     const { productType, quantity, ...rest } = result.data;
 
     // Check if stock is available before creating the oil record
-    const stock = await prisma.stock.findUnique({
-      where: { item: productType },
+    const stock = await prisma.stock.findFirst({
+      where: { 
+        item: productType,
+        branchId: branchId
+      },
     });
 
     if (!stock) {
       return NextResponse.json(
-        { error: `No stock found for ${productType}` },
+        { error: `No stock found for ${productType} in this branch` },
         { status: 400 }
       );
     }
@@ -58,9 +61,12 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Decrement stock for that oil product
+      // Decrement stock for that oil product in this branch
       await tx.stock.update({
-        where: { item: productType },
+        where: { 
+          item: productType,
+          branchId: branchId
+        },
         data: {
           quantity: {
             decrement: quantity,

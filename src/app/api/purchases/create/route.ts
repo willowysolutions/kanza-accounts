@@ -41,22 +41,24 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // Check if stock already exists for this item
+    // Check if stock already exists for this item in this branch
     const existingStock = await prisma.stock.findFirst({
-      where: { item: purchase.productType },
+      where: { 
+        item: purchase.productType,
+        branchId: result.data.branchId
+      },
     });
 
     if (existingStock) {
-      // Increment stock quantity
+      // Increment stock quantity for this branch
       await prisma.stock.update({
         where: { id: existingStock.id },
         data: {
           quantity: existingStock.quantity + purchase.quantity,
-          branchId: result.data.branchId,
         },
       });
     } else {
-      // Create new stock entry
+      // Create new stock entry for this branch
       await prisma.stock.create({
         data: {
           item: purchase.productType,

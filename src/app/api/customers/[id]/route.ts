@@ -75,13 +75,40 @@ export async function DELETE(
   }
 
   try {
+    // Check if customer has related records
+    const relatedRecords = await Promise.all([
+      prisma.credit.count({ where: { customerId: id } }),
+      prisma.customerPayment.count({ where: { customerId: id } }),
+      prisma.paymentHistory.count({ where: { customerId: id } }),
+    ]);
+
+    const totalRelatedRecords = relatedRecords.reduce((sum, count) => sum + count, 0);
+
+    if (totalRelatedRecords > 0) {
+      return NextResponse.json(
+        {
+          error: "Cannot delete customer. This customer has related records (credits, payments, or payment history). Please remove or reassign these records first."
+        },
+        { status: 400 }
+      );
+    }
+
     const deletedCustomer = await prisma.customer.delete({
       where: { id },
     });
 
     return NextResponse.json({ data: deletedCustomer }, { status: 200 });
   } catch (error) {
-    console.error("Error deleting customers:", error);
+    console.error("Error deleting customer:", error);
+    
+    // Handle foreign key constraint errors
+    if (error instanceof Error && error.message.includes('Foreign key constraint')) {
+      return NextResponse.json(
+        { error: "Cannot delete customer. This customer has related records that prevent deletion." },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -80,27 +80,10 @@ export function PurchaseTable<TValue>({
     }
   }, [branchId]);
 
-  // Initial data load
+  // Use the passed data directly
   useEffect(() => {
-    if (initialData && initialData.length > 0) {
-      setData(initialData);
-    } else {
-      fetchData(1);
-    }
-  }, [initialData, fetchData]);
-
-  // Handle search with debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (globalFilter !== "") {
-        fetchData(1, globalFilter);
-      } else {
-        fetchData(1);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [globalFilter, fetchData]);
+    setData(initialData);
+  }, [initialData]);
 
   const table = useReactTable({
     data,

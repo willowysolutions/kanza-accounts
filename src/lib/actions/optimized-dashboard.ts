@@ -69,7 +69,7 @@ export async function getOptimizedDashboardData(branchId?: string) {
       // Stock levels - limit results
       prisma.stock.findMany({
         where: branchFilter,
-        select: { item: true, quantity: true },
+        select: { item: true, quantity: true, branchId: true },
         take: 50, // Limit to prevent large datasets
       }),
 

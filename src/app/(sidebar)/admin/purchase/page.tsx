@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {  Fuel, Truck, } from "lucide-react";
 import { Purchase } from "@/types/purchase";
+import { PurchaseOrder } from "@/types/purchase-order";
 import PurchaseManagement from "@/components/purchase/purchase-management";
 import { headers, cookies } from "next/headers";
 import { auth } from '@/lib/auth';
@@ -52,7 +53,8 @@ export default async function PurchasePage() {
   const purchasesByBranch = branches.map((branch: { id: string; name: string }) => ({
     branchId: branch.id,
     branchName: branch.name,
-    purchases: purchase.filter((p: Purchase) => p.branchId === branch.id)
+    purchases: purchase.filter((p: Purchase) => p.branchId === branch.id),
+    purchaseOrders: purchaseOrder.filter((po: PurchaseOrder) => po.branchId === branch.id)
   }));
 
   return (
@@ -66,7 +68,7 @@ export default async function PurchasePage() {
           ))}
         </TabsList>
 
-        {purchasesByBranch.map(({ branchId, branchName, purchases }: { branchId: string; branchName: string; purchases: Purchase[] }) => {
+        {purchasesByBranch.map(({ branchId, branchName, purchases, purchaseOrders }: { branchId: string; branchName: string; purchases: Purchase[]; purchaseOrders: PurchaseOrder[] }) => {
           const xpTotal = purchases.filter((p: Purchase) => p.productType === "XG-DIESEL")
                         .reduce((sum: number, p: Purchase) => sum + p.quantity, 0) ?? 0;
           const hsdTotal = purchases.filter((p: Purchase) => p.productType === "HSD-DIESEL")
@@ -130,9 +132,10 @@ export default async function PurchasePage() {
               
               <PurchaseManagement 
                 purchase={purchases} 
-                purchaseOrder={purchaseOrder}
+                purchaseOrder={purchaseOrders}
                 userRole={session.user.role || undefined}
                 userBranchId={userBranchId}
+                branchId={branchId}
               />
             </TabsContent>
           );

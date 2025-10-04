@@ -189,8 +189,11 @@ export async function PATCH(
     // 3. Update stock quantity if difference changed
     if (fuelType && qtyChange !== 0) {
       updateOperations.push(
-        prisma.stock.update({
-          where: { item: fuelType },
+        prisma.stock.updateMany({
+          where: { 
+            item: fuelType,
+            branchId: existingReading.branchId
+          },
           data: {
             quantity:
               qtyChange > 0

@@ -18,9 +18,10 @@ type PurchaseManagementProps = {
   purchaseOrder: PurchaseOrder[];
   userRole?: string;
   userBranchId?: string;
+  branchId?: string;
 };
 
-export default function PurchaseManagement({ purchase, purchaseOrder, userRole, userBranchId }: PurchaseManagementProps) {
+export default function PurchaseManagement({ purchase, purchaseOrder, userRole, userBranchId, branchId }: PurchaseManagementProps) {
   const [activeTab, setActiveTab] = useState("purchase");
 
   return (
@@ -52,7 +53,7 @@ export default function PurchaseManagement({ purchase, purchaseOrder, userRole, 
           </TabsList>
 
           <TabsContent value="purchase">
-            <PurchaseTable data={purchase} columns={purchaseColumns} />
+            <PurchaseTable data={purchase} columns={purchaseColumns} branchId={branchId} />
           </TabsContent>
 
           <TabsContent value="ordered">

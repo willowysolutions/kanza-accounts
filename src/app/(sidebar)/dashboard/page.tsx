@@ -215,8 +215,8 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
           </CardHeader>
           <CardContent>
             <ul className="divide-y">
-              {stocks.map((stock) => (
-                <li key={stock.item} className="flex justify-between py-2">
+              {stocks.map((stock, index) => (
+                <li key={`${stock.item}-${stock.branchId || 'no-branch'}-${index}`} className="flex justify-between py-2">
                   <span>{stock.item}</span>
                   <span>{(stock.quantity).toFixed(2)}</span>
                 </li>

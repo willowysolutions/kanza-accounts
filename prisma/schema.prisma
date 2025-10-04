@@ -10,7 +10,7 @@ datasource db {
 
 model Stock {
   id           String @id @default(auto()) @map("_id") @db.ObjectId
-  item         String @unique
+  item         String
   quantity     Float
 
   branchId       String?   @db.ObjectId
@@ -21,6 +21,8 @@ model Stock {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([item, branchId])
 }
 
 //MachineTank
