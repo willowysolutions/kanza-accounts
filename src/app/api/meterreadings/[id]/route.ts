@@ -65,11 +65,27 @@ export async function PATCH(
       (newClosingReading - newOpeningReading).toFixed(2)
     );
 
+    // Calculate new sale and total amount if closing reading changed
+    let newSale = existingReading.sale;
+    let newTotalAmount = existingReading.totalAmount;
+    
+    if (data.closingReading !== undefined) {
+      // Calculate new sale based on difference change
+      const oldDiff = existingReading.closingReading - existingReading.openingReading;
+      const saleChange = newDifference - oldDiff;
+      newSale = Math.max(0, existingReading.sale + saleChange);
+      
+      // Calculate new total amount based on fuel rate
+      const fuelRate = existingReading.fuelRate || 0;
+      newTotalAmount = Math.round(newDifference * fuelRate);
+    }
+
     // Prepare update data, only including fields that were provided
     const updateData: {
       nozzleId?: string;
       openingReading?: number;
       closingReading?: number;
+      sale?: number;
       totalAmount?: number;
       date?: Date;
       difference: number;
@@ -79,39 +95,130 @@ export async function PATCH(
     
     if (data.nozzleId !== undefined) updateData.nozzleId = data.nozzleId;
     if (data.openingReading !== undefined) updateData.openingReading = data.openingReading;
-    if (data.closingReading !== undefined) updateData.closingReading = data.closingReading;
+    if (data.closingReading !== undefined) {
+      updateData.closingReading = data.closingReading;
+      updateData.sale = newSale;
+      updateData.totalAmount = newTotalAmount;
+    }
     if (data.totalAmount !== undefined) updateData.totalAmount = data.totalAmount;
-    if (data.date !== undefined) updateData.date = data.date;
+    if (data.date !== undefined) {
+      // Preserve the time as 18:30:00.000+00:00 (6:30 PM UTC)
+      const date = new Date(data.date);
+      date.setUTCHours(18, 30, 0, 0); // Set to 18:30:00.000 UTC
+      updateData.date = date;
+    }
 
+    // Check for duplicate if date or nozzleId is being updated
+    if (data.date !== undefined || data.nozzleId !== undefined) {
+      const finalNozzleId = data.nozzleId ?? existingReading.nozzleId;
+      const finalDate = data.date !== undefined ? updateData.date : existingReading.date;
+      
+      if (finalDate) {
+        // Create date range for the day
+        const startOfDay = new Date(finalDate);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        const endOfDay = new Date(finalDate);
+        endOfDay.setUTCHours(23, 59, 59, 999);
+        
+        const duplicate = await prisma.meterReading.findFirst({
+          where: {
+            nozzleId: finalNozzleId,
+            date: {
+              gte: startOfDay,
+              lt: endOfDay,
+            },
+            id: { not: id }, // Exclude current record
+          },
+        });
+
+        if (duplicate) {
+          return NextResponse.json(
+            { error: `A meter reading already exists for this nozzle on ${finalDate.toLocaleDateString()}` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // Update the meter reading
     const updatedReading = await prisma.meterReading.update({
       where: { id },
       data: updateData,
     });
 
-    // Adjust tank stock if difference changed
+    // Calculate changes for tank, stock, and nozzle updates
     const oldDiff = existingReading.closingReading - existingReading.openingReading;
     const newDiff = newDifference;
     const qtyChange = newDiff - oldDiff;
 
+    // Get connected tank and fuel type
     const connectedTank = existingReading.nozzle?.machine?.machineTanks.find(
       (mt) => mt.tank?.fuelType === existingReading.nozzle?.fuelType
     )?.tank;
 
+    const fuelType = existingReading.nozzle?.fuelType;
+
+    // Update operations array
+    const updateOperations = [];
+
+    // 1. Update nozzle opening reading to new closing reading
+    if (data.closingReading !== undefined) {
+      updateOperations.push(
+        prisma.nozzle.update({
+          where: { id: existingReading.nozzleId },
+          data: { openingReading: newClosingReading },
+        })
+      );
+    }
+
+    // 2. Update tank current level if difference changed
     if (connectedTank && qtyChange !== 0) {
-      await prisma.tank.update({
-        where: { id: connectedTank.id },
-        data: {
-          currentLevel:
-            qtyChange > 0
-              ? { decrement: qtyChange }
-              : { increment: Math.abs(qtyChange) },
-        },
-      });
+      updateOperations.push(
+        prisma.tank.update({
+          where: { id: connectedTank.id },
+          data: {
+            currentLevel:
+              qtyChange > 0
+                ? { decrement: qtyChange }
+                : { increment: Math.abs(qtyChange) },
+          },
+        })
+      );
+    }
+
+    // 3. Update stock quantity if difference changed
+    if (fuelType && qtyChange !== 0) {
+      updateOperations.push(
+        prisma.stock.update({
+          where: { item: fuelType },
+          data: {
+            quantity:
+              qtyChange > 0
+                ? { decrement: qtyChange }
+                : { increment: Math.abs(qtyChange) },
+          },
+        })
+      );
+    }
+
+    // Execute all updates in parallel
+    if (updateOperations.length > 0) {
+      await Promise.all(updateOperations);
+      console.log(`Updated meter reading ${id} and related records`);
     }
 
     return NextResponse.json({ data: updatedReading }, { status: 200 });
   } catch (error) {
     console.error("Error updating meter reading:", error);
+    
+    // Handle unique constraint error
+    if (error instanceof Error && error.message.includes('Unique constraint failed')) {
+      return NextResponse.json(
+        { error: "A meter reading already exists for this nozzle on the selected date" },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

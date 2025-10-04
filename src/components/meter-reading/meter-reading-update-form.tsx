@@ -61,6 +61,7 @@ export function MeterReadingUpdateForm({
   const router = useRouter();
   const [nozzles, setNozzles] = useState<Nozzle[]>([]);
   const [products, setProducts] = useState<ProductType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<MeterReadingFormValues>({
     resolver: zodResolver(meterReadingSchema),
@@ -69,14 +70,25 @@ export function MeterReadingUpdateForm({
       openingReading: meterReading.openingReading || undefined,
       closingReading: meterReading.closingReading || undefined,
       totalAmount: meterReading.totalAmount,
-      date: meterReading.date,
+      date: new Date(meterReading.date),
     },
   });
+
 
   const handleSubmit = async (
     values: MeterReadingFormValues,
     close: () => void
   ) => {
+    if (isLoading) {
+      toast.error("Please wait for form to load completely");
+      return;
+    }
+
+    if (!values.nozzleId || values.nozzleId === "") {
+      toast.error("Please select a nozzle");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/meterreadings/${meterReading.id}`, {
         method: "PATCH",
@@ -100,32 +112,34 @@ export function MeterReadingUpdateForm({
   };
 
   useEffect(() => {
-    const fetchNozzles = async () => {
+    const fetchData = async () => {
+      if (!open) return; // Only fetch when modal is open
+      
+      setIsLoading(true);
       try {
-        const res = await fetch("/api/nozzles");
-        const json = await res.json();
-        setNozzles(json.data || []);
+        // Fetch both nozzles and products in parallel
+        const [nozzlesRes, productsRes] = await Promise.all([
+          fetch("/api/nozzles"),
+          fetch("/api/products")
+        ]);
+        
+        const [nozzlesJson, productsJson] = await Promise.all([
+          nozzlesRes.json(),
+          productsRes.json()
+        ]);
+        
+        setNozzles(nozzlesJson.data || []);
+        setProducts(productsJson.data || []);
       } catch (error) {
-        console.error("Failed to fetch nozzles", error);
+        console.error("Failed to fetch data:", error);
+        toast.error("Failed to load form data");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchNozzles();
-  }, []);
-
-    useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch("/api/products");
-        const json = await res.json();
-        setProducts(json.data || []);
-      } catch (error) {
-        console.error("Failed to fetch meter products", error);
-      }
-    };
-
-    fetchProducts();
-  }, []);
+    fetchData();
+  }, [open]);
 
   useEffect(() => {
     const subscription = form.watch((values, { name }) => {
@@ -174,18 +188,24 @@ export function MeterReadingUpdateForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Nozzle</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                 <FormControl>
-                  <SelectTrigger className="w-full" disabled>
-                    <SelectValue placeholder="Select nozzle" />
+                  <SelectTrigger className="w-full" disabled={isLoading}>
+                    <SelectValue placeholder={isLoading ? "Loading nozzles..." : "Select nozzle"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {nozzles.map((n) => (
-                    <SelectItem key={n.id} value={n.id}>
-                      {n.nozzleNumber} – {n.fuelType}
-                    </SelectItem>
-                  ))}
+                  {isLoading ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Loading nozzles...
+                    </div>
+                  ) : (
+                    nozzles.map((n) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        {n.nozzleNumber} – {n.fuelType}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -286,7 +306,9 @@ export function MeterReadingUpdateForm({
                       )}
                     >
                       {field.value
-                        ? new Date(field.value).toLocaleDateString()
+                        ? (field.value instanceof Date 
+                            ? field.value.toLocaleDateString()
+                            : new Date(field.value).toLocaleDateString())
                         : "Pick a date"}
                     </Button>
                   </FormControl>
@@ -294,7 +316,7 @@ export function MeterReadingUpdateForm({
                 <PopoverContent>
                   <Calendar
                     mode="single"
-                    selected={field.value ? new Date(field.value) : undefined}
+                    selected={field.value ? (field.value instanceof Date ? field.value : new Date(field.value)) : undefined}
                     onSelect={field.onChange}
                     captionLayout="dropdown"
                   />
@@ -311,7 +333,9 @@ export function MeterReadingUpdateForm({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="submit">Update</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Loading..." : "Update"}
+          </Button>
         </FormDialogFooter>
       </FormDialogContent>
     </FormDialog>

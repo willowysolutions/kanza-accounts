@@ -81,8 +81,13 @@ export async function POST(req: Request) {
           ? Math.round(difference * reading.fuelRate)
           : 0;
 
+      // Preserve the time as 18:30:00.000+00:00 (6:30 PM UTC)
+      const date = new Date(reading.date);
+      date.setUTCHours(18, 30, 0, 0); // Set to 18:30:00.000 UTC
+
       return {
         ...reading,
+        date,
         difference,
         totalAmount,
         branchId,

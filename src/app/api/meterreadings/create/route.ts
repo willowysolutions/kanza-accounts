@@ -42,7 +42,9 @@ export async function POST(req: NextRequest) {
     });
     const branchId = session?.user?.branch;
 
+    // Preserve the time as 18:30:00.000+00:00 (6:30 PM UTC)
     const readingDate = new Date(result.data.date);
+    readingDate.setUTCHours(18, 30, 0, 0); // Set to 18:30:00.000 UTC
 
     const createdReadings = [];
 

@@ -339,20 +339,20 @@ if (report.oils.length > 0) {
             {/* Products / Meter Readings */}
             <Table>
               <TableHeader>
-                <TableRow className="bg-primary text-primary-foreground">
-                  <TableHead>NOZZLE</TableHead>
-                  <TableHead className="text-right">OP.READING </TableHead>
-                  <TableHead className="text-right">CL.READING </TableHead>
-                  <TableHead className="text-right">SALE</TableHead>
-                  <TableHead className="text-right">RATE</TableHead>
-                  <TableHead className="text-right">AMOUNT</TableHead>
+                <TableRow className="bg-yellow-200 text-primary-foreground">
+                  <TableHead className="text-black">NOZZLE</TableHead>
+                  <TableHead className="text-right text-black">OP.READING </TableHead>
+                  <TableHead className="text-right text-black">CL.READING </TableHead>
+                  <TableHead className="text-right text-black">SALE</TableHead>
+                  <TableHead className="text-right text-black">RATE</TableHead>
+                  <TableHead className="text-right text-black">AMOUNT</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {report.meterReadings.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell>{`${m.nozzle?.nozzleNumber}`}</TableCell>
-                    <TableCell className="text-right">{m.openingReading}</TableCell>
+                    <TableCell className="text-right ">{m.openingReading}</TableCell>
                     <TableCell className="text-right">{m.closingReading}</TableCell>
                     <TableCell className="text-right">{m.difference}</TableCell>
                     <TableCell className="text-right">{m.fuelRate}</TableCell>
@@ -367,10 +367,10 @@ if (report.oils.length > 0) {
             {/* Oils */}
             <Table>
               <TableHeader>
-                <TableRow className="bg-primary text-primary-foreground">
-                  <TableHead>OIL</TableHead>
-                  <TableHead>QUANTITY</TableHead>
-                  <TableHead className="text-right">AMOUNT</TableHead>
+                <TableRow className="bg-yellow-200 text-primary-foreground">
+                  <TableHead className="text-black">OIL</TableHead>
+                  <TableHead className="text-black">QUANTITY</TableHead>
+                  <TableHead className="text-right text-black">AMOUNT</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
