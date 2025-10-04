@@ -257,7 +257,7 @@ export function MeterReadingUpdateForm({
                   {...field}
                   value={field.value ?? ""}
                   onChange={(e) => field.onChange(e.target.value === "" ? "" : e.target.value)}
-
+                  onWheel={(e) => e.currentTarget.blur()}
                 />
               </FormControl>
               <FormMessage />
@@ -280,6 +280,7 @@ export function MeterReadingUpdateForm({
                   {...field}
                   value={field.value ?? ""}
                   onChange={(e) => field.onChange(Number(e.target.value))}
+                  onWheel={(e) => e.currentTarget.blur()}
                 />
               </FormControl>
               <FormMessage />

@@ -72,7 +72,7 @@ export function MeterReadingFormSheet({
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<ProductType[]>([]);
   const [tankLevels, setTankLevels] = useState<Record<string, { currentLevel: number; tankName: string; fuelType: string }>>({});
-  const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  // const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(branchId || "");
 
   // Update selectedBranchId when branchId prop changes
@@ -154,29 +154,26 @@ export function MeterReadingFormSheet({
   // Function to check if there are any validation errors
   const checkValidationErrors = useCallback(() => {
     const rows = form.getValues('rows');
-    let hasErrors = false;
 
     // Check individual tank level validation
     for (const row of rows) {
       if (row.closing != null && row.opening != null) {
         const validation = validateTankLevel(row.nozzleId, row.closing, row.opening);
         if (validation && !validation.isValid) {
-          hasErrors = true;
+          // Tank level validation still shows warnings
           break;
         }
       }
     }
 
-    // Check stock availability validation
-    if (!hasErrors) {
-      const stockIssues = validateStockAvailability();
-      if (stockIssues.length > 0) {
-        hasErrors = true;
-      }
-    }
+    // Note: Stock validation is shown as warning but doesn't block saving
+    // const stockIssues = validateStockAvailability();
+    // if (stockIssues.length > 0) {
+    //   hasErrors = true;
+    // }
 
-    setHasValidationErrors(hasErrors);
-  }, [form, validateStockAvailability, validateTankLevel]);
+    // setHasValidationErrors(hasErrors);
+  }, [form, validateTankLevel]);
 
 useEffect(() => {
   const load = async () => {
@@ -255,13 +252,13 @@ useEffect(() => {
   //submit
   const submit = async (values: BulkForm) => {
   try {
-    // Check for stock validation errors before submitting
-    const stockIssues = validateStockAvailability();
-    if (stockIssues.length > 0) {
-      const fuelTypes = stockIssues.map(issue => issue.fuelType).join(', ');
-      toast.error(`Cannot save: Insufficient stock for ${fuelTypes}. Please adjust your closing readings.`);
-      return;
-    }
+    // Note: Stock validation messages are shown but don't prevent saving
+    // const stockIssues = validateStockAvailability();
+    // if (stockIssues.length > 0) {
+    //   const fuelTypes = stockIssues.map(issue => issue.fuelType).join(', ');
+    //   toast.error(`Cannot save: Insufficient stock for ${fuelTypes}. Please adjust your closing readings.`);
+    //   return;
+    // }
 
     // ensure closing >= opening before saving
     const items = values.rows.map((r) => {
@@ -465,7 +462,7 @@ return (
                                   <FormControl>
                                     <Input
                                       disabled
-                                      type="number"
+                                      type="text"
                                       placeholder="opening"
                                       value={field.value ?? ""}
                                       onChange={(e) =>
@@ -500,6 +497,7 @@ return (
                                       placeholder="closing"
                                       value={field.value ?? ""}
                                       className={validation && !validation.isValid ? "border-red-500" : ""}
+                                      onWheel={(e) => e.currentTarget.blur()}
                                       onChange={(e) => {
                                         const newClosingValue =
                                           e.target.value === ""
@@ -555,7 +553,7 @@ return (
                                   <FormControl>
                                     <Input
                                       disabled
-                                      type="number"
+                                      type="text"
                                       placeholder="sale"
                                       value={field.value != null ? Number(field.value).toFixed(2) : ""}
                                       onChange={(e) =>
@@ -580,7 +578,7 @@ return (
                                   <FormControl>
                                     <Input
                                       disabled
-                                      type="number"
+                                      type="text"
                                       placeholder="price/unit"
                                       value={field.value ?? ""}
                                       onChange={(e) =>
@@ -607,6 +605,7 @@ return (
                                       type="number"
                                       placeholder="total amount"
                                       value={field.value != null ? Number(field.value).toFixed(2) : ""}
+                                      onWheel={(e) => e.currentTarget.blur()}
                                       onChange={(e) =>
                                         field.onChange(
                                           e.target.value === "" ? undefined : Number(e.target.value)
@@ -737,17 +736,17 @@ return (
             const stockIssues = validateStockAvailability();
             if (stockIssues.length > 0) {
               return (
-                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <h4 className="text-red-800 font-semibold mb-2">⚠️ Insufficient Stock</h4>
+                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h4 className="text-yellow-800 font-semibold mb-2">⚠️ Stock Warning</h4>
                   <div className="space-y-1">
                     {stockIssues.map((issue, index) => (
-                      <div key={index} className="text-red-700 text-sm">
+                      <div key={index} className="text-yellow-700 text-sm">
                         <strong>{issue.fuelType}:</strong> Total sale ({issue.totalSale.toFixed(2)}L) exceeds available stock ({issue.availableStock.toFixed(2)}L)
                       </div>
                     ))}
                   </div>
-                  <div className="text-red-600 text-xs mt-2">
-                    Please adjust your closing readings to match available stock levels.
+                  <div className="text-yellow-600 text-xs mt-2">
+                    Note: You can still save these readings, but stock levels will go negative.
                   </div>
                 </div>
               );
@@ -766,7 +765,7 @@ return (
               </Button>
             </SheetClose>
 
-              <Button type="submit" disabled={form.formState.isSubmitting || hasValidationErrors}>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

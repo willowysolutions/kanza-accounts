@@ -100,15 +100,28 @@ export function BalanceSheetReport({
     const productTotals: { [key: string]: number } = {};
     
     filteredData.sales.forEach((sale) => {
+      // Process dynamic products from the products field
+      if (sale.products && typeof sale.products === 'object') {
+        Object.entries(sale.products).forEach(([productName, amount]) => {
+          if (typeof amount === 'number' && amount > 0) {
+            productTotals[productName] = (productTotals[productName] || 0) + amount;
+          }
+        });
+      }
+      
+      // Also include legacy fuel totals for backward compatibility
       if (sale.msPetrolTotal) productTotals['MS-PETROL'] = (productTotals['MS-PETROL'] || 0) + sale.msPetrolTotal;
       if (sale.hsdDieselTotal) productTotals['HSD-DIESEL'] = (productTotals['HSD-DIESEL'] || 0) + sale.hsdDieselTotal;
       if (sale.xgDieselTotal) productTotals['XG-DIESEL'] = (productTotals['XG-DIESEL'] || 0) + sale.xgDieselTotal;
     });
 
-    return Object.entries(productTotals).map(([product, total]) => ({
-      product,
-      total,
-    }));
+    // Sort products alphabetically for consistent display
+    return Object.entries(productTotals)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([product, total]) => ({
+        product,
+        total,
+      }));
   }, [filteredData.sales]);
 
   // Calculate customer credits data

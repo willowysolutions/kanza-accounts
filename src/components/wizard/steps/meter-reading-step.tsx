@@ -37,7 +37,7 @@ export const MeterReadingStep: React.FC = () => {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [tankLevels, setTankLevels] = useState<Record<string, { currentLevel: number; tankName: string; fuelType: string }>>({});
-  const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  // const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const router = useRouter();
 
   const { commonDate } = useWizard();
@@ -131,17 +131,17 @@ export const MeterReadingStep: React.FC = () => {
       }
     }
 
-    // Check stock availability validation
-    if (!hasErrors) {
-      const stockIssues = validateStockAvailability();
-      if (stockIssues.length > 0) {
-        hasErrors = true;
-      }
-    }
+    // Note: Stock validation is shown as warning but doesn't block saving
+    // if (!hasErrors) {
+    //   const stockIssues = validateStockAvailability();
+    //   if (stockIssues.length > 0) {
+    //     hasErrors = true;
+    //   }
+    // }
 
-    setHasValidationErrors(hasErrors);
+    // setHasValidationErrors(hasErrors);
     setIsStepDisabled(hasErrors);
-  }, [form, validateTankLevel, validateStockAvailability, setIsStepDisabled]);
+  }, [form, validateTankLevel, setIsStepDisabled]);
 
   // Load data
   useEffect(() => {
@@ -239,17 +239,17 @@ export const MeterReadingStep: React.FC = () => {
   // Submit function
   const submit = useCallback(async (values: BulkForm): Promise<boolean> => {
     try {
-      // Check for validation errors before submitting
-      if (hasValidationErrors) {
-        const stockIssues = validateStockAvailability();
-        if (stockIssues.length > 0) {
-          const fuelTypes = stockIssues.map(issue => issue.fuelType).join(', ');
-          toast.error(`Cannot save: Insufficient stock for ${fuelTypes}. Please adjust your closing readings.`);
-        } else {
-          toast.error("Cannot save with insufficient stock levels. Please check your closing readings.");
-        }
-        return false;
-      }
+      // Note: Stock validation messages are shown but don't prevent saving
+      // if (hasValidationErrors) {
+      //   const stockIssues = validateStockAvailability();
+      //   if (stockIssues.length > 0) {
+      //     const fuelTypes = stockIssues.map(issue => issue.fuelType).join(', ');
+      //     toast.error(`Cannot save: Insufficient stock for ${fuelTypes}. Please adjust your closing readings.`);
+      //   } else {
+      //     toast.error("Cannot save with insufficient stock levels. Please check your closing readings.");
+      //   }
+      //   return false;
+      // }
 
       // ensure closing >= opening before saving
       const items = values.rows.map((r) => {
@@ -316,7 +316,7 @@ export const MeterReadingStep: React.FC = () => {
       toast.error("Unexpected error");
       return false;
     }
-  }, [nozzleMap, markStepCompleted, currentStep, router, hasValidationErrors, validateStockAvailability]);
+  }, [nozzleMap, markStepCompleted, currentStep, router]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {
@@ -415,7 +415,7 @@ export const MeterReadingStep: React.FC = () => {
                                 <FormControl>
                                   <Input
                                     disabled
-                                    type="number"
+                                    type="text"
                                     placeholder="opening"
                                     value={field.value ?? ""}
                                     onChange={(e) =>
@@ -450,6 +450,7 @@ export const MeterReadingStep: React.FC = () => {
                                       placeholder="closing"
                                       value={field.value ?? ""}
                                       className={validation && !validation.isValid ? "border-red-500" : ""}
+                                      onWheel={(e) => e.currentTarget.blur()}
                                       onChange={(e) => {
                                         const newClosingValue = e.target.value === "" ? undefined : Number(e.target.value);
                                         
@@ -499,7 +500,7 @@ export const MeterReadingStep: React.FC = () => {
                                 <FormControl>
                                   <Input
                                     disabled
-                                    type="number"
+                                    type="text"
                                     placeholder="sale"
                                     value={field.value != null ? Number(field.value).toFixed(2) : ""}
                                     onChange={(e) =>
@@ -524,7 +525,7 @@ export const MeterReadingStep: React.FC = () => {
                                 <FormControl>
                                   <Input
                                     disabled
-                                    type="number"
+                                    type="text"
                                     placeholder="price/unit"
                                     value={field.value ?? ""}
                                     onChange={(e) =>
@@ -551,6 +552,7 @@ export const MeterReadingStep: React.FC = () => {
                                     type="number"
                                     placeholder="total amount"
                                     value={field.value != null ? Number(field.value).toFixed(2) : ""}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     onChange={(e) =>
                                       field.onChange(
                                         e.target.value === "" ? undefined : Number(e.target.value)
@@ -683,17 +685,17 @@ export const MeterReadingStep: React.FC = () => {
               const stockIssues = validateStockAvailability();
               if (stockIssues.length > 0) {
                 return (
-                  <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h4 className="text-red-800 font-semibold mb-2">⚠️ Insufficient Stock</h4>
+                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="text-yellow-800 font-semibold mb-2">⚠️ Stock Warning</h4>
                     <div className="space-y-1">
                       {stockIssues.map((issue, index) => (
-                        <div key={index} className="text-red-700 text-sm">
+                        <div key={index} className="text-yellow-700 text-sm">
                           <strong>{issue.fuelType}:</strong> Total sale ({issue.totalSale.toFixed(2)}L) exceeds available stock ({issue.availableStock.toFixed(2)}L)
                         </div>
                       ))}
                     </div>
-                    <div className="text-red-600 text-xs mt-2">
-                      Please adjust your closing readings to match available stock levels.
+                    <div className="text-yellow-600 text-xs mt-2">
+                      Note: You can still save these readings, but stock levels will go negative.
                     </div>
                   </div>
                 );
