@@ -28,7 +28,8 @@ export const ExpenseStep: React.FC = () => {
     setAddedExpenses,
     savedRecords,
     setSavedRecords,
-    commonDate
+    commonDate,
+    selectedBranchId
   } = useWizard();
   const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string; limit?: number }[]>([]);
   const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([]);
@@ -75,7 +76,7 @@ export const ExpenseStep: React.FC = () => {
           const res = await fetch(`/api/expenses/${expense.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
           
           if (!res.ok) {
@@ -105,7 +106,7 @@ export const ExpenseStep: React.FC = () => {
           const res = await fetch('/api/expenses/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
 
           if (!res.ok) {
@@ -178,7 +179,7 @@ export const ExpenseStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedExpenses, form, setAddedExpenses, setSavedRecords, exceedsLimit]);
+  }, [router, editingIndex, addedExpenses, form, setAddedExpenses, setSavedRecords, exceedsLimit, selectedBranchId]);
 
   const handleAddAnother = async () => {
     const values = form.getValues();

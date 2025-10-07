@@ -298,7 +298,7 @@ export const MeterReadingStep: React.FC = () => {
       const res = await fetch("/api/meterreadings/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ items, branchId: selectedBranchId }),
       });
 
       if (!res.ok) {
@@ -316,7 +316,7 @@ export const MeterReadingStep: React.FC = () => {
       toast.error("Unexpected error");
       return false;
     }
-  }, [nozzleMap, markStepCompleted, currentStep, router]);
+  }, [nozzleMap, markStepCompleted, currentStep, router, selectedBranchId]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {

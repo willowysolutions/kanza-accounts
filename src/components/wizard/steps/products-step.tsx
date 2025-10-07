@@ -120,7 +120,7 @@ export const ProductsStep: React.FC = () => {
           const res = await fetch(`/api/oils/${product.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
           
           if (!res.ok) {
@@ -148,7 +148,7 @@ export const ProductsStep: React.FC = () => {
           const res = await fetch('/api/oils/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
 
           if (!res.ok) {
@@ -219,7 +219,7 @@ export const ProductsStep: React.FC = () => {
       toast.error("Something went wrong while saving oil entry");
       return false;
     }
-  }, [router, editingIndex, addedProducts, form, setAddedProducts, setSavedRecords]);
+  }, [router, editingIndex, addedProducts, form, setAddedProducts, setSavedRecords, selectedBranchId]);
 
   const handleAddAnother = async () => {
     const values = form.getValues();

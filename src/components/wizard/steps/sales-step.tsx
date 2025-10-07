@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 // import { parseProducts } from '@/lib/product-utils'; // Unused import removed
 
 export const SalesStep: React.FC = () => {
-  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, commonDate } = useWizard();
+  const { markStepCompleted, markCurrentStepCompleted, currentStep, setOnSaveAndNext, commonDate, selectedBranchId } = useWizard();
   const [meterReading, setMeterReading] = useState<{ 
     totalAmount: number;
     id: string;
@@ -59,7 +59,7 @@ export const SalesStep: React.FC = () => {
       const res = await fetch('/api/sales/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, branchId: selectedBranchId }),
       });
 
       if (!res.ok) {
@@ -77,7 +77,7 @@ export const SalesStep: React.FC = () => {
       toast.error("Something went wrong while saving sale");
       return false;
     }
-  }, [ router]);
+  }, [router, selectedBranchId]);
 
   // Fetch Meter-reading
   useEffect(() => {

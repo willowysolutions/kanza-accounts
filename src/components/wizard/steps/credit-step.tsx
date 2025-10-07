@@ -81,7 +81,7 @@ export const CreditStep: React.FC = () => {
           const res = await fetch(`/api/credits/${credit.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
           
           if (!res.ok) {
@@ -111,7 +111,7 @@ export const CreditStep: React.FC = () => {
           const res = await fetch('/api/credits/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
 
           if (!res.ok) {
@@ -184,7 +184,7 @@ export const CreditStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedCredits, form, setAddedCredits, setSavedRecords, exceedsLimit]);
+  }, [router, editingIndex, addedCredits, form, setAddedCredits, setSavedRecords, exceedsLimit, selectedBranchId]);
 
   const handleAddAnother = async () => {
     const values = form.getValues();

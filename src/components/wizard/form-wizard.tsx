@@ -151,16 +151,21 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
   const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
     // For non-admin users, use their assigned branch
     if (userRole?.toLowerCase() !== 'admin' && userBranchId) {
+      console.log('Wizard: Using user branch ID:', userBranchId);
       return userBranchId;
     }
     // For admin users, use the initial branch or first available
+    console.log('Wizard: Using initial branch ID:', initialBranchId);
     return initialBranchId || '';
   });
   
   // Common date for all steps - initialized to yesterday and persists across navigation
   const [commonDate, setCommonDate] = useState<Date>(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const now = new Date();
+    // Get yesterday's date explicitly
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    // Set to 18:30:00.000 UTC (6:30 PM UTC)
+    yesterday.setUTCHours(18, 30, 0, 0);
     return yesterday;
   });
   
@@ -308,7 +313,13 @@ const CommonDatePicker: React.FC = () => {
           <Calendar
             mode="single"
             selected={commonDate}
-            onSelect={(date) => date && setCommonDate(date)}
+            onSelect={(date) => {
+              if (date) {
+                // Set to 18:30:00.000 UTC (6:30 PM UTC)
+                date.setUTCHours(18, 30, 0, 0);
+                setCommonDate(date);
+              }
+            }}
             initialFocus
           />
         </PopoverContent>
@@ -537,7 +548,14 @@ const BranchSelector: React.FC = () => {
       try {
         const response = await fetch('/api/branch');
         const data = await response.json();
+        console.log('Wizard: Fetched branches:', data.data);
         setBranches(data.data || []);
+        
+        // If no branch is selected and we have branches, select the first one
+        if (!selectedBranchId && data.data && data.data.length > 0) {
+          console.log('Wizard: Auto-selecting first branch:', data.data[0]);
+          setSelectedBranchId(data.data[0].id);
+        }
       } catch (error) {
         console.error('Failed to fetch branches:', error);
       } finally {
@@ -546,7 +564,7 @@ const BranchSelector: React.FC = () => {
     };
 
     fetchBranches();
-  }, []);
+  }, [selectedBranchId, setSelectedBranchId]);
 
   if (loading) {
     return (
@@ -561,7 +579,10 @@ const BranchSelector: React.FC = () => {
       <span className="text-sm font-medium">Branch:</span>
       <select
         value={selectedBranchId}
-        onChange={(e) => setSelectedBranchId(e.target.value)}
+        onChange={(e) => {
+          console.log('Wizard: Branch selection changed to:', e.target.value);
+          setSelectedBranchId(e.target.value);
+        }}
         className="px-3 py-1 border rounded-md text-sm"
       >
         {branches.map((branch) => (

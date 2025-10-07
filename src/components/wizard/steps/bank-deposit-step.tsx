@@ -54,7 +54,7 @@ export const BankDepositStep: React.FC = () => {
           const res = await fetch(`/api/bank-deposite/${deposit.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
           
           if (!res.ok) {
@@ -81,7 +81,7 @@ export const BankDepositStep: React.FC = () => {
           const res = await fetch('/api/bank-deposite/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values),
+            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
           });
 
           if (!res.ok) {
@@ -151,7 +151,7 @@ export const BankDepositStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedDeposits, form, setAddedDeposits, setSavedRecords]);
+  }, [router, editingIndex, addedDeposits, form, setAddedDeposits, setSavedRecords, selectedBranchId]);
 
   const handleAddAnother = async () => {
     const values = form.getValues();
