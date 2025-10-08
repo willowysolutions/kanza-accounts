@@ -48,7 +48,7 @@ export function SupplierFormDialog({
   userBranchId?: string;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(suppliers?.branchId || userBranchId || "");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof supplierSchema>>({
@@ -211,6 +211,7 @@ export function SupplierFormDialog({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!suppliers}
         />
 
 

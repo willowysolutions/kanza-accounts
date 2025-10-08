@@ -10,6 +10,7 @@ interface BranchSelectorProps {
   userRole?: string;
   userBranchId?: string;
   className?: string;
+  isEditMode?: boolean;
 }
 
 export function BranchSelector({ 
@@ -17,7 +18,8 @@ export function BranchSelector({
   onValueChange, 
   userRole, 
   userBranchId, 
-  className 
+  className,
+  isEditMode = false
 }: BranchSelectorProps) {
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,8 +56,8 @@ export function BranchSelector({
     }
   }, [isAdmin, userBranchId, value, onValueChange]);
 
-  if (!isAdmin) {
-    // For non-admin users, show a disabled field with their branch name
+  if (!isAdmin && !isEditMode) {
+    // For non-admin users in create mode, show a disabled field with their branch name
     const userBranch = branches.find(branch => branch.id === userBranchId);
     return (
       <div className={className}>

@@ -377,6 +377,7 @@ return (
             userRole={userRole}
             userBranchId={userBranchId}
             className="mb-4"
+            isEditMode={!!meterReading}
           />
 
           {/* Body */}

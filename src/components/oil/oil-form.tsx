@@ -200,6 +200,7 @@ export function OilFormModal({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!oil}
         />
 
         <div className="grid grid-cols-2 gap-4">

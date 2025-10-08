@@ -46,7 +46,7 @@ export const ExpenseFormDialog = ({
   const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string; limit?: number }[]>([])
   const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(expense?.branchId || userBranchId || "");
   const router = useRouter();
 
 
@@ -175,6 +175,7 @@ export const ExpenseFormDialog = ({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!expense}
         />
 
         {/* Title */}

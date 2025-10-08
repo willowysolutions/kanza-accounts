@@ -64,7 +64,7 @@ export function SalesFormModal({
     productType:string;
   }[]>([]);
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(sales?.branchId || userBranchId || "");
 
 
   const router = useRouter();
@@ -399,6 +399,7 @@ useEffect(() => {
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!sales}
         />
 
         <div className="grid grid-cols-2 gap-4">

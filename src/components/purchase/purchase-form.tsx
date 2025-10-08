@@ -65,7 +65,7 @@ export function PurchaseFormModal({
   }[]>([]);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [purchasePrice, setPurchasePrice] = useState<number>(0);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(purchase?.branchId || userBranchId || "");
 
   const router = useRouter();
 
@@ -239,6 +239,7 @@ export function PurchaseFormModal({
             onValueChange={setSelectedBranchId}
             userRole={userRole}
             userBranchId={userBranchId}
+            isEditMode={!!purchase}
           />
         </div>
 

@@ -198,6 +198,7 @@ export function CustomerFormDialog({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!customers}
         />
 
         <div className="grid grid-cols-2 gap-4">

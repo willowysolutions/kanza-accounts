@@ -56,7 +56,7 @@ export function PaymentFormDialog({
   onPaymentAdded?: (paymentData: PaymentFormData) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(payments?.branchId || userBranchId || "");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof customerPaymentSchema>>({
@@ -148,6 +148,7 @@ export function PaymentFormDialog({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!payments}
         />
 
         {/* Customer */}

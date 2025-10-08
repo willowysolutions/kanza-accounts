@@ -45,7 +45,7 @@ export const BankDepositeFormDialog = ({
 }: BankDepositeFormProps & { branchId?: string; userRole?: string; userBranchId?: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bankOptions, setBankOptions] = useState<{ bankName: string; id: string;}[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(branchId || userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(bankDeposite?.branchId || branchId || userBranchId || "");
   const router = useRouter();
 
 
@@ -150,6 +150,7 @@ export const BankDepositeFormDialog = ({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!bankDeposite}
         />
 
         {/* Title */}

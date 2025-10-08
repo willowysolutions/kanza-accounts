@@ -54,7 +54,7 @@ export function PurchasePaymentFormDialog({
   userBranchId?: string;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(payments?.branchId || userBranchId || "");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof supplierPaymentSchema>>({
@@ -130,6 +130,7 @@ export function PurchasePaymentFormDialog({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!payments}
         />
 
         {/* Supplier */}

@@ -62,7 +62,7 @@ export function CreditFormDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerOption, setCustomerOptions] = useState<{ id: string; name: string; openingBalance: number; outstandingPayments:number; limit?: number; }[]>([]);
   const [products, setProducts] = useState<{id:string; productName :string; productUnit: string; purchasePrice: number; sellingPrice: number; }[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(branchId || userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(credits?.branchId || branchId || userBranchId || "");
   const [customerSearch, setCustomerSearch] = useState("");
   const router = useRouter();
 
@@ -257,6 +257,7 @@ export function CreditFormDialog({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!credits}
         />
 
         {/* Customer Search */}

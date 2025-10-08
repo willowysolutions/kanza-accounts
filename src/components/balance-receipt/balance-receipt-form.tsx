@@ -48,7 +48,7 @@ export const BalanceReceiptFormDialog = ({
   userBranchId,
 }: BalanceReceiptFormProps & { userRole?: string; userBranchId?: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(balanceReceipt?.branchId || userBranchId || "");
   const router = useRouter();
 
   const form = useForm<BalanceReceiptFormValues>({
@@ -133,6 +133,7 @@ export const BalanceReceiptFormDialog = ({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
+          isEditMode={!!balanceReceipt}
         />
 
         <div className="grid gap-4">

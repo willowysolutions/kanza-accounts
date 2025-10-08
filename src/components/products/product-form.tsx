@@ -54,7 +54,7 @@ export function ProductFormDialog({
   userBranchId?: string;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(products?.branchId || userBranchId || "");
 
   const router = useRouter();
 
@@ -224,6 +224,7 @@ export function ProductFormDialog({
             onValueChange={setSelectedBranchId}
             userRole={userRole}
             userBranchId={userBranchId}
+            isEditMode={!!products}
           />
 
           <FormField
