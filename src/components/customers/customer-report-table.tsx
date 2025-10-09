@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerReportExport } from "@/components/reports/customer-report-export";
-import { CustomerHistoryModal } from "@/components/customers/customer -history-modal";
+import { CustomerHistoryModal } from "@/components/customers/customer-history-modal";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { usePagination } from "@/hooks/use-pagination";
 

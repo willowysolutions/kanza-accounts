@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Customer } from '@/types/customer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CustomerHistoryModal } from '@/components/customers/customer -history-modal';
+import { CustomerHistoryModal } from '@/components/customers/customer-history-modal';
 import { CustomerDownloadButton } from './customer-download-button';
 import { useState } from 'react';
 

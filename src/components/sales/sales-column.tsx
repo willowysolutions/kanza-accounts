@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Edit2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Edit2, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { SalesFormModal } from "./sales-form";
 import { SalesDeleteDialog } from "./sales-delete-dialog";
@@ -19,147 +13,118 @@ export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => [
   {
     accessorKey: "date",
     header: "Date & Time",
-    cell:({row}) => {
-      const dateTime = row.original.date
-      return (
-        <div>{formatDate(dateTime)}</div>
-      )
-    }
+    cell: ({ row }) => {
+      const dateTime = row.original.date;
+      return <div>{formatDate(dateTime)}</div>;
+    },
   },
   {
-    accessorKey:"cashPayment",
-    header:"Cash Payment",
-    cell: ({row}) => {
-      const cashPayment = row.original.cashPayment
-      return (
-        <div>{formatCurrency(cashPayment)}</div>
-      )
-    }
+    accessorKey: "cashPayment",
+    header: "Cash Payment",
+    cell: ({ row }) => <div>{formatCurrency(row.original.cashPayment)}</div>,
   },
   {
-    accessorKey:"atmPayment",
-    header:"ATM Payment",
-    cell: ({row}) => {
-      const atmPayment = row.original.atmPayment
-      return (
-        <div>{formatCurrency(atmPayment)}</div>
-      )
-    }
+    accessorKey: "atmPayment",
+    header: "ATM Payment",
+    cell: ({ row }) => <div>{formatCurrency(row.original.atmPayment)}</div>,
   },
   {
-    accessorKey:"paytmPayment",
-    header:"Paytm Payment",
-    cell: ({row}) => {
-      const paytmPayment = row.original.paytmPayment
-      return (
-        <div>{formatCurrency(paytmPayment)}</div>
-      )
-    }
+    accessorKey: "paytmPayment",
+    header: "Paytm Payment",
+    cell: ({ row }) => <div>{formatCurrency(row.original.paytmPayment)}</div>,
   },
   {
-    accessorKey:"fleetPayment",
-    header:"Fleet Payment",
-    cell: ({row}) => {
-      const fleetPayment = row.original.fleetPayment
-      return (
-        <div>{formatCurrency(fleetPayment)}</div>
-      )
-    }
+    accessorKey: "fleetPayment",
+    header: "Fleet Payment",
+    cell: ({ row }) => <div>{formatCurrency(row.original.fleetPayment)}</div>,
   },
   {
-    accessorKey:"hsdDieselTotal",
-    header:"HSD-DIESEL",
-    cell: ({row}) => {
-      const hsdDieselTotal = row.original.hsdDieselTotal
-      return (
-        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800`}>
-        {formatCurrency(hsdDieselTotal)}
-        </div>
-      )
-    }
+    accessorKey: "hsdDieselTotal",
+    header: "HSD-DIESEL",
+    cell: ({ row }) => (
+      <div className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
+        {formatCurrency(row.original.hsdDieselTotal)}
+      </div>
+    ),
   },
   {
-    accessorKey:"xgDieselTotal",
-    header:"XG-DIESEL",
-    cell: ({row}) => {
-      const xgDieselTotal = row.original.xgDieselTotal
-      return (
-        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-green-100 text-green-800`}>
-        {formatCurrency(xgDieselTotal)}
-        </div>
-      )
-    }
+    accessorKey: "xgDieselTotal",
+    header: "XG-DIESEL",
+    cell: ({ row }) => (
+      <div className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">
+        {formatCurrency(row.original.xgDieselTotal)}
+      </div>
+    ),
   },
   {
-    accessorKey:"msPetrolTotal",
-    header:"MS-PETROL",
-    cell: ({row}) => {
-      const msPetrolTotal = row.original.msPetrolTotal
-      return (
-        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-red-100 text-red-800`}>
-        {formatCurrency(msPetrolTotal)}
-        </div>
-      )
-    }
+    accessorKey: "msPetrolTotal",
+    header: "MS-PETROL",
+    cell: ({ row }) => (
+      <div className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">
+        {formatCurrency(row.original.msPetrolTotal)}
+      </div>
+    ),
   },
   {
     accessorKey: "rate",
     header: "Total Amount",
-    cell:({row}) => {
-      const rate = row.original.rate
-
-      return (
-        <div>
-          {formatCurrency(rate)}
-        </div>
-      )
-    }
+    cell: ({ row }) => <div>{formatCurrency(row.original.rate)}</div>,
   },
   {
     id: "actions",
+    header: "Actions",
     cell: ({ row }) => <SalesActions sales={row.original} userRole={userRole} />,
   },
 ];
 
-const SalesActions = ({ sales, userRole }: { sales: Sales; userRole?: string }) => {
+const SalesActions = ({
+  sales,
+  userRole,
+}: {
+  sales: Sales;
+  userRole?: string;
+}) => {
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  // Only show actions for admin users
-  const isAdmin = userRole?.toLowerCase() === 'admin';
-  
-  if (!isAdmin) {
-    return null; // Don't show actions for non-admin users
-  }
+  const isAdmin = userRole?.toLowerCase() === "admin";
+  if (!isAdmin) return null;
 
   return (
     <>
-      <div className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setOpenEdit(true)}>
-              <Edit2 className="size-4 mr-2" /> Edit
-            </DropdownMenuItem>
+      <div className="flex justify-end items-center gap-2">
+        {/* Edit Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setOpenEdit(true)}
+          title="Edit Sale"
+          className="h-8 w-8"
+        >
+          <Edit2 className="h-4 w-4" />
+        </Button>
 
-            <DropdownMenuItem onSelect={() => setOpenDelete(!openDelete)}
-              className="text-destructive">
-              <Trash2 className="size-4 mr-2" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Delete Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setOpenDelete(true)}
+          title="Delete Sale"
+          className="h-8 w-8 text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
 
-      <SalesFormModal open={openEdit} openChange={setOpenEdit} sales={sales}/>
+      {/* Edit Modal */}
+      <SalesFormModal open={openEdit} openChange={setOpenEdit} sales={sales} />
 
-      <SalesDeleteDialog 
+      {/* Delete Modal */}
+      <SalesDeleteDialog
         sales={sales}
         open={openDelete}
-        setOpen={setOpenDelete}/>
+        setOpen={setOpenDelete}
+      />
     </>
   );
 };

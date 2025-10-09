@@ -1,25 +1,12 @@
 "use client";
 
-import { Supplier } from "@prisma/client";
+import { useState } from "react";
+import { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Edit2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { SupplierFormDialog } from "./supplier-form";
 import { SupplierDeleteDialog } from "./supplier-delete-dailog";
-import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Edit2,
-  MoreHorizontal,
-  Trash2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { Supplier } from "@prisma/client";
 import { useUser } from "./supplier-table";
 
 export const supplierColumns: ColumnDef<Supplier>[] = [
@@ -35,12 +22,8 @@ export const supplierColumns: ColumnDef<Supplier>[] = [
       };
 
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(sort === "asc")}
-        >
-          Supplier Id
-          {renderIcon()}
+        <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
+          Supplier Id {renderIcon()}
         </Button>
       );
     },
@@ -58,12 +41,8 @@ export const supplierColumns: ColumnDef<Supplier>[] = [
       };
 
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(sort === "asc")}
-        >
-          Name
-          {renderIcon()}
+        <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
+          Name {renderIcon()}
         </Button>
       );
     },
@@ -82,76 +61,53 @@ export const supplierColumns: ColumnDef<Supplier>[] = [
   {
     accessorKey: "email",
     header: "Email",
-    cell: ({row}) => {
-        const email = row.getValue("email");
-        return (
-            <div className="px-3">
-                {email ? String(email) : "..."}
-            </div>
-        )
-    }
+    cell: ({ row }) => <div className="px-3">{row.getValue("email") || "..."}</div>,
   },
   {
     accessorKey: "phone",
     header: "Phone",
-    cell: ({row}) => {
-        const phone = row.getValue("phone");
-        return (
-            <div className="px-3">
-                {phone ? String(phone) : "..."}
-            </div>
-        )
-    }
+    cell: ({ row }) => <div className="px-3">{row.getValue("phone") || "..."}</div>,
   },
   {
     accessorKey: "address",
     header: "Address",
-    cell: ({row}) => {
-        const address = row.getValue("address");
-        return (
-            <div className="px-3">
-                {address ? String(address) : "..."}
-            </div>
-        )
-    }
+    cell: ({ row }) => <div className="px-3">{row.getValue("address") || "..."}</div>,
   },
-  
   {
-    id: "action",
-    cell: ({ row }) =>
-      row.original && <SupplierDropdownMenu supplier={row.original} />,
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => <SupplierActions supplier={row.original} />,
   },
 ];
 
-export const SupplierDropdownMenu = ({ supplier }: { supplier: Supplier }) => {
-  const [openDelete, setOpenDelete] = useState(false);
+const SupplierActions = ({ supplier }: { supplier: Supplier }) => {
   const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
   const { userRole, userBranchId } = useUser();
 
   return (
-    <div className="text-right">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setOpenEdit(true)}>
-            <Edit2 className="size-4 mr-2" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive"
-            onSelect={() => setOpenDelete(true)}
-          >
-            <Trash2 className="size-4 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex gap-2">
+      {/* Edit Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenEdit(true)}
+        className="text-blue-600 hover:text-blue-700"
+      >
+        <Edit2 className="h-4 w-4" />
+      </Button>
 
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenDelete(true)}
+        className="text-red-600 hover:text-red-700"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+
+      {/* Edit Modal */}
       <SupplierFormDialog
         open={openEdit}
         openChange={setOpenEdit}
@@ -160,6 +116,7 @@ export const SupplierDropdownMenu = ({ supplier }: { supplier: Supplier }) => {
         userBranchId={userBranchId}
       />
 
+      {/* Delete Modal */}
       <SupplierDeleteDialog
         supplier={supplier}
         open={openDelete}

@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { IconFileExport } from "@tabler/icons-react";
@@ -31,7 +33,7 @@ import {
 type HistoryItem = {
   id: string;
   customer: string;
-  type: "credit" | "payment"; // credit = debit, payment = credit
+  type: "credit" | "payment";
   amount: number;
   method?: string;
   date: string;
@@ -50,6 +52,7 @@ export function CustomerHistoryModal({
 }) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [filter, setFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (!open) return;
@@ -62,39 +65,51 @@ export function CustomerHistoryModal({
       });
   }, [open, customerId]);
 
-  // Filter by date range
+  // Filtered history based on select filter and selected date
   const filteredHistory = useMemo(() => {
     const now = new Date();
     return history.filter((item) => {
       const d = new Date(item.date);
+
+      // Apply select filter
+      let selectFilterPass = true;
       switch (filter) {
         case "today":
-          return d.toDateString() === now.toDateString();
+          selectFilterPass = d.toDateString() === now.toDateString();
+          break;
         case "yesterday": {
           const yesterday = new Date();
           yesterday.setDate(now.getDate() - 1);
-          return d.toDateString() === yesterday.toDateString();
+          selectFilterPass = d.toDateString() === yesterday.toDateString();
+          break;
         }
         case "week": {
           const startOfWeek = new Date(now);
           startOfWeek.setDate(now.getDate() - now.getDay());
           startOfWeek.setHours(0, 0, 0, 0);
-          return d >= startOfWeek;
+          selectFilterPass = d >= startOfWeek;
+          break;
         }
         case "month":
-          return (
-            d.getMonth() === now.getMonth() &&
-            d.getFullYear() === now.getFullYear()
-          );
+          selectFilterPass =
+            d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          break;
         case "year":
-          return d.getFullYear() === now.getFullYear();
-        default:
-          return true;
+          selectFilterPass = d.getFullYear() === now.getFullYear();
+          break;
       }
-    });
-  }, [filter, history]);
 
-  // Sort by date (oldest first) and calculate running balance
+      // Apply date picker filter
+      let dateFilterPass = true;
+      if (selectedDate) {
+        dateFilterPass = d.toDateString() === selectedDate.toDateString();
+      }
+
+      return selectFilterPass && dateFilterPass;
+    });
+  }, [filter, selectedDate, history]);
+
+  // Sort by date and calculate running balance
   const historyWithBalance = useMemo(() => {
     const sorted = [...filteredHistory].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -102,34 +117,27 @@ export function CustomerHistoryModal({
     let runningBalance = 0;
     return sorted.map((item) => {
       if (item.type === "credit") {
-        runningBalance -= item.amount; // credit decreases balance (customer owes less)
+        runningBalance -= item.amount;
       } else {
-        runningBalance += item.amount; // payment increases balance (customer owes more)
+        runningBalance += item.amount;
       }
       return { ...item, balance: runningBalance };
     });
   }, [filteredHistory]);
 
-  // Final total = last balance
   const total =
     historyWithBalance.length > 0
       ? historyWithBalance[historyWithBalance.length - 1].balance
       : 0;
 
-  // Get customer name from the first history item, if available
   const customerName = history[0]?.customer;
 
-  // Export PDF
   const handleExportPDF = () => {
     if (!historyWithBalance.length) return;
 
     const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
     doc.setFontSize(14);
-    doc.text(
-      `Customer Statement - ${customerName || "Unknown"}`,
-      40,
-      40
-    );
+    doc.text(`Customer Statement - ${customerName || "Unknown"}`, 40, 40);
 
     autoTable(doc, {
       startY: 70,
@@ -166,8 +174,9 @@ export function CustomerHistoryModal({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Filter */}
-        <div className="mb-3">
+        {/* Filters */}
+        <div className="mb-3 flex gap-3 items-center">
+          {/* Select filter */}
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by date" />
@@ -181,6 +190,34 @@ export function CustomerHistoryModal({
               <SelectItem value="year">This Year</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Date picker filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                {selectedDate
+                  ? selectedDate.toLocaleDateString()
+                  : "Select Date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+              />
+              {selectedDate && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setSelectedDate(undefined)}
+                >
+                  Clear
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Statement Table */}

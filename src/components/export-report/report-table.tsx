@@ -123,7 +123,7 @@ export function ReportTable<TValue>({
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
-                      className=""
+                      className="bg-primary text-primary-foreground font-black"
                     >
                       {header.isPlaceholder
                         ? null

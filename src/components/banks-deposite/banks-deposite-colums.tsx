@@ -1,95 +1,93 @@
 "use client";
-import { BankDepositeFormDialog } from "./banks-deposite-form";
 
 import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Edit2,
-  MoreHorizontal,
-  Trash2,
-} from "lucide-react";
+import { Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { BankDepositeFormDialog } from "./banks-deposite-form";
 import { BankDepositeDeleteDialog } from "./banks-deposite-delete-dailog";
 import { BankDeposite } from "@/types/bank-deposite";
 import { formatDate } from "@/lib/utils";
 
-export const bankDepositeColumns = (userRole?: string): ColumnDef<BankDeposite>[] => [
+export const bankDepositeColumns = (
+  userRole?: string
+): ColumnDef<BankDeposite>[] => [
   {
     accessorKey: "date",
-    header :"Date",
-    cell: ({row}) => {
-      const date = row.original.date
-      return (
-        <div>{formatDate(date)}</div>
-      )
-    }
+    header: "Date",
+    cell: ({ row }) => {
+      const date = row.original.date;
+      return <div>{formatDate(date)}</div>;
+    },
   },
   {
     accessorKey: "bank",
     header: "Bank",
-    cell: ({row}) => {
+    cell: ({ row }) => {
       const bank = row.original.bank.bankName;
-      return (
-        <div>{bank}</div>
-      )
-    }
+      return <div>{bank}</div>;
+    },
   },
   {
     accessorKey: "amount",
     header: "Amount",
   },
   {
-    id: "action",
+    id: "actions",
+    header: "Actions",
     cell: ({ row }) =>
-      row.original && <BankDepositeDropdeownMenu bankDeposite={row.original} userRole={userRole} />,
+      row.original && (
+        <BankDepositeInlineActions
+          bankDeposite={row.original}
+          userRole={userRole}
+        />
+      ),
   },
 ];
 
-export const BankDepositeDropdeownMenu = ({ bankDeposite, userRole }: { bankDeposite: BankDeposite; userRole?: string }) => {
-  const [openDelete, setOpenDelete] = useState(false);
+export const BankDepositeInlineActions = ({
+  bankDeposite,
+  userRole,
+}: {
+  bankDeposite: BankDeposite;
+  userRole?: string;
+}) => {
   const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
 
-  // Only show actions for admin users
-  const isAdmin = userRole?.toLowerCase() === 'admin';
-  
-  if (!isAdmin) {
-    return null; // Don't show actions for non-admin users
-  }
+  const isAdmin = userRole?.toLowerCase() === "admin";
+  if (!isAdmin) return null;
 
   return (
-    <div className="text-right">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setOpenEdit(!openEdit)}>
-            <Edit2 className="size-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive"
-            onSelect={() => setOpenDelete(!openDelete)}
-          >
-            <Trash2 className="size-4" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex items-center gap-2">
+      {/* Edit Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenEdit(true)}
+        className="h-8 w-8 text-blue-600 hover:text-blue-800"
+      >
+        <Edit2 className="h-4 w-4" />
+      </Button>
+
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenDelete(true)}
+        className="h-8 w-8 text-destructive hover:text-red-700"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
 
       {/* Edit Dialog */}
-      <BankDepositeFormDialog open={openEdit} openChange={setOpenEdit} bankDeposite={bankDeposite} />
+      <BankDepositeFormDialog
+        open={openEdit}
+        openChange={setOpenEdit}
+        bankDeposite={bankDeposite}
+      />
 
-      {/* Dialogs */}
+      {/* Delete Dialog */}
       <BankDepositeDeleteDialog
         bankDeposite={bankDeposite}
         open={openDelete}

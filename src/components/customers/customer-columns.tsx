@@ -1,23 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Edit2, Trash2, History } from "lucide-react";
 import { CustomerFormDialog } from "./customer-form";
 import { CustomerDeleteDialog } from "./customer-delete-dailog";
-import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Edit2,
-  MoreHorizontal,
-  Trash2,
-  History,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { CustomerHistoryModal } from "./customer -history-modal";
+import { CustomerHistoryModal } from "./customer-history-modal";
 import { Customer } from "@/types/customer";
 
 export const customerColumns = (userRole?: string, userBranchId?: string): ColumnDef<Customer>[] => [
@@ -36,7 +25,7 @@ export const customerColumns = (userRole?: string, userBranchId?: string): Colum
           >
             {customer.name}
           </button>
-  
+
           <CustomerHistoryModal
             customerId={customer.id}
             open={openHistory}
@@ -45,7 +34,7 @@ export const customerColumns = (userRole?: string, userBranchId?: string): Colum
         </>
       );
     },
-  },  
+  },
   {
     accessorKey: "limit",
     header: "Limit",
@@ -62,7 +51,7 @@ export const customerColumns = (userRole?: string, userBranchId?: string): Colum
       const pendingAmount = customer.outstandingPayments;
       const limit = (customer as { limit?: number }).limit;
       const exceedsLimit = limit && pendingAmount > limit;
-      
+
       return (
         <div className={`px-3 ${exceedsLimit ? 'text-red-600 font-semibold' : ''}`}>
           {pendingAmount}
@@ -73,68 +62,63 @@ export const customerColumns = (userRole?: string, userBranchId?: string): Colum
   {
     accessorKey: "email",
     header: "Email",
-    cell: ({ row }) => {
-      const email = row.getValue("email");
-      return <div className="px-3">{email ? String(email) : "..."}</div>;
-    },
+    cell: ({ row }) => <div className="px-3">{row.getValue("email") || "..."}</div>,
   },
   {
     accessorKey: "phone",
     header: "Phone",
-    cell: ({ row }) => {
-      const phone = row.getValue("phone");
-      return <div className="px-3">{phone ? String(phone) : "..."}</div>;
-    },
+    cell: ({ row }) => <div className="px-3">{row.getValue("phone") || "..."}</div>,
   },
   {
     accessorKey: "address",
     header: "Address",
-    cell: ({ row }) => {
-      const address = row.getValue("address");
-      return <div className="px-3">{address ? String(address) : "..."}</div>;
-    },
+    cell: ({ row }) => <div className="px-3">{row.getValue("address") || "..."}</div>,
   },
   {
-    id: "action",
-    cell: ({ row }) =>
-      row.original && <CustomerDropdownMenu customer={row.original} userRole={userRole} userBranchId={userBranchId} />,
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => <CustomerActions customer={row.original} userRole={userRole} userBranchId={userBranchId} />,
   },
 ];
 
-export const CustomerDropdownMenu = ({ customer, userRole, userBranchId }: { customer: Customer; userRole?: string; userBranchId?: string }) => {
-  const [openDelete, setOpenDelete] = useState(false);
+const CustomerActions = ({ customer, userRole, userBranchId }: { customer: Customer; userRole?: string; userBranchId?: string }) => {
   const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
   const [openHistory, setOpenHistory] = useState(false);
 
   return (
-    <div className="text-right">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setOpenHistory(true)}>
-            <History className="size-4 mr-2" />
-            History
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setOpenEdit(true)}>
-            <Edit2 className="size-4 mr-2" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive"
-            onSelect={() => setOpenDelete(true)}
-          >
-            <Trash2 className="size-4 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex gap-2">
+      {/* History Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenHistory(true)}
+        className="text-gray-600 hover:text-gray-800"
+      >
+        <History className="h-4 w-4" />
+      </Button>
 
-      {/* Edit Dialog */}
+      {/* Edit Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenEdit(true)}
+        className="text-blue-600 hover:text-blue-700"
+      >
+        <Edit2 className="h-4 w-4" />
+      </Button>
+
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenDelete(true)}
+        className="text-red-600 hover:text-red-700"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+
+      {/* Modals */}
       <CustomerFormDialog
         open={openEdit}
         openChange={setOpenEdit}
@@ -143,7 +127,6 @@ export const CustomerDropdownMenu = ({ customer, userRole, userBranchId }: { cus
         userBranchId={userBranchId}
       />
 
-      {/* Delete Dialog */}
       <CustomerDeleteDialog
         customers={customer}
         open={openDelete}

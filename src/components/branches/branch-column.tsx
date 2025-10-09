@@ -1,26 +1,12 @@
 "use client";
 
-import { Branch } from "@prisma/client";
-import { BranchFormModal } from "./branch-form";
-
-import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Edit2,
-  MoreHorizontal,
-  Trash2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { BranchDeleteDialog } from "./branch-delete-dialog";
 import { useState } from "react";
+import { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Edit2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { BranchFormModal } from "./branch-form";
+import { BranchDeleteDialog } from "./branch-delete-dialog";
+import { Branch } from "@prisma/client";
 
 export const branchColumns: ColumnDef<Branch>[] = [
   {
@@ -35,70 +21,61 @@ export const branchColumns: ColumnDef<Branch>[] = [
       };
 
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(sort === "asc")}
-        >
+        <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
           Name {renderIcon()}
         </Button>
-        );
-      },
-        cell: ({ row }) => <div className="px-3 text-blue-800">{row.getValue("name")}</div>,
-      },
-      {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => <div>{row.getValue("email")}</div>,
-      },
-      {
-        accessorKey: "phone",
-        header: "Phone",
-        cell: ({ row }) => <div>{row.getValue("phone")}</div>,
-      },
-      {
-        id: "action",
-        cell: ({ row }) =>
-          row.original && <BranchDropdeownMenu branch={row.original} />,
-      },
-    ];
+      );
+    },
+    cell: ({ row }) => <div className="px-3 text-blue-800">{row.getValue("name")}</div>,
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => <div>{row.getValue("email")}</div>,
+  },
+  {
+    accessorKey: "phone",
+    header: "Phone",
+    cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+  },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => <BranchActions branch={row.original} />,
+  },
+];
 
-export const BranchDropdeownMenu = ({ branch }: { branch: Branch }) => {
-  const [openDelete, setOpenDelete] = useState(false);
+const BranchActions = ({ branch }: { branch: Branch }) => {
   const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
 
   return (
-    <div className="text-right">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setOpenEdit(!openEdit)}>
-            <Edit2 className="size-4" />
-            Edit Branch
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive"
-            onSelect={() => setOpenDelete(!openDelete)}
-          >
-            <Trash2 className="size-4" />
-            Delete Branch
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex gap-2">
+      {/* Edit Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenEdit(true)}
+        className="text-blue-600 hover:text-blue-700"
+      >
+        <Edit2 className="h-4 w-4" />
+      </Button>
+
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenDelete(true)}
+        className="text-red-600 hover:text-red-700"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
 
       {/* Edit Dialog */}
       <BranchFormModal open={openEdit} openChange={setOpenEdit} branch={branch} />
 
-      {/* Dialogs */}
-      <BranchDeleteDialog
-        branch={branch}
-        open={openDelete}
-        setOpen={setOpenDelete}
-      />
+      {/* Delete Dialog */}
+      <BranchDeleteDialog open={openDelete} setOpen={setOpenDelete} branch={branch} />
     </div>
   );
 };

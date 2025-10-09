@@ -1,30 +1,16 @@
 "use client";
 
 import { ExpenseCategory, Expense } from "@prisma/client";
+import { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Edit2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ExpenseCategoryFormDialog } from "./expense-category-form";
+import { ExpenseCategoryDeleteDialog } from "./expense-category-delete-dailog";
+import { useState } from "react";
 
 type ExpenseCategoryWithExpenses = ExpenseCategory & {
   expenses: Expense[];
 };
-import { ExpenseCategoryFormDialog } from "./expense-category-form";
-
-import { ColumnDef } from "@tanstack/react-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Edit2,
-  MoreHorizontal,
-  Trash2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ExpenseCategoryDeleteDialog } from "./expense-category-delete-dailog";
-import { useState } from "react";
 
 export const expenseCategoryColumns: ColumnDef<ExpenseCategoryWithExpenses>[] = [
   {
@@ -42,24 +28,23 @@ export const expenseCategoryColumns: ColumnDef<ExpenseCategoryWithExpenses>[] = 
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(sort === "asc")}
+          className="font-semibold"
         >
           Name
           {renderIcon()}
         </Button>
       );
     },
-    cell: ({ row }) =>  <div className="px-3">{row.getValue('name') as string}</div>,
+    cell: ({ row }) => (
+      <div className="px-3">{row.getValue("name") as string}</div>
+    ),
   },
   {
     accessorKey: "limit",
     header: "Limit",
     cell: ({ row }) => {
-      const limit = row.getValue('limit') as number | null;
-      return (
-        <div>
-          {limit ? `₹${limit.toFixed(2)}` : 'No limit'}
-        </div>
-      );
+      const limit = row.getValue("limit") as number | null;
+      return <div>{limit ? `₹${limit.toFixed(2)}` : "No limit"}</div>;
     },
   },
   {
@@ -68,55 +53,69 @@ export const expenseCategoryColumns: ColumnDef<ExpenseCategoryWithExpenses>[] = 
     cell: ({ row }) => {
       const expenseCategory = row.original;
       const limit = expenseCategory.limit;
-      const totalExpenses = expenseCategory.expenses?.reduce((sum: number, expense: Expense) => sum + expense.amount, 0) || 0;
+      const totalExpenses =
+        expenseCategory.expenses?.reduce(
+          (sum: number, expense: Expense) => sum + expense.amount,
+          0
+        ) || 0;
       const exceedsLimit = limit && totalExpenses > limit;
-      
+
       return (
-        <div className={` ${exceedsLimit ? 'text-red-600 font-semibold' : ''}`}>
+        <div
+          className={`${exceedsLimit ? "text-red-600 font-semibold" : ""}`}
+        >
           ₹{totalExpenses.toFixed(2)}
         </div>
       );
     },
   },
   {
-    id: "action",
-    cell: ({ row }) =>
-      row.original && <ExpenseCategoryDropdeownMenu expenseCategory={row.original} />,
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => (
+      <ExpenseCategoryActions expenseCategory={row.original} />
+    ),
   },
 ];
 
-export const ExpenseCategoryDropdeownMenu = ({ expenseCategory }: { expenseCategory: ExpenseCategoryWithExpenses }) => {
-  const [openDelete, setOpenDelete] = useState(false);
+const ExpenseCategoryActions = ({
+  expenseCategory,
+}: {
+  expenseCategory: ExpenseCategoryWithExpenses;
+}) => {
   const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
 
   return (
-    <div className="text-right">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setOpenEdit(!openEdit)}>
-            <Edit2 className="size-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive"
-            onSelect={() => setOpenDelete(!openDelete)}
-          >
-            <Trash2 className="size-4" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex justify-start items-center gap-2">
+      {/* Edit */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenEdit(true)}
+        className="text-blue-600 hover:text-blue-700"
+      >
+        <Edit2 className="h-4 w-4" />
+      </Button>
+
+      {/* Delete */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpenDelete(true)}
+        className="text-red-600 hover:text-red-700"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
 
       {/* Edit Dialog */}
-      <ExpenseCategoryFormDialog open={openEdit} openChange={setOpenEdit} expenseCategory={expenseCategory} />
+      <ExpenseCategoryFormDialog
+        open={openEdit}
+        openChange={setOpenEdit}
+        expenseCategory={expenseCategory}
+      />
 
-      {/* Dialogs */}
+      {/* Delete Dialog */}
       <ExpenseCategoryDeleteDialog
         expenseCategory={expenseCategory}
         open={openDelete}
