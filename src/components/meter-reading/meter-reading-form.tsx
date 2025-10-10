@@ -497,7 +497,7 @@ return (
                                       type="number"
                                       placeholder="closing"
                                       value={field.value ?? ""}
-                                      className={validation && !validation.isValid ? "border-red-500" : ""}
+                                      className={`${validation && !validation.isValid ? "border-red-500" : ""} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                                       onWheel={(e) => e.currentTarget.blur()}
                                       onChange={(e) => {
                                         const newClosingValue =
@@ -602,11 +602,12 @@ return (
                               render={({ field }) => (
                                 <FormItem>
                                   <FormControl>
-                                    <Input
-                                      type="number"
-                                      placeholder="total amount"
-                                      value={field.value != null ? Number(field.value).toFixed(2) : ""}
-                                      onWheel={(e) => e.currentTarget.blur()}
+                                  <Input
+                                    type="number"
+                                    placeholder="total amount"
+                                    value={field.value != null ? Number(field.value).toFixed(2) : ""}
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    onWheel={(e) => e.currentTarget.blur()}
                                       onChange={(e) =>
                                         field.onChange(
                                           e.target.value === "" ? undefined : Number(e.target.value)

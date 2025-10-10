@@ -225,6 +225,7 @@ export function MeterReadingUpdateForm({
                   type="number"
                   step="0.01"
                   placeholder="0"
+                  className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   {...field}
                   value={field.value ?? ""}
                   onChange={(e) => {
@@ -254,6 +255,7 @@ export function MeterReadingUpdateForm({
                   type="number"
                   step="0.01"
                   placeholder="0"
+                  className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   {...field}
                   value={field.value ?? ""}
                   onChange={(e) => field.onChange(e.target.value === "" ? "" : e.target.value)}
@@ -277,6 +279,7 @@ export function MeterReadingUpdateForm({
                   type="number"
                   step="0.01"
                   placeholder="0"
+                  className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   {...field}
                   value={field.value ?? ""}
                   onChange={(e) => field.onChange(Number(e.target.value))}
