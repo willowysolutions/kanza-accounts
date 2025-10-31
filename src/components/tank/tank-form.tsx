@@ -138,9 +138,16 @@ export function TankFormDialog({
         const res = await fetch("/api/products");
         const json = await res.json();
         
+        // Filter products to only include those with "petrol" or "diesel" (case insensitive)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filteredProducts = json.data?.filter((product: any) => {
+          const productNameLower = product.productName?.toLowerCase() || "";
+          return productNameLower.includes("petrol") || productNameLower.includes("diesel");
+        }) || [];
+        
         // Deduplicate products by name, keeping the first occurrence
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
+        const uniqueProducts = filteredProducts.reduce((acc: any[], product: any) => {
           const existingProduct = acc.find(p => p.productName === product.productName);
           if (!existingProduct) {
             acc.push(product);

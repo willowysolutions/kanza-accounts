@@ -51,10 +51,9 @@ export function MachineFormModal({
   openChange?: (open: boolean) => void;
   machine?:Machine;
 }) {
-    const [supplierOptions, setSupplierOptions] = useState<{ tankName: string; id: string; fuelType:string}[]>([]);
+    const [allTanks, setAllTanks] = useState<{ tankName: string; id: string; fuelType:string; branchId?: string | null}[]>([]);
     const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
     const router = useRouter();
-    
 
     const form = useForm<TankFormValues>({
       resolver: zodResolver(machineSchema),
@@ -65,6 +64,9 @@ export function MachineFormModal({
         branchId: machine?.branchId || undefined,
       },
     });
+
+    // Watch branchId from form
+    const selectedBranchId = form.watch("branchId");
 
         const handleSubmit = async (
           values: TankFormValues,
@@ -104,18 +106,40 @@ export function MachineFormModal({
         };
 
         useEffect(() => {
-        const fetchSuppliers = async () => {
+        const fetchTanks = async () => {
           try {
             const res = await fetch("/api/tanks");
             const json = await res.json();
-            setSupplierOptions(json.data || []);
+            setAllTanks(json.data || []);
           } catch (error) {
             console.error("Failed to fetch tanks", error);
           }
         };
 
-        fetchSuppliers();
+        fetchTanks();
       }, []);
+
+      // Filter tanks when branch changes and clear selected tanks if they don't belong to the new branch
+      useEffect(() => {
+        const selectedTanks = form.getValues("machineTanks");
+        if (!selectedBranchId) {
+          // Clear tanks if branch is cleared
+          if (selectedTanks && selectedTanks.length > 0) {
+            form.setValue("machineTanks", []);
+          }
+        } else if (selectedTanks && selectedTanks.length > 0) {
+          // Filter out tanks that don't belong to the selected branch
+          const availableTanksForBranch = allTanks.filter(tank => tank.branchId === selectedBranchId);
+          const validSelectedTanks = selectedTanks.filter(tankId => 
+            availableTanksForBranch.some(tank => tank.id === tankId)
+          );
+          
+          // Update form if some selected tanks were removed
+          if (validSelectedTanks.length !== selectedTanks.length) {
+            form.setValue("machineTanks", validSelectedTanks);
+          }
+        }
+      }, [selectedBranchId, allTanks, form]);
 
       useEffect(() => {
         const fetchBranches = async () => {
@@ -152,103 +176,7 @@ export function MachineFormModal({
           </FormDialogDescription>
         </FormDialogHeader>
 
-        <FormField
-          control={form.control}
-          name="machineName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Machine Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-         <FormField
-            control={form.control}
-            name="machineTanks" 
-            render={({ field }) => {
-              const selectedTanks = supplierOptions.filter(tank =>
-                field.value?.includes(tank.id)
-              )
-
-              return (
-                <FormItem>
-                  <FormLabel>Connected Tanks</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={`w-full justify-between ${
-                            !selectedTanks.length ? "text-muted-foreground" : ""
-                          }`}
-                        >
-                          {selectedTanks.length
-                            ? selectedTanks
-                                .map(
-                                  tank =>
-                                    `${tank.tankName} (${tank.fuelType.charAt(0).toUpperCase() + tank.fuelType.slice(1)})`
-                                )
-                                .join(", ")
-                            : "Select Tanks"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-2">
-                      <div className="flex flex-col gap-2">
-                        {supplierOptions.map(tank => {
-                          const isChecked = field.value?.includes(tank.id)
-                          return (
-                            <div key={tank.id} className="flex items-center gap-2">
-                              <Checkbox
-                                checked={isChecked}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    field.onChange([...(field.value || []), tank.id])
-                                  } else {
-                                    field.onChange(
-                                      field.value.filter((id: string) => id !== tank.id)
-                                    )
-                                  }
-                                }}
-                              />
-                              <span>
-                                {tank.tankName} (
-                                {tank.fuelType.charAt(0).toUpperCase() +
-                                  tank.fuelType.slice(1)}
-                                )
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )
-            }}
-          />
-
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="noOfNozzles"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Number of Nozzles</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
+        {/* Branch field - moved to first position */}
         <FormField
           control={form.control}
           name="branchId"
@@ -273,7 +201,117 @@ export function MachineFormModal({
             </FormItem>
           )}
         />
-      </div>
+        <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="machineName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Machine Name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+         <FormField
+            control={form.control}
+            name="machineTanks" 
+            render={({ field }) => {
+              // Filter tanks by selected branch
+              const filteredTanks = selectedBranchId 
+                ? allTanks.filter(tank => tank.branchId === selectedBranchId)
+                : [];
+              
+              const selectedTanks = filteredTanks.filter(tank =>
+                field.value?.includes(tank.id)
+              )
+
+              return (
+                <FormItem>
+                  <FormLabel>Connected Tanks</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={`w-full justify-between ${
+                            !selectedTanks.length ? "text-muted-foreground" : ""
+                          }`}
+                          disabled={!selectedBranchId}
+                        >
+                          {!selectedBranchId 
+                            ? "Select Branch First"
+                            : selectedTanks.length
+                            ? selectedTanks
+                                .map(
+                                  tank =>
+                                    `${tank.tankName} (${tank.fuelType.charAt(0).toUpperCase() + tank.fuelType.slice(1)})`
+                                )
+                                .join(", ")
+                            : "Select Tanks"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-2">
+                      <div className="flex flex-col gap-2">
+                        {filteredTanks.length === 0 ? (
+                          <div className="text-sm text-muted-foreground p-2">
+                            {!selectedBranchId ? "Please select a branch first" : "No tanks available for this branch"}
+                          </div>
+                        ) : (
+                          filteredTanks.map(tank => {
+                            const isChecked = field.value?.includes(tank.id)
+                            return (
+                              <div key={tank.id} className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      field.onChange([...(field.value || []), tank.id])
+                                    } else {
+                                      field.onChange(
+                                        field.value.filter((id: string) => id !== tank.id)
+                                      )
+                                    }
+                                  }}
+                                />
+                                <span>
+                                  {tank.tankName} (
+                                  {tank.fuelType.charAt(0).toUpperCase() +
+                                    tank.fuelType.slice(1)}
+                                  )
+                                </span>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )
+            }}
+          />
+          </div>
+
+        <FormField
+          control={form.control}
+          name="noOfNozzles"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Number of Nozzles</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormDialogFooter>
           <DialogClose asChild>
