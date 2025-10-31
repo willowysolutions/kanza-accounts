@@ -33,7 +33,13 @@ type Customer = {
   outstandingPayments: number;
 };
 
-export default function CustomerReportTable({ customers }: { customers: Customer[] }) {
+export default function CustomerReportTable({ 
+  customers,
+  branchName 
+}: { 
+  customers: Customer[];
+  branchName?: string;
+}) {
   const [search, setSearch] = useState("");
 
   const filteredCustomers = customers.filter((c) =>
@@ -67,7 +73,7 @@ export default function CustomerReportTable({ customers }: { customers: Customer
               onChange={(e) => setSearch(e.target.value)}
               className="w-64"
             />
-            <CustomerReportExport customers={filteredCustomers} />
+            <CustomerReportExport customers={filteredCustomers} branchName={branchName} />
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">

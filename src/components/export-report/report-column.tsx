@@ -10,7 +10,7 @@ import { ReportModal } from "./report-modal";
 
 
 
-export const reportColumns: ColumnDef<Sales>[] = [
+export const createReportColumns = (userRole?: string, userBranchId?: string): ColumnDef<Sales>[] => [
   {
     accessorKey: "date",
     header: "Date & Time",
@@ -96,11 +96,11 @@ export const reportColumns: ColumnDef<Sales>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <SalesActions sales={row.original} />,
+    cell: ({ row }) => <SalesActions sales={row.original} userRole={userRole} userBranchId={userBranchId} />,
   },
 ];
 
-const SalesActions = ({ sales }: { sales: Sales }) => {
+const SalesActions = ({ sales, userRole, userBranchId }: { sales: Sales; userRole?: string; userBranchId?: string }) => {
   const [openReport, setOpenReport] = useState(false);
 
 
@@ -117,7 +117,9 @@ const SalesActions = ({ sales }: { sales: Sales }) => {
         dateString = dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
       }
       // Fetch report data for the specific date (same format as report-modal)
-      const response = await fetch(`/api/reports/${dateString}`);
+      const branchId = userBranchId || sales.branchId || undefined;
+      const url = branchId ? `/api/reports/${dateString}?branchId=${branchId}` : `/api/reports/${dateString}`;
+      const response = await fetch(url);
       const reportData = await response.json();
 
       if (!reportData) {
@@ -346,7 +348,10 @@ const SalesActions = ({ sales }: { sales: Sales }) => {
     },
   });
   
-    doc.save(`Daily-Report-${formatDate(sales.date)}.pdf`);
+    // Create filename with branch name and date
+    const branchNameForFile = (reportData.branchName || "COCO-KONDOTTY").replace(/\s+/g, '-');
+    const dateStr = formatDate(sales.date);
+    doc.save(`Daily-Report-${branchNameForFile}-${dateStr}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
@@ -379,6 +384,8 @@ const SalesActions = ({ sales }: { sales: Sales }) => {
         open={openReport}
         onOpenChange={setOpenReport}
         date={sales.date}
+        userRole={userRole}
+        userBranchId={userBranchId || sales.branchId || undefined}
       />
     </>
   );

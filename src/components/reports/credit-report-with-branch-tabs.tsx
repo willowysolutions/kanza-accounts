@@ -59,6 +59,7 @@ export function CreditReportWithBranchTabs({
               <CreditReportTable 
                 credits={credits}
                 branchName={branchName}
+                branchId={branchId}
                 customerFilter={customerFilter}
                 pagination={pagination}
                 currentPage={currentPage}

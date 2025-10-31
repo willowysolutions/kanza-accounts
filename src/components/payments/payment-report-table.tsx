@@ -12,6 +12,7 @@ export default function PaymentTable({
   rows,
   type,
   pagination,
+  branchName,
 }: {
   rows: {
     id: string | number;
@@ -31,6 +32,7 @@ export default function PaymentTable({
     hasPrevPage: boolean;
     limit: number;
   };
+  branchName?: string;
 }) {
   const [search, setSearch] = useState("");
 
@@ -66,7 +68,7 @@ export default function PaymentTable({
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-xs"
             />
-            <PaymentReportExport rows={filteredRows} type={type} />
+            <PaymentReportExport rows={filteredRows} type={type} branchName={branchName} />
           </div>
         </div>
 

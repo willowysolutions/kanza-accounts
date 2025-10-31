@@ -17,14 +17,17 @@ type PaymentRow = {
 export function PaymentReportExport({
   rows,
   type,
+  branchName,
 }: {
   rows: PaymentRow[];
   type: "customer" | "supplier";
+  branchName?: string;
 }) {
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
-    const title = `${type === "customer" ? "Customer" : "Supplier"} Payment Report`;
+    const branchPart = branchName ? ` - ${branchName}` : " - All Branches";
+    const title = `${type === "customer" ? "Customer" : "Supplier"} Payment Report${branchPart}`;
     doc.setFontSize(16);
     doc.text(title, 40, 40);
 
@@ -44,22 +47,32 @@ export function PaymentReportExport({
       type === "customer" ? (p.customer?.outstandingPayments ?? 0) : (p.supplier?.outstandingPayments ?? 0),
     ]);
 
-    // Add totals row at end
-    body.push([
-      "Total",
-      rows.reduce((sum, p) => sum + (Number(p.paidAmount) || 0), 0),
-      "",
-      "",
-      "",
-    ]);
+    // Calculate totals
+    const totalAmount = rows.reduce((sum, p) => sum + (Number(p.paidAmount) || 0), 0);
+    const totalOutstanding = rows.reduce((sum, p) => {
+      const outstanding = type === "customer" 
+        ? (p.customer?.outstandingPayments ?? 0)
+        : (p.supplier?.outstandingPayments ?? 0);
+      return sum + (Number(outstanding) || 0);
+    }, 0);
 
     autoTable(doc, {
       startY: 60,
       head,
       body,
+      foot: [
+        [
+          "Grand Total",
+          totalAmount,
+          "",
+          "",
+          totalOutstanding,
+        ],
+      ],
       theme: "grid",
       styles: { fontSize: 10, cellPadding: 4 },
       headStyles: { fillColor: [34, 197, 94], textColor: 255 },
+      footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: "bold" },
       didParseCell: (data) => {
         if (data.row.index === rows.length) {
           data.cell.styles.fontStyle = "bold";
@@ -68,7 +81,11 @@ export function PaymentReportExport({
       },
     });
 
-    doc.save(`${type === "customer" ? "Customer" : "Supplier"}-Payments.pdf`);
+    // Create filename with branch name
+    const branchNameForFile = branchName 
+      ? branchName.replace(/\s+/g, '-')
+      : "All-Branches";
+    doc.save(`${type === "customer" ? "Customer" : "Supplier"}-Payments-${branchNameForFile}.pdf`);
   };
 
   return (

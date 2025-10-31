@@ -9,7 +9,8 @@ import {
   SheetDescription,
   SheetFooter,
   SheetClose,
-} from "@/components/ui/sheet";import { formatCurrency, formatDate } from "@/lib/utils";
+} from "@/components/ui/sheet";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -18,15 +19,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Button } from "../ui/button";
 import { IconFileExport } from "@tabler/icons-react";
+import { Label } from "@/components/ui/label";
 
 type ReportModalProps = {
   date?: Date | string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  userRole?: string;
+  userBranchId?: string;
 };
 
 type ReportData = {
@@ -75,12 +86,40 @@ type ReportData = {
   }[];
 };
 
-export function ReportModal({ date, open, onOpenChange }: ReportModalProps) {
+export function ReportModal({ date, open, onOpenChange, userRole, userBranchId }: ReportModalProps) {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<ReportData | null>(null);
+  const [selectedBranchId, setSelectedBranchId] = useState<string | undefined>(userBranchId);
+  const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+
+  // Fetch branches
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch("/api/branch");
+        const json = await res.json();
+        setBranchOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch branches", error);
+      }
+    };
+    fetchBranches();
+  }, []);
+
+  // Set default branch when branches are loaded
+  useEffect(() => {
+    if (branchOptions.length > 0 && !selectedBranchId) {
+      // If not admin, use user's branch; if admin, use first branch
+      const defaultBranch = !isAdmin && userBranchId 
+        ? userBranchId 
+        : branchOptions[0]?.id;
+      setSelectedBranchId(defaultBranch);
+    }
+  }, [branchOptions, isAdmin, userBranchId, selectedBranchId]);
 
   useEffect(() => {
-    if (!open || !date) return;
+    if (!open || !date || !selectedBranchId) return;
     const fetchReport = async () => {
       setLoading(true);
       try {
@@ -93,7 +132,7 @@ export function ReportModal({ date, open, onOpenChange }: ReportModalProps) {
           const dateObj = new Date(date);
           dateString = dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         }
-        const res = await fetch(`/api/reports/${dateString}`);
+        const res = await fetch(`/api/reports/${dateString}?branchId=${selectedBranchId}`);
         const data = await res.json();
         setReport(data);
       } catch (err) {
@@ -103,7 +142,7 @@ export function ReportModal({ date, open, onOpenChange }: ReportModalProps) {
       }
     };
     fetchReport();
-  }, [open, date]);
+  }, [open, date, selectedBranchId]);
 
 const handleExportPDF = () => {
   if (!report) return;
@@ -319,7 +358,10 @@ if (report.oils.length > 0) {
   },
 });
 
-  doc.save(`Daily-Report-${date && formatDate(date)}.pdf`);
+  // Create filename with branch name and date
+  const branchNameForFile = (report.branchName || "COCO-KONDOTTY").replace(/\s+/g, '-');
+  const dateStr = date && formatDate(date);
+  doc.save(`Daily-Report-${branchNameForFile}-${dateStr}.pdf`);
 };
 
   return (
@@ -332,6 +374,30 @@ if (report.oils.length > 0) {
           <SheetTitle>Daily Report - {date && formatDate(date)}</SheetTitle>
           <SheetDescription>Complete daily transaction summary.</SheetDescription>
         </SheetHeader>
+        
+        {/* Branch Selector */}
+        {(isAdmin || (branchOptions.length > 1 && userBranchId)) && (
+          <div className="mb-4 flex items-center gap-4">
+            <Label htmlFor="branch-select" className="whitespace-nowrap">Branch:</Label>
+            <Select
+              value={selectedBranchId || ""}
+              onValueChange={setSelectedBranchId}
+              disabled={!isAdmin && !!userBranchId}
+            >
+              <SelectTrigger id="branch-select" className="w-[200px]">
+                <SelectValue placeholder="Select Branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {(isAdmin ? branchOptions : branchOptions.filter(b => b.id === userBranchId)).map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
         {loading && <div className="p-4 text-center">Loading...</div>}
 
         {report && (

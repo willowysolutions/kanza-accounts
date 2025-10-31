@@ -280,7 +280,10 @@ export function DownloadReportButton({ date, branchId }: DownloadReportButtonPro
         },
       });
 
-      doc.save(`Daily-Report-${formatDate(date)}.pdf`);
+      // Create filename with branch name and date
+      const branchNameForFile = (reportData.branchName || "COCO-KONDOTTY").replace(/\s+/g, '-');
+      const dateStr = formatDate(date);
+      doc.save(`Daily-Report-${branchNameForFile}-${dateStr}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
     }

@@ -14,8 +14,14 @@ export async function GET(req: Request) {
     const { start, end } = getDateRangeIST(filter, from, to);
 
     const session = await auth.api.getSession({ headers: await headers() });
-    const branchId = session?.user?.branch;
-    const branchClause = session?.user?.role === "admin" ? {} : { branchId };
+    const requestedBranchId = searchParams.get('branchId');
+    const sessionBranchId = session?.user?.branch;
+    
+    // Use requested branchId if provided, otherwise use session branchId for non-admin users
+    const branchId = requestedBranchId || sessionBranchId;
+    const branchClause = session?.user?.role === "admin" 
+      ? (requestedBranchId ? { branchId: requestedBranchId } : {})
+      : { branchId };
 
     // Shared date filter
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

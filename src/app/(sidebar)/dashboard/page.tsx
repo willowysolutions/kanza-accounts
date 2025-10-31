@@ -38,9 +38,28 @@ export default async function Dashboard({
   // Use optimized dashboard data fetcher
   // For admin users, don't filter by branch to show all data
   const isAdmin = (session?.user?.role ?? '').toLowerCase() === 'admin';
-  const branchFilter = isAdmin ? undefined : (session?.user?.branch || undefined);
+  const userBranchId = typeof session?.user?.branch === 'string' ? session.user.branch : undefined;
+  const branchFilter = isAdmin ? undefined : userBranchId;
   const dashboardData = await getOptimizedDashboardData(branchFilter);
   const branches = await prisma.branch.findMany({ orderBy: { name: 'asc' } });
+  
+  // Fetch all stocks for branch-wise display (admin sees all, non-admin sees their branch only)
+  const stockWhereClause = isAdmin ? {} : { branchId: userBranchId };
+  const allStocks = await prisma.stock.findMany({
+    where: stockWhereClause,
+    orderBy: { item: 'asc' },
+    include: { branch: true }
+  });
+  
+  // Filter branches based on user role for display
+  const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === userBranchId);
+  
+  // Group stocks by branch
+  const stocksByBranch = visibleBranches.map((branch: { id: string; name: string }) => ({
+    branchId: branch.id,
+    branchName: branch.name,
+    stocks: allStocks.filter((stock: { branchId: string | null }) => stock.branchId === branch.id)
+  }));
 
   const {
     todaysRate,
@@ -208,20 +227,46 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
           <DashboardCharts purchaseData={purchaseData} salesData={salesData} />
         </div>
 
-        {/* Stock Levels */}
+        {/* Stock Levels - Branch Wise */}
         <Card>
           <CardHeader>
             <CardTitle>Stock Levels</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y">
-              {stocks.map((stock, index) => (
-                <li key={`${stock.item}-${stock.branchId || 'no-branch'}-${index}`} className="flex justify-between py-2">
-                  <span>{stock.item}</span>
-                  <span>{(stock.quantity).toFixed(2)}</span>
-                </li>
+            <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">
+              <TabsList className="mb-4 flex flex-wrap gap-2">
+                {visibleBranches.map((branch: { id: string; name: string }) => (
+                  <TabsTrigger key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {stocksByBranch.map(({ branchId, branchName, stocks }: { branchId: string; branchName: string; stocks: Array<{ item: string; quantity: number; branchId: string | null }> }) => (
+                <TabsContent key={branchId} value={branchId}>
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold">{branchName} Stock Levels</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {stocks.length} stock item{stocks.length !== 1 ? 's' : ''} in this branch
+                    </p>
+                  </div>
+                  <ul className="divide-y">
+                    {stocks.length > 0 ? (
+                      stocks.map((stock, index) => (
+                        <li key={`${stock.item}-${branchId}-${index}`} className="flex justify-between py-2">
+                          <span>{stock.item}</span>
+                          <span>{(stock.quantity || 0).toFixed(2)}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="py-4 text-center text-sm text-muted-foreground">
+                        No stock items found for this branch
+                      </li>
+                    )}
+                  </ul>
+                </TabsContent>
               ))}
-            </ul>
+            </Tabs>
           </CardContent>
         </Card>
 

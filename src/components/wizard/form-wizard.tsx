@@ -95,6 +95,8 @@ interface WizardContextType {
   // Branch selection
   selectedBranchId: string;
   setSelectedBranchId: React.Dispatch<React.SetStateAction<string>>;
+  userRole?: string;
+  userBranchId?: string;
   // Persistent data across steps
   addedExpenses: AddedExpense[];
   setAddedExpenses: React.Dispatch<React.SetStateAction<AddedExpense[]>>;
@@ -267,6 +269,8 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     // Branch selection
     selectedBranchId,
     setSelectedBranchId,
+    userRole,
+    userBranchId,
     // Persistent data
     addedExpenses,
     setAddedExpenses,
@@ -538,9 +542,10 @@ const WizardContent: React.FC = () => {
 
 // Branch Selector Component for Wizard
 const BranchSelector: React.FC = () => {
-  const { selectedBranchId, setSelectedBranchId } = useWizard();
+  const { selectedBranchId, setSelectedBranchId, userRole, userBranchId } = useWizard();
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const isAdmin = userRole?.toLowerCase() === 'admin';
 
   // Fetch branches on mount
   React.useEffect(() => {
@@ -551,8 +556,12 @@ const BranchSelector: React.FC = () => {
         console.log('Wizard: Fetched branches:', data.data);
         setBranches(data.data || []);
         
-        // If no branch is selected and we have branches, select the first one
-        if (!selectedBranchId && data.data && data.data.length > 0) {
+        // For non-admin users, ensure their branch is selected
+        if (!isAdmin && userBranchId) {
+          console.log('Wizard: Setting non-admin user branch:', userBranchId);
+          setSelectedBranchId(userBranchId);
+        } else if (!selectedBranchId && data.data && data.data.length > 0 && isAdmin) {
+          // For admin users, if no branch is selected, select the first one
           console.log('Wizard: Auto-selecting first branch:', data.data[0]);
           setSelectedBranchId(data.data[0].id);
         }
@@ -564,7 +573,16 @@ const BranchSelector: React.FC = () => {
     };
 
     fetchBranches();
-  }, [selectedBranchId, setSelectedBranchId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Ensure non-admin users always have their branch selected (prevent changes)
+  React.useEffect(() => {
+    if (!isAdmin && userBranchId && selectedBranchId !== userBranchId) {
+      console.log('Wizard: Enforcing user branch for non-admin:', userBranchId);
+      setSelectedBranchId(userBranchId);
+    }
+  }, [isAdmin, userBranchId, selectedBranchId, setSelectedBranchId]);
 
   if (loading) {
     return (
@@ -580,10 +598,14 @@ const BranchSelector: React.FC = () => {
       <select
         value={selectedBranchId}
         onChange={(e) => {
-          console.log('Wizard: Branch selection changed to:', e.target.value);
-          setSelectedBranchId(e.target.value);
+          // Only allow changes if user is admin
+          if (isAdmin) {
+            console.log('Wizard: Branch selection changed to:', e.target.value);
+            setSelectedBranchId(e.target.value);
+          }
         }}
-        className="px-3 py-1 border rounded-md text-sm"
+        disabled={!isAdmin}
+        className={`px-3 py-1 border rounded-md text-sm ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
       >
         {branches.map((branch) => (
           <option key={branch.id} value={branch.id}>

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { tankSchemaWithId } from "@/schemas/tank-schema";
 import { ObjectId } from "mongodb";
+import { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,6 +46,29 @@ export async function PATCH(
     return NextResponse.json({ data: tank }, { status: 200 });
   } catch (error) {
     console.error("Error updating tank:", error);
+    
+    // Check if it's a unique constraint violation (duplicate tank name)
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        // Unique constraint violation
+        const target = error.meta?.target as string[] | undefined;
+        if (target && target.includes('tankName')) {
+          return NextResponse.json(
+            { error: `A tank with the name already exists in other branch. Please choose a different name.` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+    
+    // Check for MongoDB duplicate key error
+    if (error instanceof Error && (error.message.includes('E11000') || error.message.includes('duplicate'))) {
+      return NextResponse.json(
+        { error: `A tank with this name already exists in other branch. Please choose a different name.` },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

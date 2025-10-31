@@ -36,30 +36,57 @@ export default async function GeneralReportPage({
   // Forward cookies
   const cookie = cookies().toString();
   
-  // Fetch general report data and branches in parallel
-  const [generalReportRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/reports/general?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
+  // Fetch branches first
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
   
-  const { rows, totals } = await generalReportRes.json();
   const { data: allBranches } = await branchesRes.json();
 
   // Filter branches based on user role
   const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
+  // Fetch general report data for each branch
+  const reportsByBranch = await Promise.all(
+    visibleBranches.map(async (branch: { id: string; name: string }) => {
+      const apiUrl = new URL(`${proto}://${host}/api/reports/general`);
+      apiUrl.searchParams.set('filter', filter);
+      apiUrl.searchParams.set('branchId', branch.id);
+      if (from) {
+        apiUrl.searchParams.set('from', from.toISOString());
+      }
+      if (to) {
+        apiUrl.searchParams.set('to', to.toISOString());
+      }
+
+      const generalReportRes = await fetch(apiUrl.toString(), {
+        cache: "no-store",
+        headers: { cookie },
+      });
+
+      const { rows, totals } = await generalReportRes.json();
+
+      return {
+        branchId: branch.id,
+        branchName: branch.name,
+        rows: rows || [],
+        totals: totals || {
+          totalSales: 0,
+          totalPurchases: 0,
+          totalExpenses: 0,
+          totalCustomerPayments: 0,
+          totalFinal: 0,
+        },
+      };
+    })
+  );
+
   return (
     <div className="flex flex-1 flex-col">
       <GeneralReportsWithBranchTabs 
         branches={visibleBranches} 
-        rows={rows}
-        totals={totals}
+        reportsByBranch={reportsByBranch}
         filter={filter}
         from={from}
         to={to}

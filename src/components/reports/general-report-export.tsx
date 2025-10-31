@@ -28,6 +28,7 @@ type GeneralReportExportProps = {
   filter: string;
   from?: Date;
   to?: Date;
+  branches?: { id: string; name: string }[];
 };
 
 export function GeneralReportExport({
@@ -36,12 +37,20 @@ export function GeneralReportExport({
   filter,
   from,
   to,
+  branches,
 }: GeneralReportExportProps) {
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
+    // Determine branch name(s) for title and filename
+    const branchNameForTitle = branches && branches.length === 1
+      ? branches[0].name
+      : branches && branches.length > 1
+      ? `All Branches (${branches.length})`
+      : "All Branches";
+
     doc.setFontSize(16);
-    let title = `General Report (${filter})`;
+    let title = `General Report - ${branchNameForTitle} (${filter})`;
     if (from && to) {
       title += ` - ${from.toLocaleDateString('en-GB')} to ${to.toLocaleDateString('en-GB')}`;
     }
@@ -76,7 +85,11 @@ export function GeneralReportExport({
       footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
     });
 
-    doc.save(`General-Report-${filter}.pdf`);
+    // Create filename with branch name
+    const branchNameForFile = branches && branches.length === 1
+      ? branches[0].name.replace(/\s+/g, '-')
+      : "All-Branches";
+    doc.save(`General-Report-${branchNameForFile}-${filter}.pdf`);
   };
 
   return (

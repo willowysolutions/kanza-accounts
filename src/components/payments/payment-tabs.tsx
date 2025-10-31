@@ -22,6 +22,7 @@ export default function PaymentTabs({
   customerPayments,
   supplierPayments,
   pagination,
+  branchName,
 }: {
   customerPayments: Payment[];
   supplierPayments: Payment[];
@@ -33,6 +34,7 @@ export default function PaymentTabs({
     hasPrevPage: boolean;
     limit: number;
   };
+  branchName?: string;
 }) {
   return (
     <Tabs defaultValue="customers" className="w-full">
@@ -42,11 +44,11 @@ export default function PaymentTabs({
       </TabsList>
 
       <TabsContent value="customers">
-        <PaymentTable rows={customerPayments} type="customer" pagination={pagination} />
+        <PaymentTable rows={customerPayments} type="customer" pagination={pagination} branchName={branchName} />
       </TabsContent>
 
       <TabsContent value="suppliers">
-        <PaymentTable rows={supplierPayments} type="supplier" pagination={pagination} />
+        <PaymentTable rows={supplierPayments} type="supplier" pagination={pagination} branchName={branchName} />
       </TabsContent>
     </Tabs>
   );

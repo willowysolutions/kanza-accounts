@@ -209,7 +209,7 @@ export function MachineFormModal({
             <FormItem>
               <FormLabel>Machine Name</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="e.g. Machine 1" />
               </FormControl>
               <FormMessage />
             </FormItem>

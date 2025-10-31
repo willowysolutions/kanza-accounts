@@ -40,7 +40,7 @@ export function CustomerReportsWithBranchTabs({ branches, customersByBranch }: C
                   {customers.length} customer{customers.length !== 1 ? 's' : ''} in this branch
                 </p>
               </div>
-              <CustomerReportTable customers={customers} />
+              <CustomerReportTable customers={customers} branchName={branchName} />
             </TabsContent>
           ))}
         </Tabs>

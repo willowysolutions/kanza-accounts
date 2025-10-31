@@ -76,6 +76,7 @@ export function PaymentReportsWithBranchTabs({
                 customerPayments={customerPayments}
                 supplierPayments={supplierPayments}
                 pagination={pagination}
+                branchName={branchName}
               />
             </TabsContent>
           ))}

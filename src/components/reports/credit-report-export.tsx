@@ -8,13 +8,15 @@ import autoTable from "jspdf-autotable";
 interface CreditReportExportProps {
   credits: unknown[];
   branchName: string;
+  branchId?: string;
   filter: string;
   from?: Date;
   to?: Date;
 }
 
 export function CreditReportExport({ 
-  branchName, 
+  branchName,
+  branchId,
   filter, 
   from, 
   to 
@@ -22,7 +24,21 @@ export function CreditReportExport({
   const handleExportPDF = async () => {
     // Fetch all credits for export (not just current page)
     try {
-      const response = await fetch(`/api/credits?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&limit=1000`);
+      // Build API URL with branchId if provided
+      const apiUrl = new URL('/api/credits', window.location.origin);
+      apiUrl.searchParams.set('filter', filter);
+      if (branchId) {
+        apiUrl.searchParams.set('branchId', branchId);
+      }
+      if (from) {
+        apiUrl.searchParams.set('from', from.toISOString());
+      }
+      if (to) {
+        apiUrl.searchParams.set('to', to.toISOString());
+      }
+      apiUrl.searchParams.set('limit', '1000');
+      
+      const response = await fetch(apiUrl.toString());
       const { data: allCredits = [] } = await response.json();
       
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
@@ -72,8 +88,8 @@ export function CreditReportExport({
       const tableData = sortedCreditsWithBalance.map((credit: unknown) => [
         new Date((credit as { date: string }).date).toLocaleDateString('en-GB'),
         (credit as { customer?: { name?: string } }).customer?.name ?? "N/A",
-        `₹${(credit as { amount?: number }).amount?.toFixed(2) ?? "0.00"}`,
-        `₹${(credit as { runningBalance?: number }).runningBalance?.toFixed(2) ?? "0.00"}`,
+        `${(credit as { amount?: number }).amount?.toFixed(2) ?? "0.00"}`,
+        `${(credit as { runningBalance?: number }).runningBalance?.toFixed(2) ?? "0.00"}`,
         (credit as { description?: string }).description ?? "-"
       ]);
 
@@ -82,7 +98,7 @@ export function CreditReportExport({
       tableData.push([
         "TOTAL",
         "",
-        `₹${totalAmount.toFixed(2)}`,
+        `${totalAmount.toFixed(2)}`,
         "",
         ""
       ]);
@@ -109,7 +125,7 @@ export function CreditReportExport({
     const finalY = (doc as any).lastAutoTable.finalY + 20;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text(`Total Credits: ₹${totalAmount.toFixed(2)}`, 40, finalY);
+    doc.text(`Total Credits: ${totalAmount.toFixed(2)}`, 40, finalY);
     doc.text(`Total Records: ${allCredits.length}`, 40, finalY + 15);
 
       const filename = `Credit-Report-${branchName}-${new Date().toISOString().split('T')[0]}.pdf`;

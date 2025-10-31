@@ -171,22 +171,22 @@ export function SalesReportsWithBranchTabs({
                             sales.reduce((sum: number, s: any) => sum + s.fleetPayment, 0)
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-green-400">
+                        <TableCell className="text-right font-semibold ">
                           {formatCurrency(
                             sales.reduce((sum: number, s: any) => sum + s.xgDieselTotal, 0)
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-blue-800">
+                        <TableCell className="text-right font-semibold">
                           {formatCurrency(
                             sales.reduce((sum: number, s: any) => sum + s.hsdDieselTotal, 0)
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-red-800">
+                        <TableCell className="text-right font-semibold">
                           {formatCurrency(
                             sales.reduce((sum: number, s: any) => sum + s.msPetrolTotal, 0)
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-bold text-green-800">
+                        <TableCell className="text-right font-bold">
                           {formatCurrency(
                             sales.reduce((sum: number, s: any) => sum + s.rate, 0)
                           )}

@@ -14,6 +14,7 @@ import { format } from "date-fns";
 interface CreditReportTableProps {
   credits: unknown[];
   branchName: string;
+  branchId?: string;
   customerFilter: string;
   pagination?: {
     currentPage: number;
@@ -29,6 +30,7 @@ interface CreditReportTableProps {
 export function CreditReportTable({
   credits,
   branchName,
+  branchId,
   customerFilter,
   pagination,
   currentPage,
@@ -49,7 +51,17 @@ export function CreditReportTable({
           const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
           const day = String(selectedDate.getDate()).padStart(2, '0');
           const dateStr = `${year}-${month}-${day}`;
-          const response = await fetch(`/api/credits?from=${dateStr}&to=${dateStr}&limit=1000`);
+          
+          // Build API URL with branchId if provided
+          const apiUrl = new URL('/api/credits', window.location.origin);
+          apiUrl.searchParams.set('from', dateStr);
+          apiUrl.searchParams.set('to', dateStr);
+          if (branchId) {
+            apiUrl.searchParams.set('branchId', branchId);
+          }
+          apiUrl.searchParams.set('limit', '1000');
+          
+          const response = await fetch(apiUrl.toString());
           const data = await response.json();
           setAllCredits(data.data || []);
         } catch (error) {
@@ -63,7 +75,7 @@ export function CreditReportTable({
     } else {
       setAllCredits(credits);
     }
-  }, [selectedDate, credits]);
+  }, [selectedDate, credits, branchId]);
 
   // Filter credits by selected date
   const filteredByDate = useMemo(() => {
@@ -166,6 +178,7 @@ export function CreditReportTable({
           <CreditReportExport 
             credits={filteredRows} 
             branchName={branchName}
+            branchId={branchId}
             filter={selectedDate ? "custom" : "all"}
             from={selectedDate}
             to={selectedDate}

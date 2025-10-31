@@ -27,9 +27,18 @@ export function PurchaseReportExport({ purchases, filter, from, to }: PurchaseRe
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
+    // Determine branch name(s) for title and filename
+    const uniqueBranches = new Set(purchases.map(p => p.branch?.name).filter(Boolean));
+    const branchNames = Array.from(uniqueBranches);
+    const branchNameForTitle = branchNames.length === 1 
+      ? branchNames[0] 
+      : branchNames.length > 1 
+      ? `All Branches (${branchNames.length})`
+      : "All Branches";
+
     // Title
     doc.setFontSize(16);
-    let title = `Purchase Report (${filter})`;
+    let title = `Purchase Report - ${branchNameForTitle} (${filter})`;
     if (from && to) {
       title += ` - ${from.toLocaleDateString('en-GB')} to ${to.toLocaleDateString('en-GB')}`;
     }
@@ -87,7 +96,11 @@ export function PurchaseReportExport({ purchases, filter, from, to }: PurchaseRe
       },
     });
 
-    doc.save(`Purchase-Report-${filter}.pdf`);
+    // Create filename with branch name
+    const branchNameForFile = branchNames.length === 1 
+      ? (branchNames[0] as string).replace(/\s+/g, '-')
+      : "All-Branches";
+    doc.save(`Purchase-Report-${branchNameForFile}-${filter}.pdf`);
   };
 
   return (

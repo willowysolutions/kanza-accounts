@@ -10,7 +10,7 @@ import { OilTable } from "../oil/oil-table";
 import { OilFormModal } from "../oil/oil-form";
 import { Sales } from "@/types/sales";
 import { ReportTable } from "../export-report/report-table";
-import { reportColumns } from "../export-report/report-column";
+import { createReportColumns } from "../export-report/report-column";
 import { Oil } from "@/types/oils";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -116,7 +116,7 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches,
                 <TabsContent value="report">
                   <ReportTable 
                     data={branchSales} 
-                    columns={reportColumns}
+                    columns={createReportColumns(userRole, undefined)}
                     pagination={salesPagination}
                     currentPage={currentPage}
                   />

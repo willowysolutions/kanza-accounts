@@ -14,12 +14,21 @@ type Customer = {
   outstandingPayments: number;
 };
 
-export function CustomerReportExport({ customers }: { customers: Customer[] }) {
+export function CustomerReportExport({ 
+  customers,
+  branchName 
+}: { 
+  customers: Customer[];
+  branchName?: string;
+}) {
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
     doc.setFontSize(16);
-    doc.text("Customer Report", 40, 40);
+    const title = branchName 
+      ? `Customer Report - ${branchName}`
+      : "Customer Report - All Branches";
+    doc.text(title, 40, 40);
 
     const head = [[
       "Name",
@@ -58,7 +67,11 @@ export function CustomerReportExport({ customers }: { customers: Customer[] }) {
       },
     });
 
-    doc.save("Customer-Report.pdf");
+    // Create filename with branch name
+    const branchNameForFile = branchName 
+      ? branchName.replace(/\s+/g, '-')
+      : "All-Branches";
+    doc.save(`Customer-Report-${branchNameForFile}.pdf`);
   };
 
   return (

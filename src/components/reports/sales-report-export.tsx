@@ -27,8 +27,17 @@ export function SalesReportExport({ sales, filter, from, to }: SalesReportExport
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
+    // Determine branch name(s) for title and filename
+    const uniqueBranches = new Set(sales.map(s => s.branch?.name).filter(Boolean));
+    const branchNames = Array.from(uniqueBranches);
+    const branchNameForTitle = branchNames.length === 1 
+      ? branchNames[0] 
+      : branchNames.length > 1 
+      ? `All Branches (${branchNames.length})`
+      : "All Branches";
+    
     doc.setFontSize(16);
-    let title = `Sales Report (${filter})`;
+    let title = `Sales Report - ${branchNameForTitle} (${filter})`;
     if (from && to) {
       title += ` - ${from.toLocaleDateString('en-GB')} to ${to.toLocaleDateString('en-GB')}`;
     }
@@ -74,7 +83,11 @@ export function SalesReportExport({ sales, filter, from, to }: SalesReportExport
       },
     });
 
-    doc.save(`Sales-Report-${filter}.pdf`);
+    // Create filename with branch name
+    const branchNameForFile = branchNames.length === 1 
+      ? (branchNames[0] as string).replace(/\s+/g, '-')
+      : "All-Branches";
+    doc.save(`Sales-Report-${branchNameForFile}-${filter}.pdf`);
   };
 
   return (
