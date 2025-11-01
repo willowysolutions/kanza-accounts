@@ -11,6 +11,7 @@ import { CustomerCreditReceivedExport } from "./customer-credit-received-export"
 import { ProductsSoldExport } from "./products-sold-export";
 import { ExpenseCategoryHistoryModal } from "./expense-category-history-modal";
 import { PaymentMethodHistoryModal } from "./payment-method-history-modal";
+import { BankDepositHistoryModal } from "./bank-deposit-history-modal";
 import { BankDepositsExport } from "./bank-deposits-export";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,6 +62,10 @@ export function BalanceSheetReport({
   // Payment method history modal state
   const [selectedPaymentMethodForHistory, setSelectedPaymentMethodForHistory] = useState<string | null>(null);
   const [isPaymentMethodHistoryModalOpen, setIsPaymentMethodHistoryModalOpen] = useState(false);
+
+  // Bank deposit history modal state
+  const [selectedBankForHistory, setSelectedBankForHistory] = useState<string | null>(null);
+  const [isBankHistoryModalOpen, setIsBankHistoryModalOpen] = useState(false);
 
   // Generate month options for the last 12 months
   const monthOptions = useMemo(() => {
@@ -800,7 +805,17 @@ export function BalanceSheetReport({
                     <tbody>
                       {bankDepositsData.map((item, index) => (
                         <tr key={index}>
-                          <td className="border border-gray-300 px-4 py-2">{item.bank}</td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <button
+                              onClick={() => {
+                                setSelectedBankForHistory(item.bank);
+                                setIsBankHistoryModalOpen(true);
+                              }}
+                              className="text-blue-600 hover:underline cursor-pointer"
+                            >
+                              {item.bank}
+                            </button>
+                          </td>
                           <td className="border border-gray-300 px-4 py-2 text-right">
                             {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
@@ -924,6 +939,14 @@ export function BalanceSheetReport({
           branchId={branchId}
           open={isPaymentMethodHistoryModalOpen}
           onOpenChange={setIsPaymentMethodHistoryModalOpen}
+        />
+      )}
+      {selectedBankForHistory && (
+        <BankDepositHistoryModal
+          bankName={selectedBankForHistory}
+          branchId={branchId}
+          open={isBankHistoryModalOpen}
+          onOpenChange={setIsBankHistoryModalOpen}
         />
       )}
     </div>
