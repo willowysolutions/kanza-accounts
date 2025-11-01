@@ -4,6 +4,10 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { BalanceSheetExport } from "./balance-sheet-export";
+import { PaymentMethodsExport } from "./payment-methods-export";
+import { ExpenseCategoriesExport } from "./expense-categories-export";
+import { CustomerCreditReceivedExport } from "./customer-credit-received-export";
+import { ProductsSoldExport } from "./products-sold-export";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BalanceSheetReportProps {
@@ -32,6 +36,12 @@ export function BalanceSheetReport({
   const [selectedMonthValue, setSelectedMonthValue] = useState<string>(
     `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
   );
+
+  // Filter states
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState<string>("all");
+  const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string>("all");
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("all");
+  const [selectedProduct, setSelectedProduct] = useState<string>("all");
 
   // Generate month options for the last 12 months
   const monthOptions = useMemo(() => {
@@ -95,8 +105,8 @@ export function BalanceSheetReport({
     };
   }, [sales, credits, expenses, bankDeposits, payments, selectedMonth]);
 
-  // Calculate products sold data
-  const productsData = useMemo(() => {
+  // Calculate all products (unfiltered) for dropdown options
+  const allProducts = useMemo(() => {
     const productTotals: { [key: string]: number } = {};
     
     filteredData.sales.forEach((sale) => {
@@ -123,6 +133,16 @@ export function BalanceSheetReport({
         total,
       }));
   }, [filteredData.sales]);
+
+  // Calculate products sold data (filtered)
+  const productsData = useMemo(() => {
+    // Filter by selected product
+    if (selectedProduct !== "all") {
+      return allProducts.filter(item => item.product === selectedProduct);
+    }
+
+    return allProducts;
+  }, [allProducts, selectedProduct]);
 
   // Calculate customer credits data
   const customerCreditsData = useMemo(() => {
@@ -154,8 +174,8 @@ export function BalanceSheetReport({
     }));
   }, [filteredData.credits, filteredData.sales]);
 
-  // Calculate expense categories data
-  const expenseCategoriesData = useMemo(() => {
+  // Calculate all expense categories (unfiltered) for dropdown options
+  const allExpenseCategories = useMemo(() => {
     const categoryTotals: { [key: string]: number } = {};
     
     filteredData.expenses.forEach((expense) => {
@@ -168,6 +188,16 @@ export function BalanceSheetReport({
       total,
     }));
   }, [filteredData.expenses]);
+
+  // Calculate expense categories data (filtered)
+  const expenseCategoriesData = useMemo(() => {
+    // Filter by selected expense category
+    if (selectedExpenseCategory !== "all") {
+      return allExpenseCategories.filter(item => item.category === selectedExpenseCategory);
+    }
+
+    return allExpenseCategories;
+  }, [allExpenseCategories, selectedExpenseCategory]);
 
   // Calculate bank deposits data
   const bankDepositsData = useMemo(() => {
@@ -184,8 +214,8 @@ export function BalanceSheetReport({
     }));
   }, [filteredData.bankDeposits]);
 
-  // Calculate customer credit and received data (enhanced version)
-  const customerCreditReceivedData = useMemo(() => {
+  // Calculate all customers (unfiltered) for dropdown options
+  const allCustomers = useMemo(() => {
     const customerTotals: { [key: string]: { credit: number; received: number } } = {};
     
     // Process credits
@@ -215,6 +245,16 @@ export function BalanceSheetReport({
     }));
   }, [filteredData.credits, filteredData.payments]);
 
+  // Calculate customer credit and received data (filtered)
+  const customerCreditReceivedData = useMemo(() => {
+    // Filter by selected customer
+    if (selectedCustomer !== "all") {
+      return allCustomers.filter(item => item.customer === selectedCustomer);
+    }
+
+    return allCustomers;
+  }, [allCustomers, selectedCustomer]);
+
   // Calculate payment methods data from sales
   const paymentMethodsData = useMemo(() => {
     const methodTotals: { [key: string]: number } = {
@@ -231,14 +271,21 @@ export function BalanceSheetReport({
       methodTotals['Fleet'] += sale.fleetPayment || 0;
     });
 
-    // Only return methods that have values > 0
-    return Object.entries(methodTotals)
+    // Get all methods with values > 0
+    let allMethods = Object.entries(methodTotals)
       .filter(([, total]) => total > 0)
       .map(([method, total]) => ({
         method,
         total,
       }));
-  }, [filteredData.sales]);
+
+    // Filter by selected payment mode
+    if (selectedPaymentMode !== "all") {
+      allMethods = allMethods.filter(item => item.method === selectedPaymentMode);
+    }
+
+    return allMethods;
+  }, [filteredData.sales, selectedPaymentMode]);
 
   return (
     <div className="space-y-6">
@@ -276,9 +323,33 @@ export function BalanceSheetReport({
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Customer Credit & Received - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Customer Credit & Received - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+              <CustomerCreditReceivedExport
+                branchName={branchName}
+                selectedMonth={selectedMonth}
+                customerCreditReceivedData={customerCreditReceivedData}
+                selectedCustomer={selectedCustomer}
+              />
+            </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 flex items-center gap-4">
+              <label className="text-sm font-medium">Filter by Customer:</label>
+              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                <SelectTrigger className="w-[240px]">
+                  <SelectValue placeholder="All Customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  {allCustomers.map((item) => (
+                    <SelectItem key={item.customer} value={item.customer}>
+                      {item.customer}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
@@ -303,7 +374,7 @@ export function BalanceSheetReport({
                   {customerCreditReceivedData.length === 0 && (
                     <tr>
                       <td colSpan={3} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                        No data available for this month
+                        No data available for this month{selectedCustomer !== "all" ? ` and customer` : ""}
                       </td>
                     </tr>
                   )}
@@ -331,9 +402,33 @@ export function BalanceSheetReport({
             {/* Expense Categories Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Expense Categories - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Expense Categories - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                  <ExpenseCategoriesExport
+                    branchName={branchName}
+                    selectedMonth={selectedMonth}
+                    expenseCategoriesData={expenseCategoriesData}
+                    selectedExpenseCategory={selectedExpenseCategory}
+                  />
+                </div>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 flex items-center gap-4">
+                  <label className="text-sm font-medium">Filter by Expense Category:</label>
+                  <Select value={selectedExpenseCategory} onValueChange={setSelectedExpenseCategory}>
+                    <SelectTrigger className="w-[240px]">
+                      <SelectValue placeholder="All Expense Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Expense Categories</SelectItem>
+                      {allExpenseCategories.map((item) => (
+                        <SelectItem key={item.category} value={item.category}>
+                          {item.category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
@@ -354,7 +449,7 @@ export function BalanceSheetReport({
                       {expenseCategoriesData.length === 0 && (
                         <tr>
                           <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                            No data available for this month
+                            No data available for this month{selectedExpenseCategory !== "all" ? ` and expense category` : ""}
                           </td>
                         </tr>
                       )}
@@ -375,9 +470,33 @@ export function BalanceSheetReport({
             {/* Products Sold Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Products Sold - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Products Sold - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                  <ProductsSoldExport
+                    branchName={branchName}
+                    selectedMonth={selectedMonth}
+                    productsData={productsData}
+                    selectedProduct={selectedProduct}
+                  />
+                </div>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 flex items-center gap-4">
+                  <label className="text-sm font-medium">Filter by Product:</label>
+                  <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                    <SelectTrigger className="w-[240px]">
+                      <SelectValue placeholder="All Products" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Products</SelectItem>
+                      {allProducts.map((item) => (
+                        <SelectItem key={item.product} value={item.product}>
+                          {item.product}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
@@ -398,7 +517,7 @@ export function BalanceSheetReport({
                       {productsData.length === 0 && (
                         <tr>
                           <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                            No data available for this month
+                            No data available for this month{selectedProduct !== "all" ? ` and product` : ""}
                           </td>
                         </tr>
                       )}
@@ -466,9 +585,32 @@ export function BalanceSheetReport({
             {/* Payment Methods Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Payment Methods Total - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Payment Methods Total - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                  <PaymentMethodsExport
+                    branchName={branchName}
+                    selectedMonth={selectedMonth}
+                    paymentMethodsData={paymentMethodsData}
+                    selectedPaymentMode={selectedPaymentMode}
+                  />
+                </div>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 flex items-center gap-4">
+                  <label className="text-sm font-medium">Filter by Payment Mode:</label>
+                  <Select value={selectedPaymentMode} onValueChange={setSelectedPaymentMode}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Payment Methods" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Payment Methods</SelectItem>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="ATM">ATM</SelectItem>
+                      <SelectItem value="Paytm">Paytm</SelectItem>
+                      <SelectItem value="Fleet">Fleet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
@@ -489,7 +631,7 @@ export function BalanceSheetReport({
                       {paymentMethodsData.length === 0 && (
                         <tr>
                           <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                            No data available for this month
+                            No data available for this month{selectedPaymentMode !== "all" ? ` and payment mode` : ""}
                           </td>
                         </tr>
                       )}
