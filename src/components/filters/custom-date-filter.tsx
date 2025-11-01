@@ -40,7 +40,7 @@ export function CustomDateFilter() {
     <div className="flex items-center gap-2">
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2 bg-white">
             <CalendarIcon className="h-4 w-4" />
             {range?.from && range?.to
               ? `${format(range?.from, "PP")} - ${format(range.to, "PP")}`
@@ -57,7 +57,7 @@ export function CustomDateFilter() {
         </PopoverContent>
       </Popover>
 
-      <Button onClick={applyFilter} disabled={!range?.from || !range?.to}>
+      <Button onClick={applyFilter} disabled={!range?.from || !range?.to} className="bg-white">
         Apply
       </Button>
     </div>

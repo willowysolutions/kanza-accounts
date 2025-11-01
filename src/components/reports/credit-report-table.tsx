@@ -146,7 +146,7 @@ export function CreditReportTable({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-[240px] justify-start text-left font-normal"
+                  className="w-[240px] justify-start text-left font-normal bg-white"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDate ? format(selectedDate, "PPP") : "Select date"}
@@ -164,7 +164,7 @@ export function CreditReportTable({
             <Button
               variant="outline"
               onClick={() => setSelectedDate(undefined)}
-              className="w-[100px]"
+              className="w-[100px] bg-white"
             >
               Clear
             </Button>
@@ -172,7 +172,7 @@ export function CreditReportTable({
               placeholder="Search customer name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="max-w-xs"
+              className="max-w-xs bg-white"
             />
           </div>
           <CreditReportExport 

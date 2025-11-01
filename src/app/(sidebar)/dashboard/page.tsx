@@ -221,7 +221,22 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
 
         
 
-        <ChartAreaInteractive />
+        {/* Sales vs Purchases Graph - Branch Wise */}
+        <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">
+          <TabsList className="mb-4 flex flex-wrap gap-2">
+            {visibleBranches.map((branch: { id: string; name: string }) => (
+              <TabsTrigger key={branch.id} value={branch.id}>
+                {branch.name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {visibleBranches.map((branch: { id: string; name: string }) => (
+            <TabsContent key={branch.id} value={branch.id}>
+              <ChartAreaInteractive branchId={branch.id} />
+            </TabsContent>
+          ))}
+        </Tabs>
 
         <div className="col-span-2">
           <DashboardCharts purchaseData={purchaseData} salesData={salesData} />

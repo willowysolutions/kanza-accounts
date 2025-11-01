@@ -52,14 +52,14 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartAreaInteractive() {
+export function ChartAreaInteractive({ branchId }: { branchId?: string }) {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = useState("90d")
   const [chartData, setChartData] = useState<MonthlyData[]>([])
 
   useEffect(() => {
-    getMonthlyData().then((data) => setChartData(data))
-  }, [])
+    getMonthlyData(branchId).then((data) => setChartData(data))
+  }, [branchId])
 
   useEffect(() => {
     if (isMobile) setTimeRange("7d")

@@ -94,6 +94,7 @@ export default async function BalanceSheetReportPage() {
 
                 <BalanceSheetReport
                   branchName={branch.name}
+                  branchId={branch.id}
                   sales={sales.filter((sale: any) => sale.branchId === branch.id)}
                   credits={credits.filter((credit: any) => credit.branchId === branch.id)}
                   expenses={expenses.filter((expense: any) => expense.branchId === branch.id)}

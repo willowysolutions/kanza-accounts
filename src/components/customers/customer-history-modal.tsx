@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useMemo } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -20,6 +21,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { IconFileExport } from "@tabler/icons-react";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { CalendarIcon } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -41,6 +45,13 @@ type HistoryItem = {
   quantity?: number;
 };
 
+type CustomerData = {
+  id: string;
+  name: string;
+  openingBalance: number;
+  outstandingPayments: number;
+};
+
 export function CustomerHistoryModal({
   customerId,
   open,
@@ -51,8 +62,9 @@ export function CustomerHistoryModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [filter, setFilter] = useState("all");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   useEffect(() => {
     if (!open) return;
@@ -61,6 +73,9 @@ export function CustomerHistoryModal({
       .then((data) => {
         if (data.history) {
           setHistory(data.history);
+        }
+        if (data.customer) {
+          setCustomer(data.customer);
         }
       });
   }, [open, customerId]);
@@ -99,38 +114,44 @@ export function CustomerHistoryModal({
           break;
       }
 
-      // Apply date picker filter
+      // Apply date range filter
       let dateFilterPass = true;
-      if (selectedDate) {
-        dateFilterPass = d.toDateString() === selectedDate.toDateString();
+      if (dateRange?.from && dateRange?.to) {
+        const startDate = new Date(dateRange.from);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(dateRange.to);
+        endDate.setHours(23, 59, 59, 999);
+        dateFilterPass = d >= startDate && d <= endDate;
       }
 
       return selectFilterPass && dateFilterPass;
     });
-  }, [filter, selectedDate, history]);
+  }, [filter, dateRange, history]);
 
-  // Sort by date and calculate running balance
+  // Sort by date and calculate running balance starting from openingBalance
   const historyWithBalance = useMemo(() => {
     const sorted = [...filteredHistory].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-    let runningBalance = 0;
+    // Start with opening balance
+    const startingBalance = customer?.openingBalance || 0;
+    let runningBalance = startingBalance;
     return sorted.map((item) => {
       if (item.type === "credit") {
-        runningBalance -= item.amount;
-      } else {
+        // Credit increases the balance (customer owes more)
         runningBalance += item.amount;
+      } else {
+        // Payment decreases the balance (customer pays off debt)
+        runningBalance -= item.amount;
       }
       return { ...item, balance: runningBalance };
     });
-  }, [filteredHistory]);
+  }, [filteredHistory, customer]);
 
-  const total =
-    historyWithBalance.length > 0
-      ? historyWithBalance[historyWithBalance.length - 1].balance
-      : 0;
+  // Total should match the customer's outstandingPayments
+  const total = customer?.outstandingPayments || 0;
 
-  const customerName = history[0]?.customer;
+  const customerName = customer?.name || history[0]?.customer;
 
   const handleExportPDF = () => {
     if (!historyWithBalance.length) return;
@@ -139,11 +160,13 @@ export function CustomerHistoryModal({
     doc.setFontSize(14);
     doc.text(`Customer Statement - ${customerName || "Unknown"}`, 40, 40);
 
+    const openingBalance = customer?.openingBalance || 0;
     autoTable(doc, {
       startY: 70,
-      head: [["Date", "Fuel Type", "Quantity", "Debit", "Credit", "Balance"]],
+      head: [["Date", "Opening Balance", "Fuel Type", "Quantity", "Debit", "Credit", "Balance"]],
       body: historyWithBalance.map((h) => [
         new Date(h.date).toLocaleDateString(),
+        `${openingBalance.toLocaleString()}`,
         h.fuelType || "-",
         h.quantity || "-",
         h.type === "credit" ? `${h.amount}` : "-",
@@ -156,7 +179,7 @@ export function CustomerHistoryModal({
       margin: { left: 40, right: 40 },
       foot: [
         [
-          { content: "Final Total", colSpan: 5, styles: { halign: "right" } },
+          { content: "Final Total", colSpan: 6, styles: { halign: "right" } },
           { content: `${total.toLocaleString()}`, styles: { halign: "right" } },
         ],
       ],
@@ -166,19 +189,22 @@ export function CustomerHistoryModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="top" className="w-full overflow-y-auto max-h-screen p-6">
+        <SheetHeader className="mb-4">
+          <SheetTitle>
             Customer Statement {customerName && ` - ${customerName}`}
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+          <SheetDescription>
+            View transaction history and balance details for this customer
+          </SheetDescription>
+        </SheetHeader>
 
         {/* Filters */}
         <div className="mb-3 flex gap-3 items-center">
           {/* Select filter */}
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-white">
               <SelectValue placeholder="Filter by date" />
             </SelectTrigger>
             <SelectContent>
@@ -191,30 +217,34 @@ export function CustomerHistoryModal({
             </SelectContent>
           </Select>
 
-          {/* Date picker filter */}
+          {/* Date range picker filter */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline">
-                {selectedDate
-                  ? selectedDate.toLocaleDateString()
-                  : "Select Date"}
+              <Button variant="outline" className="flex items-center gap-2 bg-white">
+                <CalendarIcon className="h-4 w-4" />
+                {dateRange?.from && dateRange?.to
+                  ? `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`
+                  : "Pick date range"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
               />
-              {selectedDate && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() => setSelectedDate(undefined)}
-                >
-                  Clear
-                </Button>
+              {dateRange?.from && dateRange?.to && (
+                <div className="p-3 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setDateRange(undefined)}
+                  >
+                    Clear
+                  </Button>
+                </div>
               )}
             </PopoverContent>
           </Popover>
@@ -228,45 +258,52 @@ export function CustomerHistoryModal({
                 <TableHead>Date</TableHead>
                 <TableHead>Fuel Type</TableHead>
                 <TableHead>Quantity</TableHead>
+                <TableHead>Opening Balance</TableHead>
                 <TableHead className="text-right">Debit</TableHead>
                 <TableHead className="text-right">Credit</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {historyWithBalance.length === 0 && (
+              {historyWithBalance.length === 0 && !customer && (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center text-muted-foreground"
                   >
                     No records found.
                   </TableCell>
                 </TableRow>
               )}
-              {historyWithBalance.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    {new Date(item.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{item.fuelType ?? "-"}</TableCell>
-                  <TableCell>{item.quantity ?? "-"}</TableCell>
-                  <TableCell className="text-right text-red-600">
-                    {item.type === "credit" ? `₹${item.amount}` : "-"}
-                  </TableCell>
-                  <TableCell className="text-right text-green-600">
-                    {item.type === "payment" ? `₹${item.amount}` : "-"}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    ₹{item.balance.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {historyWithBalance.map((item) => {
+                const openingBalance = customer?.openingBalance || 0;
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      {new Date(item.date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{item.fuelType ?? "-"}</TableCell>
+                    <TableCell>{item.quantity ?? "-"}</TableCell>
+                    <TableCell>
+                      ₹{openingBalance.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-red-600">
+                      {item.type === "credit" ? `₹${item.amount}` : "-"}
+                    </TableCell>
+                    <TableCell className="text-right text-green-600">
+                      {item.type === "payment" ? `₹${item.amount}` : "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      ₹{item.balance.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
 
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={5} className="text-right font-bold">
+                <TableCell colSpan={6} className="text-right font-bold">
                   Pending Total
                 </TableCell>
                 <TableCell className="text-right font-bold">
@@ -286,7 +323,7 @@ export function CustomerHistoryModal({
             <IconFileExport size={18} /> Export PDF
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

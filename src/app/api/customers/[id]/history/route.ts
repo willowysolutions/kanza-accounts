@@ -17,6 +17,24 @@ export async function GET(
     }
 
 
+    // ✅ Get customer data (openingBalance and outstandingPayments)
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: {
+        id: true,
+        name: true,
+        openingBalance: true,
+        outstandingPayments: true,
+      },
+    });
+
+    if (!customer) {
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
     // ✅ Get all credits for this customer
     const credits = await prisma.credit.findMany({
       where: { customerId },
@@ -69,6 +87,12 @@ export async function GET(
     
     return NextResponse.json({
       customerId,
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        openingBalance: customer.openingBalance,
+        outstandingPayments: customer.outstandingPayments,
+      },
       history, // ✅ flat array instead of grouped
     });
   } catch (err) {

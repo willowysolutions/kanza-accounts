@@ -26,7 +26,7 @@ export function FilterSelect({ defaultValue }: { defaultValue: string }) {
         router.push(url.pathname + url.search);
       }}
     >
-      <SelectTrigger className="w-[200px]">
+      <SelectTrigger className="w-[200px] bg-white">
         <SelectValue placeholder="Filter by date" />
       </SelectTrigger>
       <SelectContent>

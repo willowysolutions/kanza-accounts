@@ -2,16 +2,25 @@
 
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { BalanceSheetExport } from "./balance-sheet-export";
 import { PaymentMethodsExport } from "./payment-methods-export";
 import { ExpenseCategoriesExport } from "./expense-categories-export";
 import { CustomerCreditReceivedExport } from "./customer-credit-received-export";
 import { ProductsSoldExport } from "./products-sold-export";
+import { ExpenseCategoryHistoryModal } from "./expense-category-history-modal";
+import { PaymentMethodHistoryModal } from "./payment-method-history-modal";
+import { BankDepositsExport } from "./bank-deposits-export";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
 interface BalanceSheetReportProps {
   branchName: string;
+  branchId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sales: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,22 +35,32 @@ interface BalanceSheetReportProps {
 
 export function BalanceSheetReport({
   branchName,
+  branchId,
   sales,
   credits,
   expenses,
   bankDeposits,
   payments,
 }: BalanceSheetReportProps) {
-  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-  const [selectedMonthValue, setSelectedMonthValue] = useState<string>(
-    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-  );
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<string>("month");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
 
   // Filter states
   const [selectedPaymentMode, setSelectedPaymentMode] = useState<string>("all");
   const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string>("all");
   const [selectedCustomer, setSelectedCustomer] = useState<string>("all");
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
+  const [selectedBank, setSelectedBank] = useState<string>("all");
+
+  // Expense category history modal state
+  const [selectedCategoryForHistory, setSelectedCategoryForHistory] = useState<string | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+  // Payment method history modal state
+  const [selectedPaymentMethodForHistory, setSelectedPaymentMethodForHistory] = useState<string | null>(null);
+  const [isPaymentMethodHistoryModalOpen, setIsPaymentMethodHistoryModalOpen] = useState(false);
 
   // Generate month options for the last 12 months
   const monthOptions = useMemo(() => {
@@ -60,41 +79,78 @@ export function BalanceSheetReport({
     return options;
   }, []);
 
-  const handleMonthChange = (value: string) => {
-    setSelectedMonthValue(value);
-    const [year, month] = value.split('-').map(Number);
-    setSelectedMonth(new Date(year, month - 1, 1));
-  };
+  // Calculate date range based on filter type
+  const getDateRangeForFilter = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+    
+    switch (dateFilter) {
+      case "month": {
+        // Use selected month if available, otherwise current month
+        const selectedMonthValue = selectedDate ? selectedDate : new Date();
+        startDate = new Date(selectedMonthValue.getFullYear(), selectedMonthValue.getMonth(), 1);
+        endDate = new Date(selectedMonthValue.getFullYear(), selectedMonthValue.getMonth() + 1, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      }
+      case "week": {
+        // Calculate start of week (Sunday) for the current week
+        const startOfWeek = new Date(now);
+        const day = startOfWeek.getDay();
+        startOfWeek.setDate(startOfWeek.getDate() - day);
+        startDate = new Date(startOfWeek);
+        startDate.setHours(0, 0, 0, 0);
+        // End of week is Saturday (6 days from Sunday)
+        endDate = new Date(startOfWeek);
+        endDate.setDate(endDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      }
+      case "day": {
+        const targetDate = selectedDate || now;
+        startDate = new Date(targetDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(targetDate);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      }
+      case "custom": {
+        if (dateRange?.from && dateRange?.to) {
+          startDate = new Date(dateRange.from);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(dateRange.to);
+          endDate.setHours(23, 59, 59, 999);
+        }
+        break;
+      }
+      case "all":
+      default:
+        startDate = undefined;
+        endDate = undefined;
+        break;
+    }
+    
+    return { startDate, endDate };
+  }, [dateFilter, selectedDate, dateRange]);
 
-  // Filter data by selected month
+  // Filter data by selected date range
   const filteredData = useMemo(() => {
-    const year = selectedMonth.getFullYear();
-    const month = selectedMonth.getMonth();
+    const { startDate, endDate } = getDateRangeForFilter;
 
-    const filteredSales = sales.filter((sale) => {
-      const saleDate = new Date(sale.date);
-      return saleDate.getFullYear() === year && saleDate.getMonth() === month;
-    });
+    const filterByDate = (date: Date | string) => {
+      if (!startDate || !endDate) return true;
+      const itemDate = new Date(date);
+      return itemDate >= startDate && itemDate <= endDate;
+    };
 
-    const filteredCredits = credits.filter((credit) => {
-      const creditDate = new Date(credit.date);
-      return creditDate.getFullYear() === year && creditDate.getMonth() === month;
-    });
-
-    const filteredExpenses = expenses.filter((expense) => {
-      const expenseDate = new Date(expense.date);
-      return expenseDate.getFullYear() === year && expenseDate.getMonth() === month;
-    });
-
-    const filteredBankDeposits = bankDeposits.filter((deposit) => {
-      const depositDate = new Date(deposit.date);
-      return depositDate.getFullYear() === year && depositDate.getMonth() === month;
-    });
-
-    const filteredPayments = payments.filter((payment) => {
-      const paymentDate = new Date(payment.paidOn);
-      return paymentDate.getFullYear() === year && paymentDate.getMonth() === month;
-    });
+    const filteredSales = sales.filter((sale) => filterByDate(sale.date));
+    const filteredCredits = credits.filter((credit) => filterByDate(credit.date));
+    const filteredExpenses = expenses.filter((expense) => filterByDate(expense.date));
+    const filteredBankDeposits = bankDeposits.filter((deposit) => filterByDate(deposit.date));
+    const filteredPayments = payments.filter((payment) => filterByDate(payment.paidOn));
 
     return {
       sales: filteredSales,
@@ -103,7 +159,7 @@ export function BalanceSheetReport({
       bankDeposits: filteredBankDeposits,
       payments: filteredPayments,
     };
-  }, [sales, credits, expenses, bankDeposits, payments, selectedMonth]);
+  }, [sales, credits, expenses, bankDeposits, payments, getDateRangeForFilter]);
 
   // Calculate all products (unfiltered) for dropdown options
   const allProducts = useMemo(() => {
@@ -199,8 +255,8 @@ export function BalanceSheetReport({
     return allExpenseCategories;
   }, [allExpenseCategories, selectedExpenseCategory]);
 
-  // Calculate bank deposits data
-  const bankDepositsData = useMemo(() => {
+  // Calculate all banks (unfiltered) for dropdown options
+  const allBanks = useMemo(() => {
     const bankTotals: { [key: string]: number } = {};
     
     filteredData.bankDeposits.forEach((deposit) => {
@@ -213,6 +269,16 @@ export function BalanceSheetReport({
       total,
     }));
   }, [filteredData.bankDeposits]);
+
+  // Calculate bank deposits data (filtered)
+  const bankDepositsData = useMemo(() => {
+    // Filter by selected bank
+    if (selectedBank !== "all") {
+      return allBanks.filter(item => item.bank === selectedBank);
+    }
+
+    return allBanks;
+  }, [allBanks, selectedBank]);
 
   // Calculate all customers (unfiltered) for dropdown options
   const allCustomers = useMemo(() => {
@@ -287,24 +353,164 @@ export function BalanceSheetReport({
     return allMethods;
   }, [filteredData.sales, selectedPaymentMode]);
 
+  // Get display label for date filter
+  const getDateFilterLabel = () => {
+    const { startDate, endDate } = getDateRangeForFilter;
+    
+    switch (dateFilter) {
+      case "month":
+        if (selectedDate) {
+          return format(selectedDate, "MMMM yyyy");
+        }
+        return format(new Date(), "MMMM yyyy");
+      case "week":
+        if (startDate && endDate) {
+          return `${format(startDate, "dd/MM/yyyy")} - ${format(endDate, "dd/MM/yyyy")}`;
+        }
+        return "This Week";
+      case "day":
+        if (selectedDate) {
+          return format(selectedDate, "dd/MM/yyyy");
+        }
+        return format(new Date(), "dd/MM/yyyy");
+      case "custom":
+        if (dateRange?.from && dateRange?.to) {
+          return `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`;
+        }
+        return "Custom Date Range";
+      case "all":
+      default:
+        return "All Time";
+    }
+  };
+
+  // Get selected month for backward compatibility with export
+  const selectedMonth = useMemo(() => {
+    if (dateFilter === "month" && selectedDate) {
+      return selectedDate;
+    }
+    return new Date();
+  }, [dateFilter, selectedDate]);
+
   return (
     <div className="space-y-6">
-      {/* Month Selector and Export Button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h3 className="text-lg font-semibold">Select Month:</h3>
-          <Select value={selectedMonthValue} onValueChange={handleMonthChange}>
-            <SelectTrigger className="w-[240px]">
-              <SelectValue placeholder="Select a month" />
+      {/* Date Filter and Export Button */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <h3 className="text-lg font-semibold">Filter by Date:</h3>
+          <Select value={dateFilter} onValueChange={(value) => {
+            setDateFilter(value);
+            if (value !== "month" && value !== "day") {
+              setSelectedDate(undefined);
+            }
+            if (value !== "custom") {
+              setDateRange(undefined);
+            }
+            if (value === "month" && !selectedDate) {
+              setSelectedDate(new Date());
+            }
+            if (value === "day" && !selectedDate) {
+              setSelectedDate(new Date());
+            }
+          }}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <SelectValue placeholder="Select filter" />
             </SelectTrigger>
             <SelectContent>
-              {monthOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="month">Monthly</SelectItem>
+              <SelectItem value="week">Weekly</SelectItem>
+              <SelectItem value="day">Daily</SelectItem>
+              <SelectItem value="custom">Custom Date Range</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Month selector for monthly filter */}
+          {dateFilter === "month" && (
+            <Select
+              value={selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}` : ""}
+              onValueChange={(value) => {
+                const [year, month] = value.split('-').map(Number);
+                setSelectedDate(new Date(year, month - 1, 1));
+              }}
+            >
+              <SelectTrigger className="w-[240px] bg-white">
+                <SelectValue placeholder="Select a month" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Day selector for daily filter */}
+          {dateFilter === "day" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2 bg-white">
+                  <CalendarIcon className="h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "Select Date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                />
+                {selectedDate && (
+                  <div className="p-3 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setSelectedDate(undefined)}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Custom date range picker */}
+          {dateFilter === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2 bg-white">
+                  <CalendarIcon className="h-4 w-4" />
+                  {dateRange?.from && dateRange?.to
+                    ? `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`
+                    : "Pick date range"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={dateRange as DateRange}
+                  onSelect={(range) => setDateRange(range)}
+                  numberOfMonths={2}
+                />
+                {dateRange?.from && dateRange?.to && (
+                  <div className="p-3 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setDateRange(undefined)}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
         
         <BalanceSheetExport
@@ -318,13 +524,18 @@ export function BalanceSheetReport({
           paymentMethodsData={paymentMethodsData}
         />
       </div>
+      
+      {/* Date filter display */}
+      <div className="text-sm text-muted-foreground">
+        Showing data for: <span className="font-semibold">{getDateFilterLabel()}</span>
+      </div>
 
       {/* Customer Credit and Received Table - Moved to Top */}
       <div className="space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Customer Credit & Received - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                  <CardTitle>Customer Credit & Received - {getDateFilterLabel()}</CardTitle>
               <CustomerCreditReceivedExport
                 branchName={branchName}
                 selectedMonth={selectedMonth}
@@ -337,7 +548,7 @@ export function BalanceSheetReport({
             <div className="mb-4 flex items-center gap-4">
               <label className="text-sm font-medium">Filter by Customer:</label>
               <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                <SelectTrigger className="w-[240px]">
+                <SelectTrigger className="w-[240px] bg-white">
                   <SelectValue placeholder="All Customers" />
                 </SelectTrigger>
                 <SelectContent>
@@ -403,7 +614,7 @@ export function BalanceSheetReport({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Expense Categories - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                  <CardTitle>Expense Categories - {getDateFilterLabel()}</CardTitle>
                   <ExpenseCategoriesExport
                     branchName={branchName}
                     selectedMonth={selectedMonth}
@@ -416,7 +627,7 @@ export function BalanceSheetReport({
                 <div className="mb-4 flex items-center gap-4">
                   <label className="text-sm font-medium">Filter by Expense Category:</label>
                   <Select value={selectedExpenseCategory} onValueChange={setSelectedExpenseCategory}>
-                    <SelectTrigger className="w-[240px]">
+                    <SelectTrigger className="w-[240px] bg-white">
                       <SelectValue placeholder="All Expense Categories" />
                     </SelectTrigger>
                     <SelectContent>
@@ -440,7 +651,17 @@ export function BalanceSheetReport({
                     <tbody>
                       {expenseCategoriesData.map((item, index) => (
                         <tr key={index}>
-                          <td className="border border-gray-300 px-4 py-2">{item.category}</td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <button
+                              className="text-blue-600 hover:underline cursor-pointer"
+                              onClick={() => {
+                                setSelectedCategoryForHistory(item.category);
+                                setIsHistoryModalOpen(true);
+                              }}
+                            >
+                              {item.category}
+                            </button>
+                          </td>
                           <td className="border border-gray-300 px-4 py-2 text-right">
                             {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
@@ -471,7 +692,7 @@ export function BalanceSheetReport({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Products Sold - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                  <CardTitle>Products Sold - {getDateFilterLabel()}</CardTitle>
                   <ProductsSoldExport
                     branchName={branchName}
                     selectedMonth={selectedMonth}
@@ -484,7 +705,7 @@ export function BalanceSheetReport({
                 <div className="mb-4 flex items-center gap-4">
                   <label className="text-sm font-medium">Filter by Product:</label>
                   <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                    <SelectTrigger className="w-[240px]">
+                    <SelectTrigger className="w-[240px] bg-white">
                       <SelectValue placeholder="All Products" />
                     </SelectTrigger>
                     <SelectContent>
@@ -541,9 +762,33 @@ export function BalanceSheetReport({
             {/* Bank Deposits Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Bank Deposits - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Bank Deposits - {getDateFilterLabel()}</CardTitle>
+                  <BankDepositsExport
+                    branchName={branchName}
+                    selectedMonth={selectedMonth}
+                    bankDepositsData={bankDepositsData}
+                    selectedBank={selectedBank}
+                  />
+                </div>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 flex items-center gap-4">
+                  <label className="text-sm font-medium">Filter by Bank:</label>
+                  <Select value={selectedBank} onValueChange={setSelectedBank}>
+                    <SelectTrigger className="w-[240px] bg-white">
+                      <SelectValue placeholder="All Banks" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Banks</SelectItem>
+                      {allBanks.map((item) => (
+                        <SelectItem key={item.bank} value={item.bank}>
+                          {item.bank}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
@@ -564,7 +809,7 @@ export function BalanceSheetReport({
                       {bankDepositsData.length === 0 && (
                         <tr>
                           <td colSpan={2} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                            No data available for this month
+                            No data available for this month{selectedBank !== "all" ? ` and bank` : ""}
                           </td>
                         </tr>
                       )}
@@ -586,7 +831,7 @@ export function BalanceSheetReport({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Payment Methods Total - {format(selectedMonth, "MMMM yyyy")}</CardTitle>
+                  <CardTitle>Payment Methods Total - {getDateFilterLabel()}</CardTitle>
                   <PaymentMethodsExport
                     branchName={branchName}
                     selectedMonth={selectedMonth}
@@ -599,7 +844,7 @@ export function BalanceSheetReport({
                 <div className="mb-4 flex items-center gap-4">
                   <label className="text-sm font-medium">Filter by Payment Mode:</label>
                   <Select value={selectedPaymentMode} onValueChange={setSelectedPaymentMode}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[180px] bg-white">
                       <SelectValue placeholder="All Payment Methods" />
                     </SelectTrigger>
                     <SelectContent>
@@ -622,7 +867,17 @@ export function BalanceSheetReport({
                     <tbody>
                       {paymentMethodsData.map((item, index) => (
                         <tr key={index}>
-                          <td className="border border-gray-300 px-4 py-2">{item.method}</td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <button
+                              className="text-blue-600 hover:underline cursor-pointer"
+                              onClick={() => {
+                                setSelectedPaymentMethodForHistory(item.method);
+                                setIsPaymentMethodHistoryModalOpen(true);
+                              }}
+                            >
+                              {item.method}
+                            </button>
+                          </td>
                           <td className="border border-gray-300 px-4 py-2 text-right">
                             {item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
@@ -651,6 +906,26 @@ export function BalanceSheetReport({
           </div>
         </div>
       </div>
+
+      {/* Expense Category History Modal */}
+      {selectedCategoryForHistory && (
+        <ExpenseCategoryHistoryModal
+          categoryName={selectedCategoryForHistory}
+          branchId={branchId}
+          open={isHistoryModalOpen}
+          onOpenChange={setIsHistoryModalOpen}
+        />
+      )}
+
+      {/* Payment Method History Modal */}
+      {selectedPaymentMethodForHistory && (
+        <PaymentMethodHistoryModal
+          paymentMethod={selectedPaymentMethodForHistory}
+          branchId={branchId}
+          open={isPaymentMethodHistoryModalOpen}
+          onOpenChange={setIsPaymentMethodHistoryModalOpen}
+        />
+      )}
     </div>
   );
 }
