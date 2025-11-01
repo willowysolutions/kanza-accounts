@@ -23,7 +23,19 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 type PurchaseReportsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
    
-  purchasesByBranch: { branchId: string; branchName: string; purchases: any[] }[];
+  purchasesByBranch: { 
+    branchId: string; 
+    branchName: string; 
+    purchases: any[]; 
+    pagination?: {
+      currentPage: number;
+      totalPages: number;
+      totalCount: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+      limit: number;
+    };
+  }[];
   filter: string;
   from?: Date;
   to?: Date;
@@ -44,14 +56,10 @@ export function PurchaseReportsWithBranchTabs({
   filter, 
   from, 
   to,
-  pagination,
+  pagination, // eslint-disable-line @typescript-eslint/no-unused-vars
   currentPage // eslint-disable-line @typescript-eslint/no-unused-vars
 }: PurchaseReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
-  
-  // Get current branch data
-  const currentBranchData = purchasesByBranch.find(branch => branch.branchId === activeBranch);
-  const currentPurchases = currentBranchData?.purchases || [];
   
   // Server-side pagination navigation
   const goToPage = (page: number) => {
@@ -83,12 +91,12 @@ export function PurchaseReportsWithBranchTabs({
             ))}
           </TabsList>
 
-          {purchasesByBranch.map(({ branchId, branchName, purchases }) => (
+          {purchasesByBranch.map(({ branchId, branchName, purchases, pagination: branchPagination }) => (
             <TabsContent key={branchId} value={branchId}>
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">{branchName} Purchase Report</h2>
                 <p className="text-sm text-muted-foreground">
-                  {purchases.length} purchase{purchases.length !== 1 ? 's' : ''} in this branch ({filter})
+                  {branchPagination?.totalCount ?? purchases.length} purchase{(branchPagination?.totalCount ?? purchases.length) !== 1 ? 's' : ''} in this branch ({filter})
                 </p>
               </div>
               
@@ -118,28 +126,36 @@ export function PurchaseReportsWithBranchTabs({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {currentPurchases.map((purchase: any) => (
-                        <TableRow key={purchase.id.toString()}>
-                          <TableCell>
-                          {formatDate(purchase.date)}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {purchase.supplier?.name ?? "-"}
-                          </TableCell>
-                          <TableCell>{purchase.phone}</TableCell>
-                          <TableCell>{purchase.productType}</TableCell>
-                          <TableCell className="text-right">{purchase.quantity}</TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(purchase.purchasePrice)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(purchase.paidAmount)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(purchase.pendingAmount)}
+                      {purchases.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground">
+                            No purchases found for this branch
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        purchases.map((purchase: any) => (
+                          <TableRow key={purchase.id.toString()}>
+                            <TableCell>
+                            {formatDate(purchase.date)}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {purchase.supplier?.name ?? "-"}
+                            </TableCell>
+                            <TableCell>{purchase.phone}</TableCell>
+                            <TableCell>{purchase.productType}</TableCell>
+                            <TableCell className="text-right">{purchase.quantity}</TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(purchase.purchasePrice)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(purchase.paidAmount)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(purchase.pendingAmount)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                     <TableFooter className="bg-primary text-primary-foreground font-black">
                       <TableRow>
@@ -166,13 +182,13 @@ export function PurchaseReportsWithBranchTabs({
                   </Table>
                   
                   {/* Pagination Controls */}
-                  {pagination && pagination.totalCount > 0 && (
+                  {branchPagination && branchPagination.totalCount > 0 && (
                     <PaginationControls
-                      currentPage={pagination.currentPage}
-                      totalPages={pagination.totalPages}
+                      currentPage={branchPagination.currentPage}
+                      totalPages={branchPagination.totalPages}
                       onPageChange={goToPage}
-                      totalItems={pagination.totalCount}
-                      itemsPerPage={pagination.limit}
+                      totalItems={branchPagination.totalCount}
+                      itemsPerPage={branchPagination.limit}
                     />
                   )}
                 </CardContent>

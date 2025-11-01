@@ -37,8 +37,17 @@ export function CreditReportTable({
 }: CreditReportTableProps) {
   const [search, setSearch] = useState(customerFilter);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [tempSelectedDate, setTempSelectedDate] = useState<Date | undefined>(undefined);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [allCredits, setAllCredits] = useState<unknown[]>(credits);
   const [loading, setLoading] = useState(false);
+
+  // Reset temp date when popover opens
+  useEffect(() => {
+    if (isPopoverOpen) {
+      setTempSelectedDate(selectedDate);
+    }
+  }, [isPopoverOpen, selectedDate]);
 
   // Fetch all credits when a date is selected
   useEffect(() => {
@@ -142,7 +151,7 @@ export function CreditReportTable({
       <CardContent>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <Popover>
+            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -155,19 +164,42 @@ export function CreditReportTable({
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  selected={tempSelectedDate || selectedDate}
+                  onSelect={setTempSelectedDate}
                   initialFocus
                 />
+                <div className="p-3 border-t flex gap-2">
+                  {(tempSelectedDate || selectedDate) ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setTempSelectedDate(undefined);
+                          setSelectedDate(undefined);
+                          setIsPopoverOpen(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedDate(tempSelectedDate);
+                          setIsPopoverOpen(false);
+                        }}
+                        disabled={!tempSelectedDate}
+                      >
+                        Apply
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
               </PopoverContent>
             </Popover>
-            <Button
-              variant="outline"
-              onClick={() => setSelectedDate(undefined)}
-              className="w-[100px] bg-white"
-            >
-              Clear
-            </Button>
             <Input
               placeholder="Search customer name..."
               value={search}

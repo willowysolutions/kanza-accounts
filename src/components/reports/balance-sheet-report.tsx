@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -47,6 +47,8 @@ export function BalanceSheetReport({
   const [dateFilter, setDateFilter] = useState<string>("month");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
+  const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>(undefined);
+  const [isDateRangePopoverOpen, setIsDateRangePopoverOpen] = useState(false);
 
   // Filter states
   const [selectedPaymentMode, setSelectedPaymentMode] = useState<string>("all");
@@ -83,6 +85,13 @@ export function BalanceSheetReport({
     
     return options;
   }, []);
+
+  // Reset temp date range when popover opens
+  useEffect(() => {
+    if (isDateRangePopoverOpen) {
+      setTempDateRange(dateRange as DateRange);
+    }
+  }, [isDateRangePopoverOpen, dateRange]);
 
   // Calculate date range based on filter type
   const getDateRangeForFilter = useMemo(() => {
@@ -485,7 +494,7 @@ export function BalanceSheetReport({
 
           {/* Custom date range picker */}
           {dateFilter === "custom" && (
-            <Popover>
+            <Popover open={isDateRangePopoverOpen} onOpenChange={setIsDateRangePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2 bg-white">
                   <CalendarIcon className="h-4 w-4" />
@@ -497,22 +506,40 @@ export function BalanceSheetReport({
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="range"
-                  selected={dateRange as DateRange}
-                  onSelect={(range) => setDateRange(range)}
+                  selected={tempDateRange || (dateRange as DateRange)}
+                  onSelect={(range) => setTempDateRange(range)}
                   numberOfMonths={2}
                 />
-                {dateRange?.from && dateRange?.to && (
-                  <div className="p-3 border-t">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setDateRange(undefined)}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                )}
+                <div className="p-3 border-t flex gap-2">
+                  {(tempDateRange?.from && tempDateRange?.to) || (dateRange?.from && dateRange?.to) ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setTempDateRange(undefined);
+                          setDateRange(undefined);
+                          setIsDateRangePopoverOpen(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setDateRange(tempDateRange);
+                          setIsDateRangePopoverOpen(false);
+                        }}
+                        disabled={!tempDateRange?.from || !tempDateRange?.to}
+                      >
+                        Apply
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
               </PopoverContent>
             </Popover>
           )}

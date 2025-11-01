@@ -38,31 +38,41 @@ export default async function PurchaseReportPage({
   // Forward cookies
   const cookie = cookies().toString();
   
-  // Fetch purchases and branches in parallel
-  const [purchasesRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/purchases?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&page=${page}&limit=15`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
+  // Fetch branches first
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
   
-  const { purchase: purchases = [], pagination } = await purchasesRes.json();
   const { data: allBranches = [] } = await branchesRes.json();
 
   // Filter branches based on user role
   const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
-  // Group purchases by visible branches only
-  const purchasesByBranch = visibleBranches.map((branch: { id: string; name: string }) => ({
-    branchId: branch.id,
-    branchName: branch.name,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    purchases: (purchases || []).filter((purchase: any) => purchase.branchId === branch.id)
-  }));
+  // Fetch purchases for each branch separately to ensure all data is shown
+  const purchasesByBranch = await Promise.all(
+    visibleBranches.map(async (branch: { id: string; name: string }) => {
+      const purchasesRes = await fetch(
+        `${proto}://${host}/api/purchases?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&page=${page}&limit=15&branchId=${branch.id}`,
+        {
+          cache: "no-store",
+          headers: { cookie },
+        }
+      );
+      
+      const { purchase = [], pagination } = await purchasesRes.json();
+      
+      return {
+        branchId: branch.id,
+        branchName: branch.name,
+        purchases: purchase,
+        pagination: pagination,
+      };
+    })
+  );
+  
+  // Use pagination from first branch (all branches should have same pagination)
+  const pagination = purchasesByBranch[0]?.pagination;
 
   return (
     <div className="flex flex-1 flex-col">

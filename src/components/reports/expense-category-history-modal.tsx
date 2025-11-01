@@ -48,7 +48,16 @@ export function ExpenseCategoryHistoryModal({
 }) {
   const [history, setHistory] = useState<ExpenseHistoryItem[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>();
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Reset temp date range when popover opens
+  useEffect(() => {
+    if (isPopoverOpen) {
+      setTempDateRange(dateRange);
+    }
+  }, [isPopoverOpen, dateRange]);
 
   useEffect(() => {
     if (!open) return;
@@ -156,7 +165,7 @@ export function ExpenseCategoryHistoryModal({
         {/* Filters */}
         <div className="mb-3 flex gap-3 items-center">
           {/* Date Range Picker */}
-          <Popover>
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2 bg-white">
                 <CalendarIcon className="h-4 w-4" />
@@ -168,22 +177,40 @@ export function ExpenseCategoryHistoryModal({
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="range"
-                selected={dateRange}
-                onSelect={setDateRange}
+                selected={tempDateRange || dateRange}
+                onSelect={setTempDateRange}
                 numberOfMonths={2}
               />
-              {dateRange?.from && dateRange?.to && (
-                <div className="p-3 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => setDateRange(undefined)}
-                  >
-                    Clear
-                  </Button>
-                </div>
-              )}
+              <div className="p-3 border-t flex gap-2">
+                {(tempDateRange?.from && tempDateRange?.to) || (dateRange?.from && dateRange?.to) ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setTempDateRange(undefined);
+                        setDateRange(undefined);
+                        setIsPopoverOpen(false);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setDateRange(tempDateRange);
+                        setIsPopoverOpen(false);
+                      }}
+                      disabled={!tempDateRange?.from || !tempDateRange?.to}
+                    >
+                      Apply
+                    </Button>
+                  </>
+                ) : null}
+              </div>
             </PopoverContent>
           </Popover>
 

@@ -2,7 +2,6 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getOptimizedDashboardData } from '@/lib/actions/optimized-dashboard';
-import { ChartAreaInteractive } from '@/components/dashboard/chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { WizardButton } from '@/components/dashboard/wizard-button';
 import { CustomerDetailsCard } from '@/components/dashboard/customer-details-card';
@@ -12,7 +11,7 @@ import {
   IconCurrencyDollar,
 } from '@tabler/icons-react';
 import { Fuel, Calendar } from 'lucide-react';
-import DashboardCharts from '@/components/graphs/sales-purchase-graph';
+import { BranchGraphsWrapper } from '@/components/dashboard/branch-graphs-wrapper';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { prisma } from '@/lib/prisma';
 import { formatDisplayDate, convertToISTDateString } from '@/lib/date-utils';
@@ -221,26 +220,12 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
 
         
 
-        {/* Sales vs Purchases Graph - Branch Wise */}
-        <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">
-          <TabsList className="mb-4 flex flex-wrap gap-2">
-            {visibleBranches.map((branch: { id: string; name: string }) => (
-              <TabsTrigger key={branch.id} value={branch.id}>
-                {branch.name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {visibleBranches.map((branch: { id: string; name: string }) => (
-            <TabsContent key={branch.id} value={branch.id}>
-              <ChartAreaInteractive branchId={branch.id} />
-            </TabsContent>
-          ))}
-        </Tabs>
-
-        <div className="col-span-2">
-          <DashboardCharts purchaseData={purchaseData} salesData={salesData} />
-        </div>
+        {/* Sales vs Purchases Graph and Monthly Graphs - Shared Branch Selection */}
+        <BranchGraphsWrapper
+          branches={visibleBranches}
+          initialSalesData={salesData}
+          initialPurchaseData={purchaseData}
+        />
 
         {/* Stock Levels - Branch Wise */}
         <Card>
