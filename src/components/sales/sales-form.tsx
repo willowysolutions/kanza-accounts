@@ -234,20 +234,22 @@ useEffect(() => {
       return; // Exit early, calculation will happen when data is fetched
     }
 
-    // Only calculate if we have data
-    const xgDieselTotal = Math.round(matchingReadings
-      .filter((p) => p.fuelType === "XG-DIESEL")
-      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
+    // Calculate fuel totals dynamically based on available fuel types
+    const fuelTotals: Record<string, number> = {};
+    matchingReadings.forEach((reading) => {
+      const fuelType = reading.fuelType;
+      if (fuelType) {
+        const amount = Math.round((reading.fuelRate || 0) * (reading.sale || 0));
+        fuelTotals[fuelType] = (fuelTotals[fuelType] || 0) + amount;
+      }
+    });
 
-    const msPetrolTotal = Math.round(matchingReadings
-      .filter((p) => p.fuelType === "MS-PETROL")
-      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
-
-    const hsdTotal = Math.round(matchingReadings
-      .filter((p) => p.fuelType === "HSD-DIESEL")
-      .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
-
-    const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
+    const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
+    
+    // For backward compatibility, set legacy fields if they exist
+    const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
+    const msPetrolTotal = fuelTotals["MS-PETROL"] || fuelTotals["POWER PETROL"] || 0;
+    const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
 
     const productsObj: Record<string, number> = {};
     matchingOils.forEach((o) => {
@@ -280,6 +282,8 @@ useEffect(() => {
     form.setValue("hsdDieselTotal", Math.round(hsdTotal));
     form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
     form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
+    // Save all fuel totals dynamically
+    form.setValue("fuelTotals", fuelTotals);
     form.setValue("cashPayment", cashPayment);
   }
 }, [
@@ -311,19 +315,22 @@ useEffect(() => {
 
     // Only calculate if we have matching data
     if (matchingReadings.length > 0 || matchingOils.length > 0) {
-      const xgDieselTotal = Math.round(matchingReadings
-        .filter((p) => p.fuelType === "XG-DIESEL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
+      // Calculate fuel totals dynamically based on available fuel types
+      const fuelTotals: Record<string, number> = {};
+      matchingReadings.forEach((reading) => {
+        const fuelType = reading.fuelType;
+        if (fuelType) {
+          const amount = Math.round((reading.fuelRate || 0) * (reading.sale || 0));
+          fuelTotals[fuelType] = (fuelTotals[fuelType] || 0) + amount;
+        }
+      });
 
-      const msPetrolTotal = Math.round(matchingReadings
-        .filter((p) => p.fuelType === "MS-PETROL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
-
-      const hsdTotal = Math.round(matchingReadings
-        .filter((p) => p.fuelType === "HSD-DIESEL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
-
-      const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
+      const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
+      
+      // For backward compatibility, set legacy fields if they exist
+      const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
+      const msPetrolTotal = fuelTotals["MS-PETROL"] || fuelTotals["POWER PETROL"] || 0;
+      const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
 
       const productsObj: Record<string, number> = {};
       matchingOils.forEach((o) => {
@@ -356,6 +363,8 @@ useEffect(() => {
       form.setValue("hsdDieselTotal", Math.round(hsdTotal));
       form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
       form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
+      // Save all fuel totals dynamically
+      form.setValue("fuelTotals", fuelTotals);
       form.setValue("cashPayment", cashPayment);
     }
   }
@@ -538,71 +547,74 @@ useEffect(() => {
           ))}
         </div>
 
+        {/* Dynamic Fuel Type Fields - Only show if there's data for that fuel type */}
+        {(() => {
+          // Get unique fuel types from meter readings for the selected date
+          const uniqueFuelTypes = Array.from(
+            new Set(
+              meterReading
+                .filter((r) => {
+                  const readingDate = new Date(r.date).toLocaleDateString();
+                  const formDate = selectedDate ? new Date(selectedDate).toLocaleDateString() : "";
+                  return readingDate === formDate && r.fuelType;
+                })
+                .map((r) => r.fuelType)
+                .filter((ft): ft is string => typeof ft === "string")
+            )
+          );
+
+          // Map fuel types to form field names and labels
+          const fuelTypeFields: Array<{ fieldName: keyof SalesFormValues; label: string; fuelType: string }> = [
+            { fieldName: "hsdDieselTotal", label: "HSD-DIESEL", fuelType: "HSD-DIESEL" },
+            { fieldName: "xgDieselTotal", label: "XG-DIESEL", fuelType: "XG-DIESEL" },
+            { fieldName: "msPetrolTotal", label: "MS-PETROL", fuelType: "MS-PETROL" },
+            { fieldName: "msPetrolTotal", label: "POWER PETROL", fuelType: "POWER PETROL" },
+          ];
+
+          // Filter to only show fields for fuel types that exist in this branch
+          const fieldsToShow = fuelTypeFields.filter((field) => uniqueFuelTypes.includes(field.fuelType));
+
+          // For POWER PETROL, we use msPetrolTotal field, so avoid duplicates
+          const displayedFuelTypes = new Set<string>();
+          const uniqueFieldsToShow = fieldsToShow.filter((field) => {
+            if (displayedFuelTypes.has(field.fieldName as string)) {
+              return false;
+            }
+            displayedFuelTypes.add(field.fieldName as string);
+            return true;
+          });
+
+          if (uniqueFieldsToShow.length === 0) return null;
+
+          return (
+            <div className="grid grid-cols-2 gap-4">
+              {uniqueFieldsToShow.map((fieldConfig) => (
+                <FormField
+                  key={fieldConfig.fuelType}
+                  control={form.control}
+                  name={fieldConfig.fieldName}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{fieldConfig.label}</FormLabel>
+                      <FormControl>
+                        <Input
+                          disabled
+                          type="number"
+                          placeholder="Enter amount"
+                          {...field}
+                          value={field.value != null ? String(field.value) : ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+          );
+        })()}
+
         <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="xgDieselTotal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>XG-DIESEL</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled
-                    type="number"
-                    placeholder="Enter amount"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="hsdDieselTotal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>HSD-DIESEL</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled
-                    type="number"
-                    placeholder="Enter amount"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          </div>
-
-        <div className="grid grid-cols-2 gap-4">
-
-
-          <FormField
-            control={form.control}
-            name="msPetrolTotal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>MS-PETROL</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled
-                    type="number"
-                    placeholder="Enter amount"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           <FormField
             control={form.control}
             name="rate"

@@ -574,83 +574,54 @@ export const MeterReadingStep: React.FC = () => {
 
             {/* Summary */}
             <div className="flex justify-end pr-4 gap-10">
-              {/* HSD-DIESEL */}
-              <div className="text-right space-y-1">
-                <div className="text-muted-foreground text-sm">HSD-DIESEL:</div>
-                <div className="text-base text-gray-600">
-                  Sale:{" "}
-                  {(form.watch("rows") ?? [])
-                  .filter((r) => r.fuelType === "HSD-DIESEL")
-                  .map((r) => r.sale ?? 0)
-                  .reduce((sum, item) => sum + Number(item || 0), 0).toFixed(2)}{" "}
-                  L
-                </div>
-                <div className="text-xl font-semibold text-blue-900">
-                  ₹{" "}
-                  {Math.round(
-                    (form.watch("rows") ?? [])
-                    .filter((r) => r.fuelType === "HSD-DIESEL")
-                    .map((r) => r.totalAmount ?? 0)
-                    .reduce((sum, item) => sum + Number(item || 0), 0)
-                  ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-              </div>
-
-              {/* XG-DIESEL */}
-              <div className="text-right space-y-1">
-                <div className="text-muted-foreground text-sm">XG-DIESEL:</div>
-                <div className="text-base text-gray-600">
-                  Sale:{" "}
-                  {(form.watch("rows") ?? [])
-                        .filter((r) => r.fuelType === "XG-DIESEL")
-                  .map((r) => r.sale ?? 0)
-                  .reduce((sum, item) => sum + Number(item || 0), 0).toFixed(2)}{" "}
-                  L
-                </div>
-                <div className="text-xl font-semibold text-blue-700">
-                  ₹{" "}
-                  {Math.round(
-                    (form.watch("rows") ?? [])
-                    .filter((r) => r.fuelType === "XG-DIESEL")
-                    .map((r) => r.totalAmount ?? 0)
-                    .reduce((sum, item) => sum + Number(item || 0), 0)
-                  ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-              </div>
-
-              {/* MS-PETROL */}
-              <div className="text-right space-y-1">
-                <div className="text-muted-foreground text-sm">MS-PETROL:</div>
-                <div className="text-base text-gray-600">
-                  Sale:{" "}
-                  {(form.watch("rows") ?? [])
-                  .filter((r) => r.fuelType === "MS-PETROL")
-                  .map((r) => r.sale ?? 0)
-                  .reduce((sum, item) => sum + Number(item || 0), 0).toFixed(2)}{" "}
-                  L
-                </div>
-                <div className="text-xl font-semibold text-green-900">
-                  ₹{" "}
-                  {Math.round(
-                    (form.watch("rows") ?? [])
-                    .filter((r) => r.fuelType === "MS-PETROL")
-                    .map((r) => r.totalAmount ?? 0)
-                    .reduce((sum, item) => sum + Number(item || 0), 0)
-                  ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-              </div>
+              {/* Dynamic Fuel Types Summary */}
+              {(() => {
+                const rows = form.watch("rows") ?? [];
+                // Get unique fuel types from nozzles
+                const uniqueFuelTypes = Array.from(new Set(rows.map(r => r.fuelType).filter((ft): ft is string => typeof ft === "string" && ft !== "")));
+                
+                // Color mapping for different fuel types
+                const fuelTypeColorMap: Record<string, string> = {
+                  "HSD-DIESEL": "text-blue-900",
+                  "XG-DIESEL": "text-blue-700",
+                  "MS-PETROL": "text-green-900",
+                  "POWER PETROL": "text-orange-700",
+                };
+                
+                const defaultColor = "text-gray-900";
+                
+                return uniqueFuelTypes.map((fuelType) => {
+                  const filteredRows = rows.filter(r => r.fuelType === fuelType);
+                  const totalSale = filteredRows
+                    .map(r => r.sale ?? 0)
+                    .reduce((sum, item) => sum + Number(item || 0), 0);
+                  const totalAmount = filteredRows
+                    .map(r => r.totalAmount ?? 0)
+                    .reduce((sum, item) => sum + Number(item || 0), 0);
+                  
+                  const textColor = fuelTypeColorMap[fuelType] || defaultColor;
+                  
+                  return (
+                    <div key={fuelType} className="text-right space-y-1">
+                      <div className="text-muted-foreground text-sm">{fuelType}:</div>
+                      <div className="text-base text-gray-600">
+                        Sale: {totalSale.toFixed(2)} L
+                      </div>
+                      <div className={`text-xl font-semibold ${textColor}`}>
+                        ₹{" "}
+                        {Math.round(totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
 
               {/* Grand Total */}
               <div className="text-right space-y-1">
                 <div className="text-muted-foreground text-sm">Total Sale:</div>
                 <div className="text-base font-medium">
                   {(form.watch("rows") ?? [])
-                    .filter(
-                      (r) =>
-                        typeof r.fuelType === "string" &&
-                        ["HSD-DIESEL", "XG-DIESEL", "MS-PETROL"].includes(r.fuelType)
-                    )
-                    .map((r) => r.sale ?? 0)
+                    .map(r => r.sale ?? 0)
                     .reduce((sum, item) => sum + Number(item || 0), 0)
                     .toFixed(2)}{" "}
                   L
@@ -658,24 +629,9 @@ export const MeterReadingStep: React.FC = () => {
                 <div className="text-xl font-semibold">
                   ₹{" "}
                   {Math.round(
-                    Math.round(
-                      (form.watch("rows") ?? [])
-                        .filter((r) => r.fuelType === "HSD-DIESEL")
-                    .map((r) => r.totalAmount ?? 0)
-                    .reduce((sum, item) => sum + Number(item || 0), 0)
-                    ) +
-                    Math.round(
-                      (form.watch("rows") ?? [])
-                    .filter((r) => r.fuelType === "XG-DIESEL")
-                    .map((r) => r.totalAmount ?? 0)
-                    .reduce((sum, item) => sum + Number(item || 0), 0)
-                    ) +
-                    Math.round(
-                      (form.watch("rows") ?? [])
-                    .filter((r) => r.fuelType === "MS-PETROL")
-                    .map((r) => r.totalAmount ?? 0)
-                    .reduce((sum, item) => sum + Number(item || 0), 0)
-                    )
+                    (form.watch("rows") ?? [])
+                      .map(r => r.totalAmount ?? 0)
+                      .reduce((sum, item) => sum + Number(item || 0), 0)
                   ).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </div>
               </div>

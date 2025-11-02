@@ -146,9 +146,13 @@ model Sale {
 
   products        Json     // 👈 stores { "2T-OIL": 123, "ADBLUE": 456 }
 
-  xgDieselTotal   Float
-  hsdDieselTotal  Float
-  msPetrolTotal   Float
+  // Legacy fuel fields (optional for backward compatibility)
+  xgDieselTotal   Float?
+  hsdDieselTotal  Float?
+  msPetrolTotal   Float?
+
+  // Dynamic fuel totals (stores any fuel type: { "HSD-DIESEL": 1000, "POWER PETROL": 500, ... })
+  fuelTotals      Json?
 
   branchId        String?   @db.ObjectId
   branch          Branch?   @relation(fields: [branchId], references: [id])

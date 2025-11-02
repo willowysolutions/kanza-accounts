@@ -8,10 +8,12 @@ export const salesSchema = z.object({
   fleetPayment: z.coerce.number().min(0),
   // dynamic product totals keyed by productType (e.g., "2T-OIL", "GAS", "ADBLUE")
   products: z.record(z.string(), z.coerce.number().min(0)),
-  // retain legacy fields to satisfy existing Prisma model
-  xgDieselTotal: z.coerce.number().min(0),
-  hsdDieselTotal: z.coerce.number().min(0),
-  msPetrolTotal: z.coerce.number().min(0),
+  // legacy fields (optional for backward compatibility)
+  xgDieselTotal: z.coerce.number().min(0).optional(),
+  hsdDieselTotal: z.coerce.number().min(0).optional(),
+  msPetrolTotal: z.coerce.number().min(0).optional(),
+  // dynamic fuel totals (stores any fuel type: { "HSD-DIESEL": 1000, "POWER PETROL": 500, ... })
+  fuelTotals: z.record(z.string(), z.coerce.number().min(0)).optional(),
   rate: z.coerce.number().min(0),
   branchId: z.string().optional()
 });

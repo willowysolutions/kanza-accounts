@@ -182,20 +182,22 @@ export const SalesStep: React.FC = () => {
         return; // Exit early, calculation will happen when data is fetched
       }
 
-      // Only calculate if we have data
-      const xgDieselTotal = Math.round(matchingReadings
-        .filter((p) => p.fuelType === "XG-DIESEL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
+      // Calculate fuel totals dynamically based on available fuel types
+      const fuelTotals: Record<string, number> = {};
+      matchingReadings.forEach((reading) => {
+        const fuelType = reading.fuelType;
+        if (fuelType) {
+          const amount = Math.round((reading.fuelRate || 0) * (reading.sale || 0));
+          fuelTotals[fuelType] = (fuelTotals[fuelType] || 0) + amount;
+        }
+      });
 
-      const msPetrolTotal = Math.round(matchingReadings
-        .filter((p) => p.fuelType === "MS-PETROL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
-
-      const hsdTotal = Math.round(matchingReadings
-        .filter((p) => p.fuelType === "HSD-DIESEL")
-        .reduce((sum, r) => sum + (r.fuelRate || 0) * (r.sale || 0), 0));
-
-      const fuelTotal = xgDieselTotal + msPetrolTotal + hsdTotal;
+      const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
+      
+      // For backward compatibility, set legacy fields if they exist
+      const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
+      const msPetrolTotal = fuelTotals["MS-PETROL"] || fuelTotals["POWER PETROL"] || 0;
+      const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
 
       form.setValue("products", productsObj);
 
@@ -221,6 +223,8 @@ export const SalesStep: React.FC = () => {
       form.setValue("hsdDieselTotal", hsdTotal);
       form.setValue("xgDieselTotal", xgDieselTotal);
       form.setValue("msPetrolTotal", msPetrolTotal);
+      // Save all fuel totals dynamically
+      form.setValue("fuelTotals", fuelTotals);
       form.setValue("cashPayment", cashPayment);
     }
   }, [
