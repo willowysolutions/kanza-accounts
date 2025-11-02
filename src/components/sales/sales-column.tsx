@@ -29,17 +29,17 @@ export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => {
     {
       accessorKey: "atmPayment",
       header: "ATM Payment",
-      cell: ({ row }) => <div>{formatCurrency(row.original.atmPayment)}</div>,
+      cell: ({ row }) => <div>{formatCurrency(row.original.atmPayment ?? 0)}</div>,
     },
     {
       accessorKey: "paytmPayment",
       header: "Paytm Payment",
-      cell: ({ row }) => <div>{formatCurrency(row.original.paytmPayment)}</div>,
+      cell: ({ row }) => <div>{formatCurrency(row.original.paytmPayment ?? 0)}</div>,
     },
     {
       accessorKey: "fleetPayment",
       header: "Fleet Payment",
-      cell: ({ row }) => <div>{formatCurrency(row.original.fleetPayment)}</div>,
+      cell: ({ row }) => <div>{formatCurrency(row.original.fleetPayment ?? 0)}</div>,
     },
     {
       accessorKey: "hsdDieselTotal",
