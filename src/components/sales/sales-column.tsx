@@ -46,7 +46,7 @@ export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => {
       header: "HSD-DIESEL",
       cell: ({ row }) => (
         <div className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-          {formatCurrency(row.original.hsdDieselTotal)}
+          {formatCurrency(row.original.hsdDieselTotal || 0)}
         </div>
       ),
     },
@@ -55,7 +55,7 @@ export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => {
       header: "XG-DIESEL",
       cell: ({ row }) => (
         <div className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">
-          {formatCurrency(row.original.xgDieselTotal)}
+          {formatCurrency(row.original.xgDieselTotal || 0)}
         </div>
       ),
     },
@@ -64,7 +64,7 @@ export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => {
       header: "MS-PETROL",
       cell: ({ row }) => (
         <div className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">
-          {formatCurrency(row.original.msPetrolTotal)}
+          {formatCurrency(row.original.msPetrolTotal || 0)}
         </div>
       ),
     },

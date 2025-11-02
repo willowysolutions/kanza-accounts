@@ -137,13 +137,13 @@ export function SalesReportsWithBranchTabs({
                             {formatCurrency(sale.fleetPayment)}
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(sale.xgDieselTotal)}
+                            {formatCurrency(sale.xgDieselTotal || 0)}
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(sale.hsdDieselTotal)}
+                            {formatCurrency(sale.hsdDieselTotal || 0)}
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(sale.msPetrolTotal)}
+                            {formatCurrency(sale.msPetrolTotal || 0)}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(sale.rate)}
@@ -173,17 +173,17 @@ export function SalesReportsWithBranchTabs({
                         </TableCell>
                         <TableCell className="text-right font-semibold ">
                           {formatCurrency(
-                            sales.reduce((sum: number, s: any) => sum + s.xgDieselTotal, 0)
+                            sales.reduce((sum: number, s: any) => sum + (s.xgDieselTotal || 0), 0)
                           )}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
                           {formatCurrency(
-                            sales.reduce((sum: number, s: any) => sum + s.hsdDieselTotal, 0)
+                            sales.reduce((sum: number, s: any) => sum + (s.hsdDieselTotal || 0), 0)
                           )}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
                           {formatCurrency(
-                            sales.reduce((sum: number, s: any) => sum + s.msPetrolTotal, 0)
+                            sales.reduce((sum: number, s: any) => sum + (s.msPetrolTotal || 0), 0)
                           )}
                         </TableCell>
                         <TableCell className="text-right font-bold">

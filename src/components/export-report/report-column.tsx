@@ -49,7 +49,7 @@ export const createReportColumns = (userRole?: string, userBranchId?: string): C
     accessorKey:"hsdDieselTotal",
     header:"HSD-DIESEL",
     cell: ({row}) => {
-      const hsdDieselTotal = row.original.hsdDieselTotal
+      const hsdDieselTotal = row.original.hsdDieselTotal || 0
       return (
         <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800`}>
         {formatCurrency(hsdDieselTotal)}
@@ -61,7 +61,7 @@ export const createReportColumns = (userRole?: string, userBranchId?: string): C
     accessorKey:"xzDieselTotal",
     header:"XZ-DIESEL",
     cell: ({row}) => {
-      const xzDieselTotal = row.original.xgDieselTotal
+      const xzDieselTotal = row.original.xgDieselTotal || 0
       return (
         <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800`}>
         {formatCurrency(xzDieselTotal)}
@@ -73,7 +73,7 @@ export const createReportColumns = (userRole?: string, userBranchId?: string): C
     accessorKey:"msPetrolTotal",
     header:"MS-PETROL",
     cell: ({row}) => {
-      const msPetrolTotal = row.original.msPetrolTotal
+      const msPetrolTotal = row.original.msPetrolTotal || 0
       return (
         <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-red-100 text-red-800`}>
         {formatCurrency(msPetrolTotal)}

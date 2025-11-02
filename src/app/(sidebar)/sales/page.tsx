@@ -79,9 +79,9 @@ export default async function SalesPage() {
             </TabsList>
 
             {salesByBranch.map(({ branchId, branchName, sales }: { branchId: string; branchName: string; sales: Sales[] }) => {
-              const xpDieselTotal = sales.reduce((sum: number, sale: Sales) => sum + sale.xgDieselTotal, 0);
-              const hsdDieselTotal = sales.reduce((sum: number, sale: Sales) => sum + sale.hsdDieselTotal, 0);
-              const msPetrolTotal = sales.reduce((sum: number, sale: Sales) => sum + sale.msPetrolTotal, 0);
+              const xpDieselTotal = sales.reduce((sum: number, sale: Sales) => sum + (sale.xgDieselTotal || 0), 0);
+              const hsdDieselTotal = sales.reduce((sum: number, sale: Sales) => sum + (sale.hsdDieselTotal || 0), 0);
+              const msPetrolTotal = sales.reduce((sum: number, sale: Sales) => sum + (sale.msPetrolTotal || 0), 0);
               const totalSale = sales.reduce((sum: number, sale: Sales) => sum + sale.rate, 0);
 
               return (

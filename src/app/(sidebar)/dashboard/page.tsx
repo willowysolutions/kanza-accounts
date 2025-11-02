@@ -463,9 +463,9 @@ async function BranchSalesTabs({
     atmPayment: number;
     paytmPayment: number;
     fleetPayment: number;
-    hsdDieselTotal: number;
-    xgDieselTotal: number;
-    msPetrolTotal: number;
+    hsdDieselTotal: number | null;
+    xgDieselTotal: number | null;
+    msPetrolTotal: number | null;
     branchId: string | null;
     branch: { name: string } | null;
   }[];
@@ -649,9 +649,9 @@ async function BranchSalesTabs({
                   <td className="p-2">₹{sales.atmPayment.toFixed(2)}</td>
                   <td className="p-2">₹{sales.paytmPayment.toFixed(2)}</td>
                   <td className="p-2">₹{sales.fleetPayment.toFixed(2)}</td>
-                  <td className="p-2 text-blue-600">₹{sales.hsdDieselTotal.toFixed(2)}</td>
-                  <td className="p-2 text-blue-600">₹{sales.xgDieselTotal.toFixed(2)}</td>
-                  <td className="p-2 text-red-600">₹{sales.msPetrolTotal.toFixed(2)}</td>
+                  <td className="p-2 text-blue-600">₹{(sales.hsdDieselTotal || 0).toFixed(2)}</td>
+                  <td className="p-2 text-blue-600">₹{(sales.xgDieselTotal || 0).toFixed(2)}</td>
+                  <td className="p-2 text-red-600">₹{(sales.msPetrolTotal || 0).toFixed(2)}</td>
                   <td className="p-2 font-bold">₹{sales.totalAmount.toFixed(2)}</td>
                   <td className="p-2">
                     <DownloadReportButton date={sales.originalDate} branchId={branchId} />
