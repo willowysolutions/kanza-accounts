@@ -62,6 +62,11 @@ export const SIDEBAR_DATA: SidebarData = {
       icon: IconCash,
     },
     {
+      title: 'Customer',
+      url: '/customers',
+      icon: IconUser,
+    },
+    {
       title: "Reports",
       url: "/reports",
       icon: IconFileText,
@@ -166,11 +171,6 @@ export const SIDEBAR_DATA: SidebarData = {
       title: 'Bank',
       url: '/admin/banks',
       icon: IconBuildingBank,
-    },
-    {
-      title: 'Customer',
-      url: '/admin/customers',
-      icon: IconUser,
     },
     {
       title: 'Supplier',

@@ -460,9 +460,9 @@ async function BranchSalesTabs({
     date: Date;
     rate: number;
     cashPayment: number;
-    atmPayment: number;
-    paytmPayment: number;
-    fleetPayment: number;
+    atmPayment: number | null;
+    paytmPayment: number | null;
+    fleetPayment: number | null;
     hsdDieselTotal: number | null;
     xgDieselTotal: number | null;
     msPetrolTotal: number | null;
@@ -536,14 +536,14 @@ async function BranchSalesTabs({
     };
 
     branchMap.set(dateKey, {
-      cashPayment: existing.cashPayment + (sale.cashPayment || 0),
-      atmPayment: existing.atmPayment + (sale.atmPayment || 0),
-      paytmPayment: existing.paytmPayment + (sale.paytmPayment || 0),
-      fleetPayment: existing.fleetPayment + (sale.fleetPayment || 0),
-      hsdDieselTotal: existing.hsdDieselTotal + (sale.hsdDieselTotal || 0),
-      xgDieselTotal: existing.xgDieselTotal + (sale.xgDieselTotal || 0),
-      msPetrolTotal: existing.msPetrolTotal + (sale.msPetrolTotal || 0),
-      totalAmount: existing.totalAmount + (sale.rate || 0),
+      cashPayment: existing.cashPayment + (sale.cashPayment ?? 0),
+      atmPayment: existing.atmPayment + (sale.atmPayment ?? 0),
+      paytmPayment: existing.paytmPayment + (sale.paytmPayment ?? 0),
+      fleetPayment: existing.fleetPayment + (sale.fleetPayment ?? 0),
+      hsdDieselTotal: existing.hsdDieselTotal + (sale.hsdDieselTotal ?? 0),
+      xgDieselTotal: existing.xgDieselTotal + (sale.xgDieselTotal ?? 0),
+      msPetrolTotal: existing.msPetrolTotal + (sale.msPetrolTotal ?? 0),
+      totalAmount: existing.totalAmount + (sale.rate ?? 0),
       originalDate: originalDate,
     });
   });
