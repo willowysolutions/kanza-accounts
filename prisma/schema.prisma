@@ -140,9 +140,9 @@ model Sale {
   date            DateTime
   rate            Float
   cashPayment     Float
-  atmPayment      Float
-  paytmPayment    Float
-  fleetPayment    Float
+  atmPayment      Float?
+  paytmPayment    Float?
+  fleetPayment    Float?
 
   products        Json     // 👈 stores { "2T-OIL": 123, "ADBLUE": 456 }
 
