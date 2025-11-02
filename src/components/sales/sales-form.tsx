@@ -91,32 +91,47 @@ const form = useForm<SalesFormValues>({
     values: SalesFormValues,
     close: () => void
   ) => {
+    console.log("🔵 handleSubmit called", { values, selectedBranchId });
     try {
       // Ensure branchId is set
       if (!selectedBranchId) {
+        console.error("❌ No branch selected");
         toast.error("Please select a branch");
         return;
       }
 
       // Prepare the payload, converting empty strings/undefined to null for nullable fields
+      // Transform empty strings to null before sending
+      const transformValue = (val: unknown): number | null => {
+        if (val === "" || val === null || val === undefined) return null;
+        const num = Number(val);
+        return isNaN(num) ? null : num;
+      };
+
       const payload = {
         ...values,
         branchId: selectedBranchId,
-        atmPayment: values.atmPayment === undefined || values.atmPayment === null ? null : Number(values.atmPayment),
-        paytmPayment: values.paytmPayment === undefined || values.paytmPayment === null ? null : Number(values.paytmPayment),
-        fleetPayment: values.fleetPayment === undefined || values.fleetPayment === null ? null : Number(values.fleetPayment),
+        atmPayment: transformValue(values.atmPayment),
+        paytmPayment: transformValue(values.paytmPayment),
+        fleetPayment: transformValue(values.fleetPayment),
       };
+
+      console.log("📤 Sending payload:", payload);
 
       const url = sales
         ? `/api/sales/${sales.id}`
         : `/api/sales/create`;
       const method = sales ? "PATCH" : "POST";
 
+      console.log(`📡 Making ${method} request to ${url}`);
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
+      console.log("📥 Response status:", res.status, res.statusText);
 
       const responseData = await res.json();
 
@@ -431,14 +446,27 @@ useEffect(() => {
   }
 }, [selectedDate, meterReading, oilSales, atmPayment, paytmPayment, fleetPayment, form]);
 
+  // Add debug handler - ensure it's not async blocking
+  const onSubmitHandler = (values: SalesFormValues) => {
+    console.log("🟢 FormDialog onSubmit called with values:", values);
+    console.log("🟢 Form validation state:", form.formState);
+    console.log("🟢 Form errors:", form.formState.errors);
+    
+    // Call handleSubmit without awaiting to avoid blocking form submission
+    handleSubmit(values, () => {
+      console.log("🟢 Closing dialog");
+      openChange?.(false);
+    }).catch((error) => {
+      console.error("❌ Error in handleSubmit:", error);
+    });
+  };
+
   return (
     <FormDialog
       open={open}
       openChange={openChange}
       form={form}
-      onSubmit={(values) =>
-        handleSubmit(values, () => openChange?.(false))
-      }
+      onSubmit={onSubmitHandler}
     >
       <FormDialogTrigger asChild>
         <Button>

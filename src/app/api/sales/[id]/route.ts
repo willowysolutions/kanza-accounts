@@ -27,7 +27,16 @@ export async function PATCH(
   try {
     const { id: saleId } = await params;
     const body = await req.json();
-    const result = salesSchemaWithId.safeParse({ id: saleId, ...body });
+    
+    // Transform empty strings to null for nullable payment fields
+    const transformedBody = {
+      ...body,
+      atmPayment: body.atmPayment === "" ? null : body.atmPayment,
+      paytmPayment: body.paytmPayment === "" ? null : body.paytmPayment,
+      fleetPayment: body.fleetPayment === "" ? null : body.fleetPayment,
+    };
+    
+    const result = salesSchemaWithId.safeParse({ id: saleId, ...transformedBody });
 
     if (!result.success) {
       return NextResponse.json(
@@ -47,8 +56,15 @@ export async function PATCH(
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
     }
 
-    // Remove id before update
-    const { id, ...saleData } = result.data;
+    // Remove id before update and transform empty strings to null
+    const { id, ...saleDataRaw } = result.data;
+    
+    const saleData = {
+      ...saleDataRaw,
+      atmPayment: saleDataRaw.atmPayment === "" ? null : (saleDataRaw.atmPayment ?? null),
+      paytmPayment: saleDataRaw.paytmPayment === "" ? null : (saleDataRaw.paytmPayment ?? null),
+      fleetPayment: saleDataRaw.fleetPayment === "" ? null : (saleDataRaw.fleetPayment ?? null),
+    };
 
     const oldCash = existingSale.cashPayment ?? 0;
     const newCash = saleData.cashPayment ?? 0;
@@ -61,7 +77,7 @@ export async function PATCH(
         data: {
           ...saleData,
           products: saleData.products ?? {},
-        },
+        } as any, // Type assertion needed for Prisma compatibility
       });
 
       // 2. Adjust BalanceReceipt using IST-aware logic (only if cashPayment changed)

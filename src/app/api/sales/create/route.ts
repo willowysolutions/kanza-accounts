@@ -11,8 +11,16 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
+    // Transform empty strings to null for nullable payment fields
+    const transformedBody = {
+      ...body,
+      atmPayment: body.atmPayment === "" ? null : body.atmPayment,
+      paytmPayment: body.paytmPayment === "" ? null : body.paytmPayment,
+      fleetPayment: body.fleetPayment === "" ? null : body.fleetPayment,
+    };
+
     // ✅ Validate with Zod
-    const result = salesSchema.safeParse(body);
+    const result = salesSchema.safeParse(transformedBody);
     if (!result.success) {
       console.error("Validation failed:", result.error.flatten().fieldErrors);
       return NextResponse.json(
@@ -48,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // ✅ Create Sale and update balance receipt in a transaction
     const sale = await prisma.$transaction(async (tx) => {
-      // Prepare data for Prisma, ensuring branchId is properly typed
+      // Prepare data for Prisma, ensuring branchId is properly typed and empty strings become null
       const saleData: {
         date: Date;
         cashPayment: number;
@@ -65,6 +73,9 @@ export async function POST(req: NextRequest) {
         branchId?: string;
       } = {
         ...result.data,
+        atmPayment: result.data.atmPayment === "" ? null : (result.data.atmPayment ?? null),
+        paytmPayment: result.data.paytmPayment === "" ? null : (result.data.paytmPayment ?? null),
+        fleetPayment: result.data.fleetPayment === "" ? null : (result.data.fleetPayment ?? null),
         branchId: branchId || undefined,
       };
 
