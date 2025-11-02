@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { salesSchema } from "@/schemas/sales-schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
     // ✅ Validate with Zod
     const result = salesSchema.safeParse(body);
     if (!result.success) {
+      console.error("Validation failed:", result.error.flatten().fieldErrors);
       return NextResponse.json(
         { error: "Validation failed", issues: result.error.flatten().fieldErrors },
         { status: 400 }
@@ -46,12 +48,29 @@ export async function POST(req: NextRequest) {
 
     // ✅ Create Sale and update balance receipt in a transaction
     const sale = await prisma.$transaction(async (tx) => {
+      // Prepare data for Prisma, ensuring branchId is properly typed
+      const saleData: {
+        date: Date;
+        cashPayment: number;
+        atmPayment?: number | null;
+        paytmPayment?: number | null;
+        fleetPayment?: number | null;
+        products: Record<string, number>;
+        rate: number;
+        xgDieselTotal?: number | null;
+        hsdDieselTotal?: number | null;
+        msPetrolTotal?: number | null;
+        powerPetrolTotal?: number | null;
+        fuelTotals?: Record<string, number>;
+        branchId?: string;
+      } = {
+        ...result.data,
+        branchId: branchId || undefined,
+      };
+
       // Create sale
       const newSale = await tx.sale.create({
-        data: {
-          ...result.data,
-          branchId,
-        },
+        data: saleData as Prisma.SaleCreateInput,
       });
 
       // Update balance receipt with cash payment (positive amount = cash received)

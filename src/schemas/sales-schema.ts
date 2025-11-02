@@ -3,9 +3,9 @@ import { z } from "zod";
 export const salesSchema = z.object({
   date: z.coerce.date(),
   cashPayment: z.coerce.number().min(0),
-  atmPayment: z.coerce.number().min(0),
-  paytmPayment: z.coerce.number().min(0),
-  fleetPayment: z.coerce.number().min(0),
+  atmPayment: z.coerce.number().min(0).optional().nullable(),
+  paytmPayment: z.coerce.number().min(0).optional().nullable(),
+  fleetPayment: z.coerce.number().min(0).optional().nullable(),
   // dynamic product totals keyed by productType (e.g., "2T-OIL", "GAS", "ADBLUE")
   products: z.record(z.string(), z.coerce.number().min(0)),
   // legacy fields (optional for backward compatibility)

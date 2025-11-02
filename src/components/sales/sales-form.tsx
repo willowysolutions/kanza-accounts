@@ -92,6 +92,21 @@ const form = useForm<SalesFormValues>({
     close: () => void
   ) => {
     try {
+      // Ensure branchId is set
+      if (!selectedBranchId) {
+        toast.error("Please select a branch");
+        return;
+      }
+
+      // Prepare the payload, converting empty strings/undefined to null for nullable fields
+      const payload = {
+        ...values,
+        branchId: selectedBranchId,
+        atmPayment: values.atmPayment === undefined || values.atmPayment === null ? null : Number(values.atmPayment),
+        paytmPayment: values.paytmPayment === undefined || values.paytmPayment === null ? null : Number(values.paytmPayment),
+        fleetPayment: values.fleetPayment === undefined || values.fleetPayment === null ? null : Number(values.fleetPayment),
+      };
+
       const url = sales
         ? `/api/sales/${sales.id}`
         : `/api/sales/create`;
@@ -100,19 +115,27 @@ const form = useForm<SalesFormValues>({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...values,
-          branchId: selectedBranchId,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      const responseData = await res.json();
+
       if (!res.ok) {
-        const { error } = await res.json();
-        if (error && error.includes("already exists for this date")) {
+        const error = responseData.error || "Something went wrong";
+        const issues = responseData.issues;
+        
+        if (error.includes("already exists for this date")) {
           toast.error("A sale already exists for this date.");
+        } else if (issues) {
+          // Show validation errors
+          const errorMessages = Object.entries(issues)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(", ") : errors}`)
+            .join("\n");
+          toast.error(`Validation errors:\n${errorMessages}`);
         } else {
-          toast.error(error || "Something went wrong");
+          toast.error(error);
         }
+        console.error("API Error:", responseData);
         return;
       }
 
