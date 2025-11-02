@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { salesSchemaWithId } from "@/schemas/sales-schema";
 import { revalidatePath } from "next/cache";
@@ -77,7 +78,7 @@ export async function PATCH(
         data: {
           ...saleData,
           products: saleData.products ?? {},
-        } as any, // Type assertion needed for Prisma compatibility
+        } as Prisma.SaleUpdateInput,
       });
 
       // 2. Adjust BalanceReceipt using IST-aware logic (only if cashPayment changed)
