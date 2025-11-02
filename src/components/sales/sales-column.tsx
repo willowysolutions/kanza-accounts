@@ -9,73 +9,83 @@ import { SalesDeleteDialog } from "./sales-delete-dialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Sales } from "@/types/sales";
 
-export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => [
-  {
-    accessorKey: "date",
-    header: "Date & Time",
-    cell: ({ row }) => {
-      const dateTime = row.original.date;
-      return <div>{formatDate(dateTime)}</div>;
+export const salesColumns = (userRole?: string): ColumnDef<Sales>[] => {
+  const isAdmin = userRole?.toLowerCase() === "admin";
+  
+  const columns: ColumnDef<Sales>[] = [
+    {
+      accessorKey: "date",
+      header: "Date & Time",
+      cell: ({ row }) => {
+        const dateTime = row.original.date;
+        return <div>{formatDate(dateTime)}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "cashPayment",
-    header: "Cash Payment",
-    cell: ({ row }) => <div>{formatCurrency(row.original.cashPayment)}</div>,
-  },
-  {
-    accessorKey: "atmPayment",
-    header: "ATM Payment",
-    cell: ({ row }) => <div>{formatCurrency(row.original.atmPayment)}</div>,
-  },
-  {
-    accessorKey: "paytmPayment",
-    header: "Paytm Payment",
-    cell: ({ row }) => <div>{formatCurrency(row.original.paytmPayment)}</div>,
-  },
-  {
-    accessorKey: "fleetPayment",
-    header: "Fleet Payment",
-    cell: ({ row }) => <div>{formatCurrency(row.original.fleetPayment)}</div>,
-  },
-  {
-    accessorKey: "hsdDieselTotal",
-    header: "HSD-DIESEL",
-    cell: ({ row }) => (
-      <div className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-        {formatCurrency(row.original.hsdDieselTotal)}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "xgDieselTotal",
-    header: "XG-DIESEL",
-    cell: ({ row }) => (
-      <div className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">
-        {formatCurrency(row.original.xgDieselTotal)}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "msPetrolTotal",
-    header: "MS-PETROL",
-    cell: ({ row }) => (
-      <div className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">
-        {formatCurrency(row.original.msPetrolTotal)}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "rate",
-    header: "Total Amount",
-    cell: ({ row }) => <div>{formatCurrency(row.original.rate)}</div>,
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => <SalesActions sales={row.original} userRole={userRole} />,
-  },
-];
+    {
+      accessorKey: "cashPayment",
+      header: "Cash Payment",
+      cell: ({ row }) => <div>{formatCurrency(row.original.cashPayment)}</div>,
+    },
+    {
+      accessorKey: "atmPayment",
+      header: "ATM Payment",
+      cell: ({ row }) => <div>{formatCurrency(row.original.atmPayment)}</div>,
+    },
+    {
+      accessorKey: "paytmPayment",
+      header: "Paytm Payment",
+      cell: ({ row }) => <div>{formatCurrency(row.original.paytmPayment)}</div>,
+    },
+    {
+      accessorKey: "fleetPayment",
+      header: "Fleet Payment",
+      cell: ({ row }) => <div>{formatCurrency(row.original.fleetPayment)}</div>,
+    },
+    {
+      accessorKey: "hsdDieselTotal",
+      header: "HSD-DIESEL",
+      cell: ({ row }) => (
+        <div className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
+          {formatCurrency(row.original.hsdDieselTotal)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "xgDieselTotal",
+      header: "XG-DIESEL",
+      cell: ({ row }) => (
+        <div className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">
+          {formatCurrency(row.original.xgDieselTotal)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "msPetrolTotal",
+      header: "MS-PETROL",
+      cell: ({ row }) => (
+        <div className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">
+          {formatCurrency(row.original.msPetrolTotal)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "rate",
+      header: "Total Amount",
+      cell: ({ row }) => <div>{formatCurrency(row.original.rate)}</div>,
+    },
+  ];
+
+  // Only add Actions column for admin users
+  if (isAdmin) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => <SalesActions sales={row.original} userRole={userRole} />,
+    });
+  }
+
+  return columns;
+};
 
 const SalesActions = ({
   sales,

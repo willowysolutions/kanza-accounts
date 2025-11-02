@@ -9,82 +9,87 @@ import { MeterReading } from "@/types/meter-reading";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MeterReadingUpdateForm } from "./meter-reading-update-form";
 
-export const meterReadinColumns = (userRole?: string): ColumnDef<MeterReading>[] => [
-  {
-    accessorKey: "date",
-    header: "Date & Time",
-    cell: ({ row }) => {
-      const dateTime = row.original.date;
-      return <div>{formatDate(dateTime)}</div>;
+export const meterReadinColumns = (userRole?: string): ColumnDef<MeterReading>[] => {
+  const isAdmin = userRole?.toLowerCase() === "admin";
+  
+  const columns: ColumnDef<MeterReading>[] = [
+    {
+      accessorKey: "date",
+      header: "Date & Time",
+      cell: ({ row }) => {
+        const dateTime = row.original.date;
+        return <div>{formatDate(dateTime)}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "nozzleId",
-    header: "Nozzle",
-    cell: ({ row }) => {
-      const nozzle = row.original.nozzle.nozzleNumber;
-      return <span>{nozzle}</span>;
+    {
+      accessorKey: "nozzleId",
+      header: "Nozzle",
+      cell: ({ row }) => {
+        const nozzle = row.original.nozzle.nozzleNumber;
+        return <span>{nozzle}</span>;
+      },
     },
-  },
-  {
-    accessorKey: "fuelType",
-    header: "Fuel Type",
-    cell: ({ row }) => {
-      const fuelType = row.original.fuelType;
+    {
+      accessorKey: "fuelType",
+      header: "Fuel Type",
+      cell: ({ row }) => {
+        const fuelType = row.original.fuelType;
 
-      const fuelTypeColorMap: Record<string, string> = {
-        "MS-PETROL": "bg-red-100 text-red-800",
-        "HSD-DIESEL": "bg-blue-100 text-blue-800",
-        "XG-DIESEL": "bg-green-100 text-green-800",
-      };
+        const fuelTypeColorMap: Record<string, string> = {
+          "MS-PETROL": "bg-red-100 text-red-800",
+          "HSD-DIESEL": "bg-blue-100 text-blue-800",
+          "XG-DIESEL": "bg-green-100 text-green-800",
+        };
 
-      const colorClasses = fuelTypeColorMap[fuelType] || "bg-gray-100 text-gray-800";
+        const colorClasses = fuelTypeColorMap[fuelType] || "bg-gray-100 text-gray-800";
 
-      return (
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${colorClasses}`}
-        >
-          {fuelType}
-        </span>
-      );
+        return (
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${colorClasses}`}
+          >
+            {fuelType}
+          </span>
+        );
+      },
+      enableColumnFilter: true,
     },
-    enableColumnFilter: true,
-  },
-  {
-    accessorKey: "openingReading",
-    header: "Opening",
-  },
-  {
-    accessorKey: "closingReading",
-    header: "Closing",
-  },
-  {
-    accessorKey: "difference",
-    header: "Difference",
-    cell: ({ row }) => {
-      const difference = row.original.difference;
-      return <div>{difference?.toFixed(2)}</div>;
+    {
+      accessorKey: "openingReading",
+      header: "Opening",
     },
-  },
-  {
-    accessorKey: "totalAmount",
-    header: "Total Sold",
-    cell: ({ row }) => {
-      const soldAmount = row.original.totalAmount;
-      return <div>{formatCurrency(soldAmount)}</div>;
+    {
+      accessorKey: "closingReading",
+      header: "Closing",
     },
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => {
-      const isAdmin = userRole?.toLowerCase() === "admin";
-      if (!isAdmin) return null;
+    {
+      accessorKey: "difference",
+      header: "Difference",
+      cell: ({ row }) => {
+        const difference = row.original.difference;
+        return <div>{difference?.toFixed(2)}</div>;
+      },
+    },
+    {
+      accessorKey: "totalAmount",
+      header: "Total Sold",
+      cell: ({ row }) => {
+        const soldAmount = row.original.totalAmount;
+        return <div>{formatCurrency(soldAmount)}</div>;
+      },
+    },
+  ];
 
-      return <MeterReadingActions meterReading={row.original} />;
-    },
-  },
-];
+  // Only add Actions column for admin users
+  if (isAdmin) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => <MeterReadingActions meterReading={row.original} />,
+    });
+  }
+
+  return columns;
+};
 
 const MeterReadingActions = ({ meterReading }: { meterReading: MeterReading }) => {
   const [openEdit, setOpenEdit] = useState(false);

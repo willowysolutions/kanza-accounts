@@ -9,45 +9,55 @@ import { CreditFormDialog } from "./credit-form";
 import { CreditDeleteDialog } from "./credit-delete-dailog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-export const creditColumns = (userRole?: string): ColumnDef<Credit>[] => [
-  {
-    accessorFn: (row) => row.customer?.name ?? "",
-    id: "customerName",
-    header: "Customer",
-    cell: ({ getValue }) => <div>{getValue<string>()}</div>,
-  },
-  {
-    accessorKey: "fuelType",
-    header: "Fuel Type",
-  },
-  {
-    accessorKey: "quantity",
-    header: "Quantity",
-    cell: ({ row }) => <div className="px-3">{row.getValue("quantity") ?? "..."}</div>,
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
-    cell: ({ row }) => {
-      const amount = row.getValue("amount") as number;
-      return <span>{formatCurrency(amount)}</span>;
+export const creditColumns = (userRole?: string): ColumnDef<Credit>[] => {
+  const isAdmin = userRole?.toLowerCase() === "admin";
+  
+  const columns: ColumnDef<Credit>[] = [
+    {
+      accessorFn: (row) => row.customer?.name ?? "",
+      id: "customerName",
+      header: "Customer",
+      cell: ({ getValue }) => <div>{getValue<string>()}</div>,
     },
-  },
-  {
-    accessorKey: "date",
-    header: "Date",
-    cell: ({ row }) => {
-      const date = row.original.date;
-      return <div>{formatDate(date)}</div>;
+    {
+      accessorKey: "fuelType",
+      header: "Fuel Type",
     },
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) =>
-      row.original && <CreditInlineActions credit={row.original} userRole={userRole} />,
-  },
-];
+    {
+      accessorKey: "quantity",
+      header: "Quantity",
+      cell: ({ row }) => <div className="px-3">{row.getValue("quantity") ?? "..."}</div>,
+    },
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: ({ row }) => {
+        const amount = row.getValue("amount") as number;
+        return <span>{formatCurrency(amount)}</span>;
+      },
+    },
+    {
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => {
+        const date = row.original.date;
+        return <div>{formatDate(date)}</div>;
+      },
+    },
+  ];
+
+  // Only add Actions column for admin users
+  if (isAdmin) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) =>
+        row.original && <CreditInlineActions credit={row.original} userRole={userRole} />,
+    });
+  }
+
+  return columns;
+};
 
 export const CreditInlineActions = ({
   credit,

@@ -10,55 +10,65 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-export const expenseColumns = (userRole?: string): ColumnDef<Expense>[] => [
-  {
-    accessorKey: "date",
-    header: "Date",
-    cell: ({ row }) => {
-      const date = row.getValue("date") as string | Date;
-      return <div>{date ? formatDate(date) : "-"}</div>;
+export const expenseColumns = (userRole?: string): ColumnDef<Expense>[] => {
+  const isAdmin = userRole?.toLowerCase() === "admin";
+  
+  const columns: ColumnDef<Expense>[] = [
+    {
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => {
+        const date = row.getValue("date") as string | Date;
+        return <div>{date ? formatDate(date) : "-"}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => {
-      const expenseCategory = row.original.category?.name || "Unknown";
-      return (
-        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800">
-          {expenseCategory}
-        </span>
-      );
+    {
+      accessorKey: "category",
+      header: "Category",
+      cell: ({ row }) => {
+        const expenseCategory = row.original.category?.name || "Unknown";
+        return (
+          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800">
+            {expenseCategory}
+          </span>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "description",
-    header: "Description",
-    cell: ({ row }) => {
-      const description = row.getValue("description");
-      return (
-        <div className="px-3">
-          {description ? String(description) : "..."}
-        </div>
-      );
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => {
+        const description = row.getValue("description");
+        return (
+          <div className="px-3">
+            {description ? String(description) : "..."}
+          </div>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
-    cell: ({ row }) => {
-      const amount = row.getValue("amount") as number;
-      return <div className="font-medium">{formatCurrency(amount)}</div>;
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: ({ row }) => {
+        const amount = row.getValue("amount") as number;
+        return <div className="font-medium">{formatCurrency(amount)}</div>;
+      },
     },
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => (
-      <ExpenseActions expense={row.original} userRole={userRole} />
-    ),
-  },
-];
+  ];
+
+  // Only add Actions column for admin users
+  if (isAdmin) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <ExpenseActions expense={row.original} userRole={userRole} />
+      ),
+    });
+  }
+
+  return columns;
+};
 
 const ExpenseActions = ({
   expense,

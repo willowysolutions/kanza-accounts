@@ -215,7 +215,6 @@ export function ExpenseTable<TValue>({ data: initialData, branchId, userRole }: 
                 <TableCell className="border-r-2">
                   {formatCurrency(totalExpenseAmount)}
                 </TableCell>
-                <TableCell />
               </TableRow>
             </TableFooter>
           </Table>

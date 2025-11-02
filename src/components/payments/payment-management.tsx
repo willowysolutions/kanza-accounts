@@ -45,7 +45,7 @@ export function PaymentManagement({
       </TabsContent>
 
       <TabsContent value="history">
-        <PaymentHistoryTable data={paymentHistory} columns={paymentHistoryColumns} userRole={userRole} branchId={branchId} />
+        <PaymentHistoryTable data={paymentHistory} columns={paymentHistoryColumns(userRole)} userRole={userRole} branchId={branchId} />
       </TabsContent>
     </Tabs>
   );

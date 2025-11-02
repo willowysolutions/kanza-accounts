@@ -11,39 +11,49 @@ import { formatDate } from "@/lib/utils";
 
 export const bankDepositeColumns = (
   userRole?: string
-): ColumnDef<BankDeposite>[] => [
-  {
-    accessorKey: "date",
-    header: "Date",
-    cell: ({ row }) => {
-      const date = row.original.date;
-      return <div>{formatDate(date)}</div>;
+): ColumnDef<BankDeposite>[] => {
+  const isAdmin = userRole?.toLowerCase() === "admin";
+  
+  const columns: ColumnDef<BankDeposite>[] = [
+    {
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => {
+        const date = row.original.date;
+        return <div>{formatDate(date)}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "bank",
-    header: "Bank",
-    cell: ({ row }) => {
-      const bank = row.original.bank.bankName;
-      return <div>{bank}</div>;
+    {
+      accessorKey: "bank",
+      header: "Bank",
+      cell: ({ row }) => {
+        const bank = row.original.bank.bankName;
+        return <div>{bank}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) =>
-      row.original && (
-        <BankDepositeInlineActions
-          bankDeposite={row.original}
-          userRole={userRole}
-        />
-      ),
-  },
-];
+    {
+      accessorKey: "amount",
+      header: "Amount",
+    },
+  ];
+
+  // Only add Actions column for admin users
+  if (isAdmin) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) =>
+        row.original && (
+          <BankDepositeInlineActions
+            bankDeposite={row.original}
+            userRole={userRole}
+          />
+        ),
+    });
+  }
+
+  return columns;
+};
 
 export const BankDepositeInlineActions = ({
   bankDeposite,
