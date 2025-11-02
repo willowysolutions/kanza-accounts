@@ -65,7 +65,7 @@ export function SalesFormModal({
   }[]>([]);
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(sales?.branchId || userBranchId || "");
-
+  const [branchFuelTypes, setBranchFuelTypes] = useState<string[]>([]);
 
   const router = useRouter();
 
@@ -78,6 +78,7 @@ const form = useForm<SalesFormValues>({
     xgDieselTotal: sales?.xgDieselTotal ?? undefined,
     hsdDieselTotal: sales?.hsdDieselTotal ?? undefined,
     msPetrolTotal: sales?.msPetrolTotal ?? undefined,
+    powerPetrolTotal: sales && (sales as unknown as Record<string, unknown>).powerPetrolTotal ? Number((sales as unknown as Record<string, unknown>).powerPetrolTotal) || undefined : undefined,
     cashPayment: sales?.cashPayment ?? undefined,
     atmPayment: sales?.atmPayment || undefined,
     paytmPayment: sales?.paytmPayment || undefined,
@@ -128,6 +129,39 @@ const form = useForm<SalesFormValues>({
     }
   };
 
+
+// Fetch branch fuel types from nozzles
+  useEffect(() => {
+    const fetchBranchFuelTypes = async () => {
+      if (!selectedBranchId) {
+        setBranchFuelTypes([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/machines/with-nozzles?branchId=${selectedBranchId}`);
+        const json = await res.json();
+        const machines = json.data || [];
+        
+        // Get unique fuel types from all nozzles in this branch
+        const fuelTypes = new Set<string>();
+        machines.forEach((machine: { nozzles: { fuelType: string }[] }) => {
+          machine.nozzles.forEach((nozzle: { fuelType: string }) => {
+            if (nozzle.fuelType) {
+              fuelTypes.add(nozzle.fuelType);
+            }
+          });
+        });
+        
+        setBranchFuelTypes(Array.from(fuelTypes));
+      } catch (error) {
+        console.error("Failed to fetch branch fuel types", error);
+        setBranchFuelTypes([]);
+      }
+    };
+
+    fetchBranchFuelTypes();
+  }, [selectedBranchId]);
 
 //Fetch Meter-reading (recent data only)
   useEffect(() => {
@@ -248,7 +282,8 @@ useEffect(() => {
     
     // For backward compatibility, set legacy fields if they exist
     const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
-    const msPetrolTotal = fuelTotals["MS-PETROL"] || fuelTotals["POWER PETROL"] || 0;
+    const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
+    const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
     const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
 
     const productsObj: Record<string, number> = {};
@@ -282,6 +317,7 @@ useEffect(() => {
     form.setValue("hsdDieselTotal", Math.round(hsdTotal));
     form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
     form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
+    form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
     // Save all fuel totals dynamically
     form.setValue("fuelTotals", fuelTotals);
     form.setValue("cashPayment", cashPayment);
@@ -329,7 +365,8 @@ useEffect(() => {
       
       // For backward compatibility, set legacy fields if they exist
       const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
-      const msPetrolTotal = fuelTotals["MS-PETROL"] || fuelTotals["POWER PETROL"] || 0;
+      const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
+      const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
       const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
 
       const productsObj: Record<string, number> = {};
@@ -363,6 +400,7 @@ useEffect(() => {
       form.setValue("hsdDieselTotal", Math.round(hsdTotal));
       form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
       form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
+      form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
       // Save all fuel totals dynamically
       form.setValue("fuelTotals", fuelTotals);
       form.setValue("cashPayment", cashPayment);
@@ -547,48 +585,40 @@ useEffect(() => {
           ))}
         </div>
 
-        {/* Dynamic Fuel Type Fields - Only show if there's data for that fuel type */}
+        {/* Dynamic Fuel Type Fields - Show fields based on branch's available fuel types */}
         {(() => {
-          // Get unique fuel types from meter readings for the selected date
-          const uniqueFuelTypes = Array.from(
-            new Set(
-              meterReading
-                .filter((r) => {
-                  const readingDate = new Date(r.date).toLocaleDateString();
-                  const formDate = selectedDate ? new Date(selectedDate).toLocaleDateString() : "";
-                  return readingDate === formDate && r.fuelType;
-                })
-                .map((r) => r.fuelType)
-                .filter((ft): ft is string => typeof ft === "string")
-            )
-          );
+          // Use branch fuel types if available, otherwise fall back to meter reading fuel types
+          const availableFuelTypes = branchFuelTypes.length > 0 
+            ? branchFuelTypes 
+            : Array.from(
+                new Set(
+                  meterReading
+                    .filter((r) => {
+                      const readingDate = new Date(r.date).toLocaleDateString();
+                      const formDate = selectedDate ? new Date(selectedDate).toLocaleDateString() : "";
+                      return readingDate === formDate && r.fuelType;
+                    })
+                    .map((r) => r.fuelType)
+                    .filter((ft): ft is string => typeof ft === "string")
+                )
+              );
 
           // Map fuel types to form field names and labels
           const fuelTypeFields: Array<{ fieldName: keyof SalesFormValues; label: string; fuelType: string }> = [
             { fieldName: "hsdDieselTotal", label: "HSD-DIESEL", fuelType: "HSD-DIESEL" },
             { fieldName: "xgDieselTotal", label: "XG-DIESEL", fuelType: "XG-DIESEL" },
             { fieldName: "msPetrolTotal", label: "MS-PETROL", fuelType: "MS-PETROL" },
-            { fieldName: "msPetrolTotal", label: "POWER PETROL", fuelType: "POWER PETROL" },
+            { fieldName: "powerPetrolTotal", label: "POWER PETROL", fuelType: "POWER PETROL" },
           ];
 
           // Filter to only show fields for fuel types that exist in this branch
-          const fieldsToShow = fuelTypeFields.filter((field) => uniqueFuelTypes.includes(field.fuelType));
+          const fieldsToShow = fuelTypeFields.filter((field) => availableFuelTypes.includes(field.fuelType));
 
-          // For POWER PETROL, we use msPetrolTotal field, so avoid duplicates
-          const displayedFuelTypes = new Set<string>();
-          const uniqueFieldsToShow = fieldsToShow.filter((field) => {
-            if (displayedFuelTypes.has(field.fieldName as string)) {
-              return false;
-            }
-            displayedFuelTypes.add(field.fieldName as string);
-            return true;
-          });
-
-          if (uniqueFieldsToShow.length === 0) return null;
+          if (fieldsToShow.length === 0) return null;
 
           return (
             <div className="grid grid-cols-2 gap-4">
-              {uniqueFieldsToShow.map((fieldConfig) => (
+              {fieldsToShow.map((fieldConfig) => (
                 <FormField
                   key={fieldConfig.fuelType}
                   control={form.control}

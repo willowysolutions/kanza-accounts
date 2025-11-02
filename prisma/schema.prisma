@@ -150,6 +150,7 @@ model Sale {
   xgDieselTotal   Float?
   hsdDieselTotal  Float?
   msPetrolTotal   Float?
+  powerPetrolTotal Float?
 
   // Dynamic fuel totals (stores any fuel type: { "HSD-DIESEL": 1000, "POWER PETROL": 500, ... })
   fuelTotals      Json?

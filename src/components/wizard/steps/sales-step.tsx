@@ -47,6 +47,7 @@ export const SalesStep: React.FC = () => {
       xgDieselTotal: undefined,
       hsdDieselTotal: undefined,
       msPetrolTotal: undefined,
+      powerPetrolTotal: undefined,
       cashPayment: undefined,
       atmPayment: undefined,
       paytmPayment: undefined,
@@ -196,7 +197,8 @@ export const SalesStep: React.FC = () => {
       
       // For backward compatibility, set legacy fields if they exist
       const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
-      const msPetrolTotal = fuelTotals["MS-PETROL"] || fuelTotals["POWER PETROL"] || 0;
+      const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
+      const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
       const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
 
       form.setValue("products", productsObj);
@@ -223,6 +225,7 @@ export const SalesStep: React.FC = () => {
       form.setValue("hsdDieselTotal", hsdTotal);
       form.setValue("xgDieselTotal", xgDieselTotal);
       form.setValue("msPetrolTotal", msPetrolTotal);
+      form.setValue("powerPetrolTotal", powerPetrolTotal);
       // Save all fuel totals dynamically
       form.setValue("fuelTotals", fuelTotals);
       form.setValue("cashPayment", cashPayment);

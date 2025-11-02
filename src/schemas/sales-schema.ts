@@ -12,6 +12,7 @@ export const salesSchema = z.object({
   xgDieselTotal: z.coerce.number().min(0).optional(),
   hsdDieselTotal: z.coerce.number().min(0).optional(),
   msPetrolTotal: z.coerce.number().min(0).optional(),
+  powerPetrolTotal: z.coerce.number().min(0).optional(),
   // dynamic fuel totals (stores any fuel type: { "HSD-DIESEL": 1000, "POWER PETROL": 500, ... })
   fuelTotals: z.record(z.string(), z.coerce.number().min(0)).optional(),
   rate: z.coerce.number().min(0),
