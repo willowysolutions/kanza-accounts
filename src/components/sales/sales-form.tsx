@@ -217,17 +217,25 @@ const form = useForm<SalesFormValues>({
   fetchMeterReading();
   }, []);
 
-  // Fetch meter readings for specific date when needed
-  const fetchMeterReadingForDate = async (date: Date) => {
+  // Fetch meter readings for specific date and branch when needed
+  const fetchMeterReadingForDate = async (date: Date, branchId?: string) => {
     try {
       const formattedDate = date.toISOString().split('T')[0];
-      const res = await fetch(`/api/meterreadings?date=${formattedDate}&limit=100`);
+      const url = new URL('/api/meterreadings', window.location.origin);
+      url.searchParams.set('date', formattedDate);
+      url.searchParams.set('limit', '100');
+      if (branchId) {
+        url.searchParams.set('branchId', branchId);
+      }
+      
+      const res = await fetch(url.toString());
       const json = await res.json();
       
       if (json.withDifference && json.withDifference.length > 0) {
         // Merge with existing meter readings, avoiding duplicates
         setMeterReading(prev => {
-          const existing = prev.filter(r => r.id !== json.withDifference[0].id);
+          const newIds = new Set(json.withDifference.map((r: { id: string }) => r.id));
+          const existing = prev.filter(r => !newIds.has(r.id));
           return [...existing, ...json.withDifference];
         });
       }
@@ -252,17 +260,25 @@ const form = useForm<SalesFormValues>({
   fetchOilSales();
   }, []);
 
-  // Fetch oil sales for specific date when needed
-  const fetchOilSalesForDate = async (date: Date) => {
+  // Fetch oil sales for specific date and branch when needed
+  const fetchOilSalesForDate = async (date: Date, branchId?: string) => {
     try {
       const formattedDate = date.toISOString().split('T')[0];
-      const res = await fetch(`/api/oils?date=${formattedDate}&limit=100`);
+      const url = new URL('/api/oils', window.location.origin);
+      url.searchParams.set('date', formattedDate);
+      url.searchParams.set('limit', '100');
+      if (branchId) {
+        url.searchParams.set('branchId', branchId);
+      }
+      
+      const res = await fetch(url.toString());
       const json = await res.json();
       
       if (json.oils && json.oils.length > 0) {
         // Merge with existing oil sales, avoiding duplicates
         setOilSales(prev => {
-          const existing = prev.filter(o => o.id !== json.oils[0].id);
+          const newIds = new Set(json.oils.map((o: { id: string }) => o.id));
+          const existing = prev.filter(o => !newIds.has(o.id));
           return [...existing, ...json.oils];
         });
       }
@@ -280,28 +296,36 @@ const fleetPayment = form.watch("fleetPayment");
 
 
 useEffect(() => {
-  if (selectedDate) {
+  if (selectedDate && selectedBranchId) {
     const formattedDate = new Date(selectedDate).toLocaleDateString();
 
     // --- Fuel Sales ---
+    // Filter by both date AND branch
     const matchingReadings = meterReading.filter(
-      (reading) =>
-        new Date(reading.date).toLocaleDateString() === formattedDate
+      (reading) => {
+        const readingDate = new Date(reading.date).toLocaleDateString();
+        const readingBranchId = (reading as { branchId?: string }).branchId;
+        return readingDate === formattedDate && readingBranchId === selectedBranchId;
+      }
     );
 
     // --- Oil & Gas Sales (Dynamic products) ---
+    // Filter by both date AND branch
     const matchingOils = oilSales.filter(
-      (item) =>
-        new Date(item.date).toLocaleDateString() === formattedDate
+      (item) => {
+        const itemDate = new Date(item.date).toLocaleDateString();
+        const itemBranchId = (item as { branchId?: string }).branchId;
+        return itemDate === formattedDate && itemBranchId === selectedBranchId;
+      }
     );
 
-    // If no matching data found, fetch data for this specific date and return early
+    // If no matching data found, fetch data for this specific date and branch and return early
     if (matchingReadings.length === 0 || matchingOils.length === 0) {
       if (matchingReadings.length === 0) {
-        fetchMeterReadingForDate(new Date(selectedDate));
+        fetchMeterReadingForDate(new Date(selectedDate), selectedBranchId);
       }
       if (matchingOils.length === 0) {
-        fetchOilSalesForDate(new Date(selectedDate));
+        fetchOilSalesForDate(new Date(selectedDate), selectedBranchId);
       }
       return; // Exit early, calculation will happen when data is fetched
     }
@@ -362,6 +386,7 @@ useEffect(() => {
   }
 }, [
   selectedDate,
+  selectedBranchId,
   meterReading,
   oilSales,
   atmPayment,
@@ -372,19 +397,27 @@ useEffect(() => {
 
 // Separate useEffect to handle calculation when data is updated
 useEffect(() => {
-  if (selectedDate && meterReading.length > 0 && oilSales.length > 0) {
+  if (selectedDate && selectedBranchId && meterReading.length > 0 && oilSales.length > 0) {
     const formattedDate = new Date(selectedDate).toLocaleDateString();
 
     // --- Fuel Sales ---
+    // Filter by both date AND branch
     const matchingReadings = meterReading.filter(
-      (reading) =>
-        new Date(reading.date).toLocaleDateString() === formattedDate
+      (reading) => {
+        const readingDate = new Date(reading.date).toLocaleDateString();
+        const readingBranchId = (reading as { branchId?: string }).branchId;
+        return readingDate === formattedDate && readingBranchId === selectedBranchId;
+      }
     );
 
     // --- Oil & Gas Sales (Dynamic products) ---
+    // Filter by both date AND branch
     const matchingOils = oilSales.filter(
-      (item) =>
-        new Date(item.date).toLocaleDateString() === formattedDate
+      (item) => {
+        const itemDate = new Date(item.date).toLocaleDateString();
+        const itemBranchId = (item as { branchId?: string }).branchId;
+        return itemDate === formattedDate && itemBranchId === selectedBranchId;
+      }
     );
 
     // Only calculate if we have matching data
@@ -444,7 +477,7 @@ useEffect(() => {
       form.setValue("cashPayment", cashPayment);
     }
   }
-}, [selectedDate, meterReading, oilSales, atmPayment, paytmPayment, fleetPayment, form]);
+}, [selectedDate, selectedBranchId, meterReading, oilSales, atmPayment, paytmPayment, fleetPayment, form]);
 
   // Add debug handler - ensure it's not async blocking
   const onSubmitHandler = (values: SalesFormValues) => {
@@ -615,7 +648,12 @@ useEffect(() => {
           {Array.from(
             new Set(
               oilSales
-                .filter(o => new Date(o.date).toLocaleDateString() === new Date(selectedDate).toLocaleDateString())
+                .filter(o => {
+                  const itemDate = new Date(o.date).toLocaleDateString();
+                  const formDate = selectedDate ? new Date(selectedDate).toLocaleDateString() : "";
+                  const itemBranchId = (o as { branchId?: string }).branchId;
+                  return itemDate === formDate && itemBranchId === selectedBranchId;
+                })
                 .map(o => (o.productType || '').toUpperCase())
             )
           ).map((product) => (
@@ -638,21 +676,9 @@ useEffect(() => {
 
         {/* Dynamic Fuel Type Fields - Show fields based on branch's available fuel types */}
         {(() => {
-          // Use branch fuel types if available, otherwise fall back to meter reading fuel types
-          const availableFuelTypes = branchFuelTypes.length > 0 
-            ? branchFuelTypes 
-            : Array.from(
-                new Set(
-                  meterReading
-                    .filter((r) => {
-                      const readingDate = new Date(r.date).toLocaleDateString();
-                      const formDate = selectedDate ? new Date(selectedDate).toLocaleDateString() : "";
-                      return readingDate === formDate && r.fuelType;
-                    })
-                    .map((r) => r.fuelType)
-                    .filter((ft): ft is string => typeof ft === "string")
-                )
-              );
+          // Use branch fuel types only (from nozzles/machines) - don't fall back to meter readings
+          // This ensures we show the correct fuel types for the branch regardless of meter reading data
+          const availableFuelTypes = branchFuelTypes;
 
           // Map fuel types to form field names and labels
           const fuelTypeFields: Array<{ fieldName: keyof SalesFormValues; label: string; fuelType: string }> = [
