@@ -92,6 +92,11 @@ enum Status {
   critical
 }
 
+enum ProductCategory {
+  FUEL
+  OTHER
+}
+
 model Refill {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
@@ -124,6 +129,7 @@ model Product {
   id            String @id @default(auto()) @map("_id") @db.ObjectId
 
   productName   String 
+  productCategory ProductCategory @default(OTHER)
   productUnit   String
   purchasePrice Float
   sellingPrice  Float
