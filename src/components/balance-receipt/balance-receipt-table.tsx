@@ -25,17 +25,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { BalanceReceiptTableProps } from "@/types/balance-receipt";
+import { balanceReceiptColumn } from "./balance-receipt-column";
 import { DateEqualsFilter } from "../filters/date-equals-filter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function BalanceReceiptTable<TValue>({
-  columns,
   data: initialData,
   branchId,
-}: BalanceReceiptTableProps<TValue> & { branchId?: string }) {
+  userRole,
+}: Omit<BalanceReceiptTableProps<TValue>, 'columns'> & { branchId?: string; userRole?: string }) {
+  // Create columns based on userRole
+  const columns = useMemo(() => balanceReceiptColumn(userRole), [userRole]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);

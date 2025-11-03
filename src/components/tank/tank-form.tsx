@@ -31,6 +31,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { tankSchema } from "@/schemas/tank-schema";
 import { z } from "zod";
 import { IconPlus } from "@tabler/icons-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -53,9 +54,11 @@ export function TankFormDialog({
   id: string;
   currentPrice:number;
   productUnit:string;
-  branch?: { name: string };
+  branchId?: string | null;
+  productCategory?: "FUEL" | "OTHER";
   }[]>([]);
   const [branchOptions, setBranchOptions] = useState<{ name: string; id: string }[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(tank?.branchId || "");
 
   const router = useRouter();
 
@@ -132,17 +135,27 @@ export function TankFormDialog({
   }, []);
 
 
-    useEffect(() => {
+  // Fetch fuel products based on selected branch
+  useEffect(() => {
     const fetchProducts = async () => {
+      if (!selectedBranchId) {
+        setProductOptions([]);
+        return;
+      }
+
       try {
         const res = await fetch("/api/products");
         const json = await res.json();
         
-        // Filter products to only include those with "petrol" or "diesel" (case insensitive)
+        // Filter products: only FUEL category products for the selected branch
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filteredProducts = json.data?.filter((product: any) => {
-          const productNameLower = product.productName?.toLowerCase() || "";
-          return productNameLower.includes("petrol") || productNameLower.includes("diesel");
+          // Must be FUEL category
+          if (product.productCategory !== "FUEL") {
+            return false;
+          }
+          // Must belong to the selected branch
+          return product.branchId === selectedBranchId;
         }) || [];
         
         // Deduplicate products by name, keeping the first occurrence
@@ -162,7 +175,15 @@ export function TankFormDialog({
     };
 
     fetchProducts();
-  }, []);
+  }, [selectedBranchId]);
+
+  // Watch branchId from form and sync with selectedBranchId state
+  const formBranchId = form.watch("branchId");
+  useEffect(() => {
+    if (formBranchId) {
+      setSelectedBranchId(formBranchId);
+    }
+  }, [formBranchId]);
 
 
   return (
@@ -191,7 +212,41 @@ export function TankFormDialog({
           </FormDialogDescription>
         </FormDialogHeader>
 
-        {/* Tank Name */}
+        {/* Branch - First Field */}
+        <FormField
+          control={form.control}
+          name="branchId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Branch</FormLabel>
+              <Select 
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  setSelectedBranchId(value);
+                  // Clear fuel type when branch changes
+                  form.setValue("fuelType", "");
+                }} 
+                value={field.value ?? undefined}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {branchOptions.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Tank Name & Fuel Type */}
       <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
@@ -207,7 +262,7 @@ export function TankFormDialog({
           )}
         />
 
-        {/* Fuel Type */}
+        {/* Fuel Type - Filtered by selected branch */}
         <FormField
           control={form.control}
           name="fuelType"
@@ -217,20 +272,38 @@ export function TankFormDialog({
               <Select
                 onValueChange={field.onChange}
                 value={field.value}
+                disabled={!selectedBranchId || productOption.length === 0}
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select fuel type" />
+                    <SelectValue placeholder={
+                      !selectedBranchId 
+                        ? "Select branch first" 
+                        : productOption.length === 0 
+                          ? "No fuel products available" 
+                          : "Select fuel type"
+                    } />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {productOption.map(product => (
-                    <SelectItem key={product.id} value={product.productName}>
-                      {product.productName}
+                  {productOption.length > 0 ? (
+                    productOption.map(product => (
+                      <SelectItem key={product.id} value={product.productName}>
+                        {product.productName}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-products" disabled>
+                      No fuel products found for this branch
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
+              {!selectedBranchId && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Please select a branch first
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -267,7 +340,6 @@ export function TankFormDialog({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
         {/* Supplier */}
         <FormField
           control={form.control}
@@ -294,32 +366,6 @@ export function TankFormDialog({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="branchId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Branch</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Branch" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {branchOptions.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        </div>
-
         <FormDialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">
@@ -327,7 +373,14 @@ export function TankFormDialog({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            {tank ? "Update" : "Save"}
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              tank ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

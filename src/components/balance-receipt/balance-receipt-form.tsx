@@ -25,7 +25,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { balanceReceiptSchema } from "@/schemas/balance-receipt";
@@ -203,7 +203,14 @@ export const BalanceReceiptFormDialog = ({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : balanceReceipt ? "Update" : "Save"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              balanceReceipt ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

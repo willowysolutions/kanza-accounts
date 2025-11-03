@@ -294,32 +294,46 @@ export const CreditStep: React.FC = () => {
     loadCustomers();
   }, [selectedBranchId, customerSearch, fetchCustomers]);
 
-  // Fetch products
+  // Fetch products - filtered by selected branch (both FUEL and OTHER products)
   useEffect(() => {
     const fetchProducts = async () => {
+      if (!selectedBranchId) {
+        setProducts([]);
+        setIsInitialized(true);
+        return;
+      }
+
       try {
         const res = await fetch("/api/products");
         const json = await res.json();
         
+        // Filter products: only products for the selected branch (both FUEL and OTHER)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const branchProducts = json.data?.filter((product: any) => {
+          return product.branchId === selectedBranchId;
+        }) || [];
+        
         // Deduplicate products by name, keeping the first occurrence
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const uniqueProducts = json.data?.reduce((acc: any[], product: any) => {
+        const uniqueProducts = branchProducts.reduce((acc: any[], product: any) => {
           const existingProduct = acc.find(p => p.productName === product.productName);
           if (!existingProduct) {
             acc.push(product);
           }
           return acc;
-        }, []) || [];
+        }, []);
         
         setProducts(uniqueProducts);
         setIsInitialized(true);
       } catch (error) {
         console.error("Failed to fetch products", error);
+        setProducts([]);
+        setIsInitialized(true);
       }
     };
 
     fetchProducts();
-  }, []);
+  }, [selectedBranchId]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {
@@ -403,20 +417,41 @@ export const CreditStep: React.FC = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Fuel Type</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value}
+                  disabled={!selectedBranchId || products.length === 0}
+                >
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Fuel Type" />
+                      <SelectValue placeholder={
+                        !selectedBranchId 
+                          ? "Select branch first" 
+                          : products.length === 0 
+                            ? "No products available" 
+                            : "Select Fuel Type"
+                      } />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.productName}>
-                        {p.productName}
+                    {products.length > 0 ? (
+                      products.map((p) => (
+                        <SelectItem key={p.id} value={p.productName}>
+                          {p.productName}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-products" disabled>
+                        No products found for this branch
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
+                {!selectedBranchId && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Please select a branch first
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}

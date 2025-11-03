@@ -21,7 +21,7 @@ import {
 import { DialogClose } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Loader2 } from "lucide-react";
 import { SalesFormValues, salesSchema } from "@/schemas/sales-schema";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -65,7 +65,7 @@ export function SalesFormModal({
   }[]>([]);
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(sales?.branchId || userBranchId || "");
-  const [branchFuelTypes, setBranchFuelTypes] = useState<string[]>([]);
+  const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
 
   const router = useRouter();
 
@@ -168,37 +168,37 @@ const form = useForm<SalesFormValues>({
   };
 
 
-// Fetch branch fuel types from nozzles
+  // Fetch branch fuel products (FUEL category products for the selected branch)
   useEffect(() => {
-    const fetchBranchFuelTypes = async () => {
+    const fetchBranchFuelProducts = async () => {
       if (!selectedBranchId) {
-        setBranchFuelTypes([]);
+        setBranchFuelProducts([]);
         return;
       }
 
       try {
-        const res = await fetch(`/api/machines/with-nozzles?branchId=${selectedBranchId}`);
+        const res = await fetch("/api/products");
         const json = await res.json();
-        const machines = json.data || [];
         
-        // Get unique fuel types from all nozzles in this branch
-        const fuelTypes = new Set<string>();
-        machines.forEach((machine: { nozzles: { fuelType: string }[] }) => {
-          machine.nozzles.forEach((nozzle: { fuelType: string }) => {
-            if (nozzle.fuelType) {
-              fuelTypes.add(nozzle.fuelType);
-            }
-          });
-        });
+        // Filter: only FUEL category products for the selected branch
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fuelProducts = json.data?.filter((product: any) => {
+          return product.productCategory === "FUEL" && product.branchId === selectedBranchId;
+        }) || [];
         
-        setBranchFuelTypes(Array.from(fuelTypes));
+        // Get unique product names
+        const uniqueFuelProductNames = Array.from(
+          new Set(fuelProducts.map((p: { productName: string }) => p.productName))
+        ).map((name) => ({ productName: name as string }));
+        
+        setBranchFuelProducts(uniqueFuelProductNames);
       } catch (error) {
-        console.error("Failed to fetch branch fuel types", error);
-        setBranchFuelTypes([]);
+        console.error("Failed to fetch branch fuel products", error);
+        setBranchFuelProducts([]);
       }
     };
 
-    fetchBranchFuelTypes();
+    fetchBranchFuelProducts();
   }, [selectedBranchId]);
 
 //Fetch Meter-reading (recent data only)
@@ -674,22 +674,41 @@ useEffect(() => {
           ))}
         </div>
 
-        {/* Dynamic Fuel Type Fields - Show fields based on branch's available fuel types */}
+        {/* Dynamic Fuel Type Fields - Show fields based on branch's fuel products from Product table */}
         {(() => {
-          // Use branch fuel types only (from nozzles/machines) - don't fall back to meter readings
-          // This ensures we show the correct fuel types for the branch regardless of meter reading data
-          const availableFuelTypes = branchFuelTypes;
+          // Use branch fuel products from Product table (FUEL category products)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const branchFuelProductNames = branchFuelProducts.map((p: any) => p.productName);
+          
+          // Map fuel product names to form field names and labels
+          const fuelProductToFieldMap: Record<string, { fieldName: keyof SalesFormValues; label: string }> = {
+            "HSD-DIESEL": { fieldName: "hsdDieselTotal", label: "HSD-DIESEL" },
+            "XG-DIESEL": { fieldName: "xgDieselTotal", label: "XG-DIESEL" },
+            "MS-PETROL": { fieldName: "msPetrolTotal", label: "MS-PETROL" },
+            "POWER PETROL": { fieldName: "powerPetrolTotal", label: "POWER PETROL" },
+            "XP 95 PETROL": { fieldName: "powerPetrolTotal", label: "XP 95 PETROL" }, // Map XP 95 PETROL to powerPetrolTotal
+          };
 
-          // Map fuel types to form field names and labels
-          const fuelTypeFields: Array<{ fieldName: keyof SalesFormValues; label: string; fuelType: string }> = [
-            { fieldName: "hsdDieselTotal", label: "HSD-DIESEL", fuelType: "HSD-DIESEL" },
-            { fieldName: "xgDieselTotal", label: "XG-DIESEL", fuelType: "XG-DIESEL" },
-            { fieldName: "msPetrolTotal", label: "MS-PETROL", fuelType: "MS-PETROL" },
-            { fieldName: "powerPetrolTotal", label: "POWER PETROL", fuelType: "POWER PETROL" },
-          ];
-
-          // Filter to only show fields for fuel types that exist in this branch
-          const fieldsToShow = fuelTypeFields.filter((field) => availableFuelTypes.includes(field.fuelType));
+          // Create fields for each branch fuel product
+          const fieldsToShow = branchFuelProductNames
+            .map((productName: string) => {
+              const mapping = fuelProductToFieldMap[productName.toUpperCase()];
+              if (!mapping) {
+                // If product doesn't have a mapping, create a dynamic field using fuelTotals
+                // For now, we'll skip products without mappings to avoid schema issues
+                return null;
+              }
+              return {
+                fieldName: mapping.fieldName,
+                label: productName,
+                productName: productName,
+              };
+            })
+            .filter((field): field is { fieldName: keyof SalesFormValues; label: string; productName: string } => field !== null)
+            // Deduplicate by fieldName (in case multiple products map to same field)
+            .filter((field, index, self) => 
+              index === self.findIndex(f => f.fieldName === field.fieldName)
+            );
 
           if (fieldsToShow.length === 0) return null;
 
@@ -697,7 +716,7 @@ useEffect(() => {
             <div className="grid grid-cols-2 gap-4">
               {fieldsToShow.map((fieldConfig) => (
                 <FormField
-                  key={fieldConfig.fuelType}
+                  key={fieldConfig.productName}
                   control={form.control}
                   name={fieldConfig.fieldName}
                   render={({ field }) => (
@@ -754,7 +773,14 @@ useEffect(() => {
             type="submit"
             disabled={form.formState.isSubmitting}
           >
-            {sales ? "Update" : "Save"}
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              sales ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

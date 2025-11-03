@@ -31,7 +31,7 @@ import { DialogClose } from "@/components/ui/dialog";
 import { useForm,useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Loader2 } from "lucide-react";
 import { purchaseSchema } from "@/schemas/purchase-schema";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -388,7 +388,14 @@ export function PurchaseFormModal({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            {purchase ? "Update" : "Save"}
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              purchase ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Droplets } from 'lucide-react'
+import { Droplets, Loader2 } from 'lucide-react'
 import {
   FormControl,
   FormField,
@@ -152,8 +152,15 @@ const handleSubmit = async (
             Cancel
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={isSubmitDisabled}>
-          Confirm Refill
+        <Button type="submit" disabled={isSubmitDisabled || form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Confirm Refill"
+          )}
         </Button>
       </FormDialogFooter>
     </FormDialogContent>

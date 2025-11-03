@@ -37,6 +37,7 @@ export const SalesStep: React.FC = () => {
   const [savedRecords, setSavedRecords] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
+  const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
 
   const form = useForm<SalesFormValues>({
     resolver: zodResolver(salesSchema),
@@ -109,6 +110,39 @@ export const SalesStep: React.FC = () => {
 
     fetchOilSales();
   }, []);
+
+  // Fetch branch fuel products (FUEL category products for the selected branch)
+  useEffect(() => {
+    const fetchBranchFuelProducts = async () => {
+      if (!selectedBranchId) {
+        setBranchFuelProducts([]);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/products");
+        const json = await res.json();
+        
+        // Filter: only FUEL category products for the selected branch
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fuelProducts = json.data?.filter((product: any) => {
+          return product.productCategory === "FUEL" && product.branchId === selectedBranchId;
+        }) || [];
+        
+        // Get unique product names
+        const uniqueFuelProductNames = Array.from(
+          new Set(fuelProducts.map((p: { productName: string }) => p.productName))
+        ).map((name) => ({ productName: name as string }));
+        
+        setBranchFuelProducts(uniqueFuelProductNames);
+      } catch (error) {
+        console.error("Failed to fetch branch fuel products", error);
+        setBranchFuelProducts([]);
+      }
+    };
+
+    fetchBranchFuelProducts();
+  }, [selectedBranchId]);
 
   // Fetch oil sales for specific date when needed
   const fetchOilSalesForDate = async (date: Date) => {
@@ -399,69 +433,82 @@ export const SalesStep: React.FC = () => {
               ))}
             </div>
 
+            {/* Dynamic Fuel Type Fields - Show fields based on branch's fuel products from Product table */}
+            {(() => {
+              // Use branch fuel products from Product table (FUEL category products)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const branchFuelProductNames = branchFuelProducts.map((p: any) => p.productName);
+              
+              // Map fuel product names to form field names and labels
+              const fuelProductToFieldMap: Record<string, { fieldName: keyof SalesFormValues; label: string }> = {
+                "HSD-DIESEL": { fieldName: "hsdDieselTotal", label: "HSD-DIESEL" },
+                "XG-DIESEL": { fieldName: "xgDieselTotal", label: "XG-DIESEL" },
+                "MS-PETROL": { fieldName: "msPetrolTotal", label: "MS-PETROL" },
+                "POWER PETROL": { fieldName: "powerPetrolTotal", label: "POWER PETROL" },
+                "XP 95 PETROL": { fieldName: "powerPetrolTotal", label: "XP 95 PETROL" }, // Map XP 95 PETROL to powerPetrolTotal
+              };
+
+              // Create fields for each branch fuel product
+              const fieldsToShow = branchFuelProductNames
+                .map((productName: string) => {
+                  const mapping = fuelProductToFieldMap[productName.toUpperCase()];
+                  if (!mapping) {
+                    // If product doesn't have a mapping, skip it
+                    return null;
+                  }
+                  return {
+                    fieldName: mapping.fieldName,
+                    label: productName,
+                    productName: productName,
+                  };
+                })
+                .filter((field): field is { fieldName: keyof SalesFormValues; label: string; productName: string } => field !== null)
+                // Deduplicate by fieldName (in case multiple products map to same field)
+                .filter((field, index, self) => 
+                  index === self.findIndex(f => f.fieldName === field.fieldName)
+                );
+
+              if (fieldsToShow.length === 0) return null;
+
+              // Split fields into groups of 2 for grid layout
+              const fieldGroups: Array<Array<{ fieldName: keyof SalesFormValues; label: string; productName: string }>> = [];
+              for (let i = 0; i < fieldsToShow.length; i += 2) {
+                fieldGroups.push(fieldsToShow.slice(i, i + 2));
+              }
+
+              return (
+                <>
+                  {fieldGroups.map((group, groupIndex) => (
+                    <div key={groupIndex} className="grid grid-cols-2 gap-4">
+                      {group.map((fieldConfig) => (
+                        <FormField
+                          key={fieldConfig.productName}
+                          control={form.control}
+                          name={fieldConfig.fieldName}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{fieldConfig.label}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  disabled
+                                  type="number"
+                                  placeholder="Enter amount"
+                                  {...field}
+                                  value={field.value != null ? String(field.value) : ""}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
+
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="xgDieselTotal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>XG-DIESEL</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled
-                        type="number"
-                        placeholder="Enter amount"
-                        {...field}
-                        value={field.value ?? ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="hsdDieselTotal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>HSD-DIESEL</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled
-                        type="number"
-                        placeholder="Enter amount"
-                        {...field}
-                        value={field.value ?? ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="msPetrolTotal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>MS-PETROL</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled
-                        type="number"
-                        placeholder="Enter amount"
-                        {...field}
-                        value={field.value ?? ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="rate"

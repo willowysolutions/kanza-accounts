@@ -32,7 +32,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useState } from "react";
 import * as React from "react";
 import { ProductType } from "@/types/product";
@@ -62,6 +62,7 @@ export function ProductFormDialog({
     resolver: zodResolver(productSchema),
     defaultValues: {
       productName: products?.productName || "",
+      productCategory: (products?.productCategory as "FUEL" | "OTHER" | undefined) || "OTHER",
       purchasePrice: products?.purchasePrice || undefined,
       sellingPrice: products?.sellingPrice || undefined,
       productUnit: products?.productUnit || "",
@@ -174,12 +175,67 @@ export function ProductFormDialog({
                         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                         .join(" ");
                       field.onChange(formatted);
+                      
+                      // Auto-set category based on product name
+                      const normalizedName = formatted.toUpperCase().trim();
+                      const fuelProductNames = ["MS-PETROL", "HSD-DIESEL", "XG-DIESEL", "XP 95 PETROL", "POWER PETROL"];
+                      const isFuelProduct = fuelProductNames.some(fuelName => 
+                        normalizedName === fuelName.toUpperCase().trim()
+                      );
+                      
+                      if (isFuelProduct) {
+                        form.setValue("productCategory", "FUEL");
+                      } else {
+                        form.setValue("productCategory", "OTHER");
+                      }
                     }}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
+          />
+
+          <FormField
+            control={form.control}
+            name="productCategory"
+            render={({ field }) => {
+              // Determine if product name matches a fuel product
+              const productName = form.watch("productName");
+              const fuelProductNames = ["MS-PETROL", "HSD-DIESEL", "XG-DIESEL", "XP 95 PETROL", "POWER PETROL"];
+              const normalizedName = (productName || "").toUpperCase().trim();
+              const isFuelProduct = fuelProductNames.some(fuelName => 
+                normalizedName === fuelName.toUpperCase().trim()
+              );
+              const shouldBeFuel = isFuelProduct;
+              
+              return (
+                <FormItem>
+                  <FormLabel>Product Category</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={shouldBeFuel ? "FUEL" : (field.value || "OTHER")}
+                    disabled={shouldBeFuel} // Disable if it's a fuel product
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="FUEL">Fuel Product</SelectItem>
+                      <SelectItem value="OTHER">Other Product</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {shouldBeFuel && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Category automatically set to FUEL for this product name
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
 
         <div className="grid grid-cols-2 gap-4">
@@ -259,7 +315,14 @@ export function ProductFormDialog({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isSubmitting}>
-            {products ? "Update" : "Save"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              products ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

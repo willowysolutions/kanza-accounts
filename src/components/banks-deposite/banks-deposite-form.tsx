@@ -28,7 +28,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BankDepositeFormProps } from "@/types/bank-deposite";
@@ -243,7 +243,14 @@ export const BankDepositeFormDialog = ({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : bankDeposite ? "Update" : "Save"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              bankDeposite ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 export type ProductType = {
   id:string;
   productName :string;
+  productCategory?: "FUEL" | "OTHER";
   productUnit: string;
   purchasePrice: number;
   sellingPrice: number;

@@ -26,7 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { expenseSchema } from "@/schemas/expense-schema";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExpenseFormProps } from "@/types/expense";
@@ -354,7 +354,14 @@ export const ExpenseFormDialog = ({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : expense ? "Update" : "Save"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              expense ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

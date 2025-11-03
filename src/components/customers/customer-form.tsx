@@ -25,7 +25,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Customer } from "@prisma/client";
 import { useRouter } from "next/navigation";
@@ -249,7 +249,14 @@ export function CustomerFormDialog({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isSubmitting}>
-            {customers ? "Update" : "Save"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              customers ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

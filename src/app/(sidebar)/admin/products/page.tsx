@@ -6,6 +6,7 @@ import { productColumns } from "@/components/products/product-columns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { ProductType } from "@/types/product";
 
 export default async function ProductPage() {
   const session = await auth.api.getSession({
@@ -57,22 +58,62 @@ export default async function ProductPage() {
               ))}
             </TabsList>
 
-            {productsByBranch.map(({ branchId, branchName, products }: { branchId: string; branchName: string; products: { id: string; productName: string; productUnit: string; purchasePrice: number; sellingPrice: number; branchId: string | null }[] }) => (
-              <TabsContent key={branchId} value={branchId}>
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold">{branchName} Products</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {products.length} product{products.length !== 1 ? 's' : ''} in this branch
-                  </p>
-                </div>
-                <ProductTable 
-                  data={products} 
-                  columns={productColumns} 
-                  userRole={userRole}
-                  userBranchId={userBranchId}
-                />
-              </TabsContent>
-            ))}
+            {productsByBranch.map(({ branchId, branchName, products }: { branchId: string; branchName: string; products: { id: string; productName: string; productCategory?: "FUEL" | "OTHER"; productUnit: string; purchasePrice: number; sellingPrice: number; branchId: string | null }[] }) => {
+              // Define fuel product names (case-insensitive matching)
+              const fuelProductNames = ["MS-PETROL", "HSD-DIESEL", "XG-DIESEL", "XP 95 PETROL", "POWER PETROL"];
+              
+              // Split products: fuel products must match one of the specific fuel product names
+              const fuelProducts = products.filter((p: { productName: string; productCategory?: "FUEL" | "OTHER" }) => {
+                const normalizedName = p.productName.toUpperCase().trim();
+                return fuelProductNames.some(fuelName => 
+                  normalizedName === fuelName.toUpperCase().trim()
+                );
+              });
+              
+              // All other products go to OTHER category
+              const otherProducts = products.filter((p: { productName: string; productCategory?: "FUEL" | "OTHER" }) => {
+                const normalizedName = p.productName.toUpperCase().trim();
+                return !fuelProductNames.some(fuelName => 
+                  normalizedName === fuelName.toUpperCase().trim()
+                );
+              });
+              
+              return (
+                <TabsContent key={branchId} value={branchId}>
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold">{branchName} Products</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {products.length} product{products.length !== 1 ? 's' : ''} in this branch
+                    </p>
+                  </div>
+                  
+                  <Tabs defaultValue="fuel" className="w-full">
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="fuel">Fuel Products ({fuelProducts.length})</TabsTrigger>
+                      <TabsTrigger value="other">Other Products ({otherProducts.length})</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="fuel">
+                      <ProductTable 
+                        data={fuelProducts as ProductType[]} 
+                        columns={productColumns} 
+                        userRole={userRole}
+                        userBranchId={userBranchId}
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="other">
+                      <ProductTable 
+                        data={otherProducts as ProductType[]} 
+                        columns={productColumns} 
+                        userRole={userRole}
+                        userBranchId={userBranchId}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </TabsContent>
+              );
+            })}
           </Tabs>
         </div>
       </div>

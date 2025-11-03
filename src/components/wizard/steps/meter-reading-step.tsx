@@ -39,6 +39,7 @@ export const MeterReadingStep: React.FC = () => {
   const [tankLevels, setTankLevels] = useState<Record<string, { currentLevel: number; tankName: string; fuelType: string }>>({});
   // const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const router = useRouter();
+  const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
 
   const { commonDate } = useWizard();
 
@@ -223,6 +224,39 @@ export const MeterReadingStep: React.FC = () => {
 
     fetchProducts();
   }, []);
+
+  // Fetch branch fuel products (FUEL category products for the selected branch)
+  useEffect(() => {
+    const fetchBranchFuelProducts = async () => {
+      if (!selectedBranchId) {
+        setBranchFuelProducts([]);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/products");
+        const json = await res.json();
+        
+        // Filter: only FUEL category products for the selected branch
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fuelProducts = json.data?.filter((product: any) => {
+          return product.productCategory === "FUEL" && product.branchId === selectedBranchId;
+        }) || [];
+        
+        // Get unique product names
+        const uniqueFuelProductNames = Array.from(
+          new Set(fuelProducts.map((p: { productName: string }) => p.productName))
+        ).map((name) => ({ productName: name as string }));
+        
+        setBranchFuelProducts(uniqueFuelProductNames);
+      } catch (error) {
+        console.error("Failed to fetch branch fuel products", error);
+        setBranchFuelProducts([]);
+      }
+    };
+
+    fetchBranchFuelProducts();
+  }, [selectedBranchId]);
 
   const rows = form.watch('rows');
 
@@ -574,11 +608,13 @@ export const MeterReadingStep: React.FC = () => {
 
             {/* Summary */}
             <div className="flex justify-end pr-4 gap-10">
-              {/* Dynamic Fuel Types Summary */}
+              {/* Dynamic Fuel Types Summary - Based on branch fuel products */}
               {(() => {
                 const rows = form.watch("rows") ?? [];
-                // Get unique fuel types from nozzles
-                const uniqueFuelTypes = Array.from(new Set(rows.map(r => r.fuelType).filter((ft): ft is string => typeof ft === "string" && ft !== "")));
+                
+                // Only show totals for fuel products that exist in the branch's Product table
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const branchFuelProductNames = branchFuelProducts.map((p: any) => p.productName);
                 
                 // Color mapping for different fuel types
                 const fuelTypeColorMap: Record<string, string> = {
@@ -586,12 +622,20 @@ export const MeterReadingStep: React.FC = () => {
                   "XG-DIESEL": "text-blue-700",
                   "MS-PETROL": "text-green-900",
                   "POWER PETROL": "text-orange-700",
+                  "XP 95 PETROL": "text-orange-700",
                 };
                 
                 const defaultColor = "text-gray-900";
                 
-                return uniqueFuelTypes.map((fuelType) => {
-                  const filteredRows = rows.filter(r => r.fuelType === fuelType);
+                // Only show totals for fuel products that exist in the branch
+                return branchFuelProductNames.map((fuelProductName: string) => {
+                  // Find rows that match this fuel product name (case-insensitive)
+                  const filteredRows = rows.filter(r => {
+                    const rowFuelType = (r.fuelType || "").trim();
+                    const productName = fuelProductName.trim();
+                    return rowFuelType.toUpperCase() === productName.toUpperCase();
+                  });
+                  
                   const totalSale = filteredRows
                     .map(r => r.sale ?? 0)
                     .reduce((sum, item) => sum + Number(item || 0), 0);
@@ -599,11 +643,11 @@ export const MeterReadingStep: React.FC = () => {
                     .map(r => r.totalAmount ?? 0)
                     .reduce((sum, item) => sum + Number(item || 0), 0);
                   
-                  const textColor = fuelTypeColorMap[fuelType] || defaultColor;
+                  const textColor = fuelTypeColorMap[fuelProductName] || defaultColor;
                   
                   return (
-                    <div key={fuelType} className="text-right space-y-1">
-                      <div className="text-muted-foreground text-sm">{fuelType}:</div>
+                    <div key={fuelProductName} className="text-right space-y-1">
+                      <div className="text-muted-foreground text-sm">{fuelProductName}:</div>
                       <div className="text-base text-gray-600">
                         Sale: {totalSale.toFixed(2)} L
                       </div>

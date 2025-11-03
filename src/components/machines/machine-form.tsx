@@ -29,7 +29,7 @@ import { DialogClose } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { machineSchema } from "@/schemas/machine-schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
@@ -320,7 +320,14 @@ export function MachineFormModal({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            {machine ? "Update" : "Save"}
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              machine ? "Update" : "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>

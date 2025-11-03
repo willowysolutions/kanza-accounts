@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -232,7 +232,14 @@ export function PaymentEditModal({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Updating..." : "Update"}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update"
+                )}
               </Button>
             </div>
           </DialogFooter>

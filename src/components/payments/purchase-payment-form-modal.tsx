@@ -24,6 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -246,7 +247,14 @@ export function PurchasePaymentFormDialog({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isSubmitting}>
-            Save
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save"
+            )}
           </Button>
         </FormDialogFooter>
       </FormDialogContent>
