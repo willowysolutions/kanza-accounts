@@ -13,6 +13,7 @@ import { ExpenseCategoryHistoryModal } from "./expense-category-history-modal";
 import { PaymentMethodHistoryModal } from "./payment-method-history-modal";
 import { BankDepositHistoryModal } from "./bank-deposit-history-modal";
 import { BankDepositsExport } from "./bank-deposits-export";
+import { CustomerHistoryModal } from "@/components/customers/customer-history-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -650,29 +651,15 @@ export function BalanceSheetReport({
                 <thead>
                   <tr>
                     <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
-                    <th className="border border-gray-300 px-4 py-2 text-right">Opening Balance (₹)</th>
-                    <th className="border border-gray-300 px-4 py-2 text-right">Pending (₹)</th>
+                    {/* <th className="border border-gray-300 px-4 py-2 text-right">Opening Balance (₹)</th> */}
                     <th className="border border-gray-300 px-4 py-2 text-right">Debit (₹)</th>
                     <th className="border border-gray-300 px-4 py-2 text-right">Credit (₹)</th>
+                    <th className="border border-gray-300 px-4 py-2 text-right">Pending (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {customerCreditReceivedData.map((item, index) => (
-                    <tr key={item.customerId || index}>
-                      <td className="border border-gray-300 px-4 py-2">{item.customerName}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {item.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {item.outstandingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {item.debitTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-right">
-                        {item.creditTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
+                    <CustomerTableRow key={item.customerId || index} item={item} />
                   ))}
                   {customerCreditReceivedData.length === 0 && (
                     <tr>
@@ -685,17 +672,17 @@ export function BalanceSheetReport({
                 <tfoot>
                   <tr className="bg-primary text-primary-foreground font-semibold">
                     <td className="border border-gray-300 px-4 py-2">TOTAL</td>
-                    <td className="border border-gray-300 px-4 py-2 text-right">
+                    {/* <td className="border border-gray-300 px-4 py-2 text-right">
                       {customerCreditReceivedData.reduce((sum, item) => sum + item.openingBalance, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-right">
-                      {customerCreditReceivedData.reduce((sum, item) => sum + item.outstandingAmount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
+                    </td> */}
                     <td className="border border-gray-300 px-4 py-2 text-right">
                       {customerCreditReceivedData.reduce((sum, item) => sum + item.debitTotal, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-right">
                       {customerCreditReceivedData.reduce((sum, item) => sum + item.creditTotal, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {customerCreditReceivedData.reduce((sum, item) => sum + item.outstandingAmount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                   </tr>
                 </tfoot>
@@ -1043,5 +1030,55 @@ export function BalanceSheetReport({
         />
       )}
     </div>
+  );
+}
+
+// Customer Table Row Component with clickable name
+function CustomerTableRow({ item }: { 
+  item: { 
+    customerId?: string;
+    customerName: string; 
+    openingBalance: number; 
+    outstandingAmount: number;
+    debitTotal: number; 
+    creditTotal: number;
+  } 
+}) {
+  const [openHistory, setOpenHistory] = useState(false);
+
+  // Only show clickable name if we have a customerId
+  const customerNameCell = item.customerId ? (
+    <>
+      <button
+        className="text-blue-600 hover:underline cursor-pointer text-left"
+        onClick={() => setOpenHistory(true)}
+      >
+        {item.customerName}
+      </button>
+      <CustomerHistoryModal
+        customerId={item.customerId}
+        open={openHistory}
+        onOpenChange={setOpenHistory}
+      />
+    </>
+  ) : (
+    <span>{item.customerName}</span>
+  );
+
+  return (
+    <>
+      <tr>
+        <td className="border border-gray-300 px-4 py-2">{customerNameCell}</td>
+        <td className="border border-gray-300 px-4 py-2 text-right">
+          {item.debitTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </td>
+        <td className="border border-gray-300 px-4 py-2 text-right">
+          {item.creditTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </td>
+        <td className="border border-gray-300 px-4 py-2 text-right">
+          {item.outstandingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </td>
+      </tr>
+    </>
   );
 }
