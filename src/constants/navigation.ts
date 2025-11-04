@@ -37,11 +37,6 @@ export const SIDEBAR_DATA: SidebarData = {
       icon: IconBrandSpeedtest,
     },
     {
-      title: 'Sales',
-      url: '/sales',
-      icon: IconShoppingCart,
-    },
-    {
       title: "Expenses",
       url: "/expenses",
       icon: IconCurrency,
@@ -60,6 +55,11 @@ export const SIDEBAR_DATA: SidebarData = {
       title: 'Payments',
       url: '/payments',
       icon: IconCash,
+    },
+    {
+      title: 'Sales',
+      url: '/sales',
+      icon: IconShoppingCart,
     },
     {
       title: 'Customer',

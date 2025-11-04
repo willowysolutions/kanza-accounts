@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 // import { formatDate } from '@/lib/utils'; // Removed to fix hydration issue
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Loader2 } from 'lucide-react';
 
 // type BankDepositWithId = z.infer<typeof bankDepositeSchema> & { id?: string; tempId?: string };
 
@@ -34,6 +34,7 @@ export const BankDepositStep: React.FC = () => {
   const [bankOptions, setBankOptions] = useState<{ bankName: string; id: string; }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof bankDepositeSchema>>({
@@ -154,17 +155,22 @@ export const BankDepositStep: React.FC = () => {
   }, [router, editingIndex, addedDeposits, form, setAddedDeposits, setSavedRecords, selectedBranchId]);
 
   const handleAddAnother = async () => {
-    const values = form.getValues();
-    const result = await handleSubmit(values);
-    if (result) {
-      form.reset({
-        bankId: values.bankId, // Keep bank selected
-        date: values.date,
-        amount: undefined,
-      });
-      setEditingIndex(null);
+    setIsAdding(true);
+    try {
+      const values = form.getValues();
+      const result = await handleSubmit(values);
+      if (result) {
+        form.reset({
+          bankId: values.bankId, // Keep bank selected
+          date: values.date,
+          amount: undefined,
+        });
+        setEditingIndex(null);
+      }
+      return result;
+    } finally {
+      setIsAdding(false);
     }
-    return result;
   };
 
   const handleEdit = (index: number) => {
@@ -374,8 +380,16 @@ export const BankDepositStep: React.FC = () => {
                   <Button 
                     type="button" 
                     onClick={handleAddAnother}
+                    disabled={isAdding}
                   >
-                    Add Another Deposit
+                    {isAdding ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Add Another Deposit"
+                    )}
                   </Button>
                   <Button 
                     type="button" 

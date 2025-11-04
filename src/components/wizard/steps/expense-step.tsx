@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Loader2 } from 'lucide-react';
 // import { formatDate } from '@/lib/utils'; // Removed to fix hydration issue
 
 // type ExpenseWithId = z.infer<typeof expenseSchema> & { id?: string; tempId?: string };
@@ -35,6 +35,7 @@ export const ExpenseStep: React.FC = () => {
   const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof expenseSchema>>({
@@ -182,20 +183,25 @@ export const ExpenseStep: React.FC = () => {
   }, [router, editingIndex, addedExpenses, form, setAddedExpenses, setSavedRecords, exceedsLimit, selectedBranchId]);
 
   const handleAddAnother = async () => {
-    const values = form.getValues();
-    const result = await handleSubmit(values);
-    if (result) {
-      form.reset({
-        description: "",
-        amount: undefined,
-        date: values.date,
-        expenseCategoryId: "",
-        bankId: undefined,
-        reason: "",
-      });
-      setEditingIndex(null);
+    setIsAdding(true);
+    try {
+      const values = form.getValues();
+      const result = await handleSubmit(values);
+      if (result) {
+        form.reset({
+          description: "",
+          amount: undefined,
+          date: values.date,
+          expenseCategoryId: "",
+          bankId: undefined,
+          reason: "",
+        });
+        setEditingIndex(null);
+      }
+      return result;
+    } finally {
+      setIsAdding(false);
     }
-    return result;
   };
 
   const handleEdit = (index: number) => {
@@ -474,8 +480,16 @@ export const ExpenseStep: React.FC = () => {
               <Button 
                 type="button" 
                 onClick={handleAddAnother}
+                disabled={isAdding}
               >
-                Add Another Expense
+                {isAdding ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Add Another Expense"
+                )}
               </Button>
               <Button 
                 type="button" 

@@ -106,6 +106,62 @@ export async function GET(req: Request) {
 
     const totalPages = isCustomDateRange ? 1 : Math.ceil(totalCount / limit);
     
+    // Check if totals are requested
+    const includeTotals = searchParams.get('includeTotals') === 'true';
+    let totals = undefined;
+    
+    if (includeTotals && requestedBranchId) {
+      // Use aggregation queries for better performance
+      const branchFilter = { branchId: requestedBranchId };
+      
+      const [
+        xgDieselResult,
+        hsdDieselResult,
+        msPetrolResult,
+        twoTOilResult
+      ] = await Promise.all([
+        // XG-DIESEL total
+        prisma.purchase.aggregate({
+          where: {
+            ...branchFilter,
+            productType: "XG-DIESEL",
+          },
+          _sum: { quantity: true },
+        }),
+        // HSD-DIESEL total
+        prisma.purchase.aggregate({
+          where: {
+            ...branchFilter,
+            productType: "HSD-DIESEL",
+          },
+          _sum: { quantity: true },
+        }),
+        // MS-PETROL total
+        prisma.purchase.aggregate({
+          where: {
+            ...branchFilter,
+            productType: "MS-PETROL",
+          },
+          _sum: { quantity: true },
+        }),
+        // 2T-OIL total
+        prisma.purchase.aggregate({
+          where: {
+            ...branchFilter,
+            productType: "2T-OIL",
+          },
+          _sum: { quantity: true },
+        }),
+      ]);
+      
+      totals = {
+        xgDiesel: xgDieselResult._sum.quantity || 0,
+        hsdDiesel: hsdDieselResult._sum.quantity || 0,
+        msPetrol: msPetrolResult._sum.quantity || 0,
+        twoTOil: twoTOilResult._sum.quantity || 0,
+      };
+    }
+    
     return NextResponse.json({ 
       purchase,
       pagination: isCustomDateRange ? undefined : {
@@ -115,7 +171,8 @@ export async function GET(req: Request) {
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
         limit
-      }
+      },
+      ...(totals && { totals })
     }, { status: 200 });
   } catch (error) {
     console.error("Error fetching purchases:", error);

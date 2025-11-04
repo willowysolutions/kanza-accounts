@@ -70,7 +70,7 @@ export default async function SalesPage() {
           </div>
 
           <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">
-            <TabsList className="mb-4 flex flex-wrap gap-2">
+            <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
               {visibleBranches.map((branch: { id: string; name: string }) => (
                 <TabsTrigger key={branch.id} value={branch.id}>
                   {branch.name}

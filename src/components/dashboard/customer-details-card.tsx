@@ -85,7 +85,7 @@ function CustomerTabs({
 }) {
   return (
     <Tabs defaultValue={branchData[0]?.branchId} className="w-full">
-      <TabsList className="mb-4 flex flex-wrap gap-2">
+      <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
         {branchData.map(({ branchId, name }) => (
           <TabsTrigger key={branchId} value={branchId}>{name}</TabsTrigger>
         ))}

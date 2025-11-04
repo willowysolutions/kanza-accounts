@@ -50,7 +50,7 @@ export default async function ProductPage() {
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">
-            <TabsList className="mb-4 flex flex-wrap gap-2">
+            <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
               {branches.map((branch: { id: string; name: string }) => (
                 <TabsTrigger key={branch.id} value={branch.id}>
                   {branch.name}

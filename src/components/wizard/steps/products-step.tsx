@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Loader2 } from 'lucide-react';
 
 type OilFormValues = z.infer<typeof oilSchema>;
 
@@ -33,6 +33,7 @@ export const ProductsStep: React.FC = () => {
   } = useWizard();
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [productOption, setProductOptions] = useState<{ 
     productName: string;
     id: string;
@@ -222,18 +223,23 @@ export const ProductsStep: React.FC = () => {
   }, [router, editingIndex, addedProducts, form, setAddedProducts, setSavedRecords, selectedBranchId]);
 
   const handleAddAnother = async () => {
-    const values = form.getValues();
-    const result = await handleSubmit(values);
-    if (result) {
-      form.reset({
-        date: values.date, // Keep the same date
-        productType: "",
-        quantity: undefined,
-        price: undefined,
-      });
-      setEditingIndex(null);
+    setIsAdding(true);
+    try {
+      const values = form.getValues();
+      const result = await handleSubmit(values);
+      if (result) {
+        form.reset({
+          date: values.date, // Keep the same date
+          productType: "",
+          quantity: undefined,
+          price: undefined,
+        });
+        setEditingIndex(null);
+      }
+      return result;
+    } finally {
+      setIsAdding(false);
     }
-    return result;
   };
 
   const handleEdit = (index: number) => {
@@ -427,8 +433,16 @@ export const ProductsStep: React.FC = () => {
                 <Button 
                   type="button" 
                   onClick={handleAddAnother}
+                  disabled={isAdding}
                 >
-                  Add Another Product
+                  {isAdding ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Add Another Product"
+                  )}
                 </Button>
                 <Button 
                 type="button" 

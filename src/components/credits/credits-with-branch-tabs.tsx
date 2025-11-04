@@ -31,7 +31,7 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole }: C
         </div>
 
         <Tabs value={activeBranch} onValueChange={setActiveBranch} className="w-full">
-          <TabsList className="mb-4 flex flex-wrap gap-2">
+          <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
             {branches.map((branch) => (
               <TabsTrigger key={branch.id} value={branch.id}>
                 {branch.name}

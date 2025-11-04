@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Loader2 } from 'lucide-react';
 // import { formatDate } from '@/lib/utils'; // Removed to fix hydration issue
 
 // type CreditWithId = z.infer<typeof creditSchema> & { id?: string; tempId?: string };
@@ -36,6 +36,7 @@ export const CreditStep: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof creditSchema>>({
@@ -187,20 +188,25 @@ export const CreditStep: React.FC = () => {
   }, [router, editingIndex, addedCredits, form, setAddedCredits, setSavedRecords, exceedsLimit, selectedBranchId]);
 
   const handleAddAnother = async () => {
-    const values = form.getValues();
-    const result = await handleSubmit(values);
-    if (result) {
-      form.reset({
-        customerId: values.customerId, // Keep customer selected
-        fuelType: "",
-        quantity: undefined,
-        amount: undefined,
-        date: values.date,
-        reason: "",
-      });
-      setEditingIndex(null);
+    setIsAdding(true);
+    try {
+      const values = form.getValues();
+      const result = await handleSubmit(values);
+      if (result) {
+        form.reset({
+          customerId: values.customerId, // Keep customer selected
+          fuelType: "",
+          quantity: undefined,
+          amount: undefined,
+          date: values.date,
+          reason: "",
+        });
+        setEditingIndex(null);
+      }
+      return result;
+    } finally {
+      setIsAdding(false);
     }
-    return result;
   };
 
   const handleEdit = (index: number) => {
@@ -574,8 +580,16 @@ export const CreditStep: React.FC = () => {
               <Button 
                 type="button" 
                 onClick={handleAddAnother}
+                disabled={isAdding}
               >
-                Add Another Credit
+                {isAdding ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Add Another Credit"
+                )}
               </Button>
               <Button 
                 type="button"

@@ -71,7 +71,14 @@ export function PurchaseTable<TValue>({
       
       if (response.ok) {
         setData(result.purchase);
-        setPagination(result.pagination);
+        setPagination(result.pagination || {
+          currentPage: page,
+          totalPages: 1,
+          totalCount: result.purchase.length,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: 15
+        });
       }
     } catch (error) {
       console.error('Error fetching purchases:', error);
@@ -80,10 +87,17 @@ export function PurchaseTable<TValue>({
     }
   }, [branchId]);
 
-  // Use the passed data directly
+  // Fetch data on mount and when branchId changes
   useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
+    fetchData(1, "");
+  }, [branchId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update data when initialData changes (for initial server-side render)
+  useEffect(() => {
+    if (initialData && initialData.length > 0 && !loading) {
+      setData(initialData);
+    }
+  }, [initialData, loading]);
 
   const table = useReactTable({
     data,

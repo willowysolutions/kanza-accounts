@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Check, CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -298,14 +298,14 @@ const CommonDatePicker: React.FC = () => {
   const { commonDate, setCommonDate } = useWizard();
 
   return (
-    <div className="flex justify-end items-center gap-2 mb-4">
-      <span className="text-sm font-medium text-muted-foreground">Select Date:</span>
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+      <span className="text-sm font-medium text-muted-foreground whitespace-nowrap flex items-center h-9">Select Date:</span>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "w-[240px] justify-start text-left font-normal",
+              "w-full sm:w-[240px] h-9 justify-start text-left font-normal",
               !commonDate && "text-muted-foreground"
             )}
           >
@@ -337,42 +337,44 @@ const StepIndicator: React.FC = () => {
   const { currentStep, totalSteps, steps, goToStep, isStepCompleted } = useWizard();
 
   return (
-    <div className="flex items-center justify-between mb-8">
-      {steps.map((step, index) => (
-        <div key={step.id} className="flex items-center">
-          <div className="flex flex-col items-center">
-            <button
-              onClick={() => goToStep(index)}
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                index === currentStep
-                  ? "bg-primary text-primary-foreground"
-                  : isStepCompleted(index)
-                  ? "bg-green-500 text-white"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {isStepCompleted(index) ? (
-                <Check className="w-5 h-5" />
-              ) : (
-                index + 1
-              )}
-            </button>
-            <span className={cn(
-              "text-xs mt-2 text-center max-w-20",
-              index === currentStep ? "text-primary font-medium" : "text-muted-foreground"
-            )}>
-              {step.title}
-            </span>
+    <div className="overflow-x-auto mb-8 -mx-4 px-4">
+      <div className="flex items-center justify-start min-w-max gap-1 sm:gap-2">
+        {steps.map((step, index) => (
+          <div key={step.id} className="flex items-center flex-shrink-0">
+            <div className="flex flex-col items-center">
+              <button
+                onClick={() => goToStep(index)}
+                className={cn(
+                  "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-colors",
+                  index === currentStep
+                    ? "bg-primary text-primary-foreground"
+                    : isStepCompleted(index)
+                    ? "bg-green-500 text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {isStepCompleted(index) ? (
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  index + 1
+                )}
+              </button>
+              <span className={cn(
+                "text-[10px] sm:text-xs mt-1 sm:mt-2 text-center max-w-[60px] sm:max-w-20 truncate",
+                index === currentStep ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                {step.title}
+              </span>
+            </div>
+            {index < totalSteps - 1 && (
+              <div className={cn(
+                "w-8 sm:w-16 h-0.5 mx-1 sm:mx-2 flex-shrink-0",
+                isStepCompleted(index) ? "bg-green-500" : "bg-muted"
+              )} />
+            )}
           </div>
-          {index < totalSteps - 1 && (
-            <div className={cn(
-              "w-16 h-0.5 mx-2",
-              isStepCompleted(index) ? "bg-green-500" : "bg-muted"
-            )} />
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
@@ -399,6 +401,8 @@ interface WizardNavigationProps {
   isLoading?: boolean;
   nextButtonText?: string;
   backButtonText?: string;
+  onSave?: () => Promise<void>;
+  saveButtonText?: string;
 }
 
 const WizardNavigation: React.FC<WizardNavigationProps> = ({
@@ -406,6 +410,8 @@ const WizardNavigation: React.FC<WizardNavigationProps> = ({
   isLoading = false,
   nextButtonText,
   backButtonText,
+  onSave,
+  saveButtonText = "Save",
 }) => {
   const { 
     currentStep, 
@@ -418,6 +424,7 @@ const WizardNavigation: React.FC<WizardNavigationProps> = ({
     isCurrentStepCompleted
   } = useWizard();
 
+  const [isSaving, setIsSaving] = useState(false);
   const currentStepData = steps[currentStep];
 
   const handleNext = async () => {
@@ -432,31 +439,67 @@ const WizardNavigation: React.FC<WizardNavigationProps> = ({
     }
   };
 
+  const handleSave = async () => {
+    if (onSave) {
+      setIsSaving(true);
+      try {
+        await onSave();
+      } catch (error) {
+        console.error('Error saving:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
   return (
     <div className="flex justify-between items-center pt-6 border-t">
       <Button
         type="button"
         variant="outline"
         onClick={handleBack}
-        disabled={isFirstStep || isLoading}
+        disabled={isFirstStep || isLoading || isSaving}
         className="flex items-center gap-2"
       >
         <ChevronLeft className="w-4 h-4" />
         {backButtonText || "Back"}
       </Button>
 
-      <div className="text-sm text-muted-foreground">
-        {currentStepData?.description}
+      <div className="flex items-center gap-2">
+        {onSave && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSave}
+            disabled={isLoading || isSaving || isStepDisabled || !isCurrentStepCompleted}
+            className="flex items-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              saveButtonText
+            )}
+          </Button>
+        )}
+        <div className="text-sm text-muted-foreground">
+          {currentStepData?.description}
+        </div>
       </div>
 
       <Button
         type="button"
         onClick={handleNext}
-        disabled={isLoading || isStepDisabled || !isCurrentStepCompleted}
+        disabled={isLoading || isSaving || isStepDisabled || !isCurrentStepCompleted}
         className="flex items-center gap-2"
       >
         {isLoading ? (
-          "Saving..."
+          <>
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            Saving...
+          </>
         ) : (
           <>
             {nextButtonText || (isLastStep ? "Finish" : "Save & Next")}
@@ -479,6 +522,8 @@ interface FormWizardProps {
   initialBranchId?: string;
   userRole?: string;
   userBranchId?: string;
+  onSave?: () => Promise<void>;
+  saveButtonText?: string;
 }
 
 export const FormWizard: React.FC<FormWizardProps> = ({
@@ -491,6 +536,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   initialBranchId,
   userRole,
   userBranchId,
+  onSave,
+  saveButtonText,
 }) => {
   return (
     <WizardProvider 
@@ -505,9 +552,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">{title}</CardTitle>
-            <p className="text-muted-foreground">{description}</p>
-            <div className="flex gap-4 items-center">
+            <CardTitle className="text-xl sm:text-2xl break-words">{title}</CardTitle>
+            <p className="text-muted-foreground break-words">{description}</p>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center mt-4">
               <CommonDatePicker />
               <BranchSelector />
             </div>
@@ -516,7 +563,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             <StepIndicator />
             <ProgressBar />
             <WizardContent />
-            <WizardNavigation />
+            <WizardNavigation onSave={onSave} saveButtonText={saveButtonText} />
           </CardContent>
         </Card>
       </div>
@@ -593,8 +640,8 @@ const BranchSelector: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-medium">Branch:</span>
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto mb-4">
+      <span className="text-sm font-medium text-muted-foreground whitespace-nowrap flex items-center h-9">Branch:</span>
       <select
         value={selectedBranchId}
         onChange={(e) => {
@@ -605,7 +652,7 @@ const BranchSelector: React.FC = () => {
           }
         }}
         disabled={!isAdmin}
-        className={`px-3 py-1 border rounded-md text-sm ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+        className={`w-full sm:w-auto h-9 px-3 border rounded-md text-sm bg-background min-w-0 max-w-full flex items-center ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
       >
         {branches.map((branch) => (
           <option key={branch.id} value={branch.id}>
