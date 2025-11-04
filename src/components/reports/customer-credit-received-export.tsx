@@ -9,7 +9,14 @@ import { format } from "date-fns";
 type CustomerCreditReceivedExportProps = {
   branchName: string;
   selectedMonth: Date;
-  customerCreditReceivedData: { customer: string; credit: number; received: number }[];
+  customerCreditReceivedData: { 
+    customerId?: string;
+    customerName: string; 
+    openingBalance: number; 
+    outstandingAmount: number;
+    debitTotal: number; 
+    creditTotal: number;
+  }[];
   selectedCustomer: string;
 };
 
@@ -24,7 +31,7 @@ export function CustomerCreditReceivedExport({
 
     // Title
     doc.setFontSize(16);
-    let title = `Customer Credit & Received - ${branchName}`;
+    let title = `Customer - ${branchName}`;
     const monthLabel = format(selectedMonth, "MMMM yyyy");
     title += ` - ${monthLabel}`;
     
@@ -36,29 +43,35 @@ export function CustomerCreditReceivedExport({
 
     // Prepare table data
     const tableBody = customerCreditReceivedData.map((item) => [
-      item.customer,
-      `${item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      `${item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      item.customerName,
+      `${item.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      `${item.outstandingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      `${item.debitTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      `${item.creditTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
     ]);
 
     // Calculate totals
-    const totalCredit = customerCreditReceivedData.reduce((sum, item) => sum + item.credit, 0);
-    const totalReceived = customerCreditReceivedData.reduce((sum, item) => sum + item.received, 0);
+    const totalOpeningBalance = customerCreditReceivedData.reduce((sum, item) => sum + item.openingBalance, 0);
+    const totalOutstanding = customerCreditReceivedData.reduce((sum, item) => sum + item.outstandingAmount, 0);
+    const totalDebit = customerCreditReceivedData.reduce((sum, item) => sum + item.debitTotal, 0);
+    const totalCredit = customerCreditReceivedData.reduce((sum, item) => sum + item.creditTotal, 0);
 
     // Generate PDF table
     autoTable(doc, {
       startY: 60,
-      head: [["Customer Name", "Debit (INR)", "Credit (INR)"]],
+      head: [["Customer Name", "Opening Balance", "Outstanding Amount", "Debit Total", "Credit"]],
       body: tableBody,
       foot: [
         [
           "TOTAL",
+          `${totalOpeningBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          `${totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          `${totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
           `${totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-          `${totalReceived.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
         ],
       ],
       theme: "grid",
-      styles: { fontSize: 10, cellPadding: 4 },
+      styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [253, 224, 71], textColor: 0 },
       footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: "bold" },
     });
@@ -67,7 +80,7 @@ export function CustomerCreditReceivedExport({
     const branchNameForFile = branchName.replace(/\s+/g, '-');
     const monthForFile = format(selectedMonth, 'MMM-yyyy');
     const customerForFile = selectedCustomer !== "all" ? `-${selectedCustomer.replace(/\s+/g, '-')}` : "";
-    const fileName = `Customer-Credit-Received-${branchNameForFile}-${monthForFile}${customerForFile}.pdf`;
+    const fileName = `Customer-${branchNameForFile}-${monthForFile}${customerForFile}.pdf`;
     
     doc.save(fileName);
   };

@@ -14,7 +14,14 @@ type BalanceSheetExportProps = {
   customerCreditsData: { customer: string; credit: number; received: number }[];
   expenseCategoriesData: { category: string; total: number }[];
   bankDepositsData: { bank: string; total: number }[];
-  customerCreditReceivedData: { customer: string; credit: number; received: number }[];
+  customerCreditReceivedData: { 
+    customerId?: string;
+    customerName: string; 
+    openingBalance: number; 
+    outstandingAmount: number;
+    debitTotal: number; 
+    creditTotal: number;
+  }[];
   paymentMethodsData: { method: string; total: number }[];
 };
 
@@ -153,30 +160,34 @@ export function BalanceSheetExport({
     // Add new page for additional tables
     doc.addPage();
 
-    // Customer Credit & Received Table
+    // Customer Table
     doc.setFontSize(12);
-    doc.text("Customer Credit & Received", 40, 40);
+    doc.text("Customer", 40, 40);
 
     autoTable(doc, {
       startY: 55,
-      head: [["Customer Name", "Debit", "Credit"]],
+      head: [["Customer Name", "Opening Balance (₹)", "Outstanding Amount (₹)", "Debit Total (₹)", "Credit (₹)"]],
       body: customerCreditReceivedData.map((item) => [
-        item.customer,
-        item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-        item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        item.customerName,
+        item.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        item.outstandingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        item.debitTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        item.creditTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
       ]),
       foot: [
         [
           "TOTAL",
-          customerCreditReceivedData.reduce((sum, item) => sum + item.credit, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-          customerCreditReceivedData.reduce((sum, item) => sum + item.received, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          customerCreditReceivedData.reduce((sum, item) => sum + item.openingBalance, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          customerCreditReceivedData.reduce((sum, item) => sum + item.outstandingAmount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          customerCreditReceivedData.reduce((sum, item) => sum + item.debitTotal, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          customerCreditReceivedData.reduce((sum, item) => sum + item.creditTotal, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
         ],
       ],
       theme: "grid",
-      styles: { fontSize: 8, cellPadding: 2 },
+      styles: { fontSize: 7, cellPadding: 2 },
       headStyles: { fillColor: [253, 224, 71], textColor: 0 },
       footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
-      tableWidth: 280,
+      tableWidth: 520,
       margin: { left: 40, right: 40 },
     });
 

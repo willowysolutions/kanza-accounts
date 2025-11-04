@@ -69,6 +69,26 @@ export function BalanceSheetReport({
   const [selectedBankForHistory, setSelectedBankForHistory] = useState<string | null>(null);
   const [isBankHistoryModalOpen, setIsBankHistoryModalOpen] = useState(false);
 
+  // Customer data state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [customers, setCustomers] = useState<any[]>([]);
+
+  // Fetch customers for the branch
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      if (!branchId) return;
+      try {
+        const res = await fetch(`/api/customers?branchId=${branchId}&limit=1000`);
+        const json = await res.json();
+        setCustomers(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch customers", error);
+        setCustomers([]);
+      }
+    };
+    fetchCustomers();
+  }, [branchId]);
+
   // Generate month options for the last 12 months
   const monthOptions = useMemo(() => {
     const options = [];
@@ -294,46 +314,78 @@ export function BalanceSheetReport({
     return allBanks;
   }, [allBanks, selectedBank]);
 
-  // Calculate all customers (unfiltered) for dropdown options
-  const allCustomers = useMemo(() => {
-    const customerTotals: { [key: string]: { credit: number; received: number } } = {};
-    
-    // Process credits
-    filteredData.credits.forEach((credit) => {
-      const customerName = credit.customer?.name || 'Unknown';
-      if (!customerTotals[customerName]) {
-        customerTotals[customerName] = { credit: 0, received: 0 };
-      }
-      customerTotals[customerName].credit += credit.amount || 0;
-    });
-
-    // Process payments received
-    filteredData.payments.forEach((payment) => {
-      if (payment.customer?.name) {
-        const customerName = payment.customer.name;
-        if (!customerTotals[customerName]) {
-          customerTotals[customerName] = { credit: 0, received: 0 };
-        }
-        customerTotals[customerName].received += payment.paidAmount || 0;
-      }
-    });
-
-    return Object.entries(customerTotals).map(([customer, totals]) => ({
-      customer,
-      credit: totals.credit,
-      received: totals.received,
-    }));
-  }, [filteredData.credits, filteredData.payments]);
-
-  // Calculate customer credit and received data (filtered)
+  // Calculate customer data with opening balance, outstanding amount, debit (credits), and credit (payments)
   const customerCreditReceivedData = useMemo(() => {
-    // Filter by selected customer
+    // Create a map of customer data from the customers array
+    const customerDataMap = new Map();
+    
+    // Initialize all customers with their base data
+    customers.forEach((customer) => {
+      customerDataMap.set(customer.id, {
+        customerId: customer.id,
+        customerName: customer.name || 'Unknown',
+        openingBalance: customer.openingBalance || 0,
+        outstandingAmount: customer.outstandingPayments || 0,
+        debitTotal: 0, // Credits for the selected period
+        creditTotal: 0, // Payments for the selected period
+      });
+    });
+
+    // Process credits for the selected period (this is the debit total)
+    filteredData.credits.forEach((credit) => {
+      if (credit.customerId) {
+        const customerData = customerDataMap.get(credit.customerId);
+        if (customerData) {
+          customerData.debitTotal += credit.amount || 0;
+        } else {
+          // If customer not found in customers list, create entry
+          customerDataMap.set(credit.customerId, {
+            customerId: credit.customerId,
+            customerName: credit.customer?.name || 'Unknown',
+            openingBalance: 0,
+            outstandingAmount: 0,
+            debitTotal: credit.amount || 0,
+            creditTotal: 0,
+          });
+        }
+      }
+    });
+
+    // Process payments for the selected period (this is the credit total)
+    filteredData.payments.forEach((payment) => {
+      if (payment.customerId) {
+        const customerData = customerDataMap.get(payment.customerId);
+        if (customerData) {
+          customerData.creditTotal += payment.paidAmount || 0;
+        } else {
+          // If customer not found in customers list, create entry
+          customerDataMap.set(payment.customerId, {
+            customerId: payment.customerId,
+            customerName: payment.customer?.name || 'Unknown',
+            openingBalance: 0,
+            outstandingAmount: 0,
+            debitTotal: 0,
+            creditTotal: payment.paidAmount || 0,
+          });
+        }
+      }
+    });
+
+    // Convert map to array
+    let result = Array.from(customerDataMap.values());
+
+    // Filter by selected customer if applicable
     if (selectedCustomer !== "all") {
-      return allCustomers.filter(item => item.customer === selectedCustomer);
+      result = result.filter(item => item.customerName === selectedCustomer);
     }
 
-    return allCustomers;
-  }, [allCustomers, selectedCustomer]);
+    return result;
+  }, [customers, filteredData.credits, filteredData.payments, selectedCustomer]);
+
+  // Get unique customer names for dropdown
+  const allCustomers = useMemo(() => {
+    return Array.from(new Set(customers.map((c: { name: string }) => c.name || 'Unknown')));
+  }, [customers]);
 
   // Calculate payment methods data from sales
   const paymentMethodsData = useMemo(() => {
@@ -562,12 +614,12 @@ export function BalanceSheetReport({
         Showing data for: <span className="font-semibold">{getDateFilterLabel()}</span>
       </div>
 
-      {/* Customer Credit and Received Table - Moved to Top */}
+      {/* Customer Table - Moved to Top */}
       <div className="space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-                  <CardTitle>Customer Credit & Received - {getDateFilterLabel()}</CardTitle>
+                  <CardTitle>Customer - {getDateFilterLabel()}</CardTitle>
               <CustomerCreditReceivedExport
                 branchName={branchName}
                 selectedMonth={selectedMonth}
@@ -585,9 +637,9 @@ export function BalanceSheetReport({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Customers</SelectItem>
-                  {allCustomers.map((item) => (
-                    <SelectItem key={item.customer} value={item.customer}>
-                      {item.customer}
+                  {allCustomers.map((customerName) => (
+                    <SelectItem key={customerName} value={customerName}>
+                      {customerName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -598,26 +650,34 @@ export function BalanceSheetReport({
                 <thead>
                   <tr>
                     <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
+                    <th className="border border-gray-300 px-4 py-2 text-right">Opening Balance (₹)</th>
+                    <th className="border border-gray-300 px-4 py-2 text-right">Pending (₹)</th>
                     <th className="border border-gray-300 px-4 py-2 text-right">Debit (₹)</th>
                     <th className="border border-gray-300 px-4 py-2 text-right">Credit (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {customerCreditReceivedData.map((item, index) => (
-                    <tr key={index}>
-                      <td className="border border-gray-300 px-4 py-2">{item.customer}</td>
+                    <tr key={item.customerId || index}>
+                      <td className="border border-gray-300 px-4 py-2">{item.customerName}</td>
                       <td className="border border-gray-300 px-4 py-2 text-right">
-                        {item.credit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {item.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-right">
-                        {item.received.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {item.outstandingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-right">
+                        {item.debitTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-right">
+                        {item.creditTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))}
                   {customerCreditReceivedData.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
-                        No data available for this month{selectedCustomer !== "all" ? ` and customer` : ""}
+                      <td colSpan={5} className="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                        No customers found{selectedCustomer !== "all" ? ` for ${selectedCustomer}` : ""}
                       </td>
                     </tr>
                   )}
@@ -626,10 +686,16 @@ export function BalanceSheetReport({
                   <tr className="bg-primary text-primary-foreground font-semibold">
                     <td className="border border-gray-300 px-4 py-2">TOTAL</td>
                     <td className="border border-gray-300 px-4 py-2 text-right">
-                      {customerCreditReceivedData.reduce((sum, item) => sum + item.credit, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      {customerCreditReceivedData.reduce((sum, item) => sum + item.openingBalance, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="border border-gray-300 px-4 py-2 text-right">
-                      {customerCreditReceivedData.reduce((sum, item) => sum + item.received, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      {customerCreditReceivedData.reduce((sum, item) => sum + item.outstandingAmount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {customerCreditReceivedData.reduce((sum, item) => sum + item.debitTotal, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {customerCreditReceivedData.reduce((sum, item) => sum + item.creditTotal, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                   </tr>
                 </tfoot>
