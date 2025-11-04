@@ -46,15 +46,6 @@ export function SalesFormModal({
   userRole?: string;
   userBranchId?: string;
 }) {
-  const [meterReading, setMeterReading] = useState<{ 
-    totalAmount: number;
-    id: string;
-    date: Date;
-    fuelType:string;
-    fuelRate:number;
-    sale:number;
-  }[]>([]);
-
   const [oilSales, setOilSales] = useState<{ 
     totalAmount: number;
     id: string;
@@ -66,6 +57,8 @@ export function SalesFormModal({
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(sales?.branchId || userBranchId || "");
   const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
 
   const router = useRouter();
 
@@ -86,6 +79,16 @@ const form = useForm<SalesFormValues>({
   },
 });
 
+// Initialize isDataReady based on whether we're editing existing sales
+useEffect(() => {
+  if (sales) {
+    // If editing existing sales, data is already ready
+    setIsDataReady(true);
+  } else {
+    // If creating new sales, wait for data to load
+    setIsDataReady(false);
+  }
+}, [sales]);
 
   const handleSubmit = async (
     values: SalesFormValues,
@@ -201,29 +204,13 @@ const form = useForm<SalesFormValues>({
     fetchBranchFuelProducts();
   }, [selectedBranchId]);
 
-//Fetch Meter-reading (recent data only)
-  useEffect(() => {
-  const fetchMeterReading = async () => {
-    try {
-      // Fetch only recent meter readings (last 7 days)
-      const res = await fetch("/api/meterreadings?limit=40");
-      const json = await res.json();
-      setMeterReading(json.withDifference || []);
-    } catch (error) {
-      console.error("Failed to fetch products", error);
-    }
-  };
-
-  fetchMeterReading();
-  }, []);
-
   // Fetch meter readings for specific date and branch when needed
   const fetchMeterReadingForDate = async (date: Date, branchId?: string) => {
     try {
       const formattedDate = date.toISOString().split('T')[0];
       const url = new URL('/api/meterreadings', window.location.origin);
       url.searchParams.set('date', formattedDate);
-      url.searchParams.set('limit', '100');
+      // Don't set limit - API will return all readings for the date (up to 1000)
       if (branchId) {
         url.searchParams.set('branchId', branchId);
       }
@@ -232,15 +219,12 @@ const form = useForm<SalesFormValues>({
       const json = await res.json();
       
       if (json.withDifference && json.withDifference.length > 0) {
-        // Merge with existing meter readings, avoiding duplicates
-        setMeterReading(prev => {
-          const newIds = new Set(json.withDifference.map((r: { id: string }) => r.id));
-          const existing = prev.filter(r => !newIds.has(r.id));
-          return [...existing, ...json.withDifference];
-        });
+        return json.withDifference;
       }
+      return [];
     } catch (error) {
       console.error("Failed to fetch meter readings for date", error);
+      return [];
     }
   };
 
@@ -266,7 +250,7 @@ const form = useForm<SalesFormValues>({
       const formattedDate = date.toISOString().split('T')[0];
       const url = new URL('/api/oils', window.location.origin);
       url.searchParams.set('date', formattedDate);
-      url.searchParams.set('limit', '100');
+      // Don't set limit - let API handle it
       if (branchId) {
         url.searchParams.set('branchId', branchId);
       }
@@ -275,15 +259,23 @@ const form = useForm<SalesFormValues>({
       const json = await res.json();
       
       if (json.oils && json.oils.length > 0) {
-        // Merge with existing oil sales, avoiding duplicates
+        // Replace all oil sales for this date/branch instead of merging to avoid stale data
         setOilSales(prev => {
-          const newIds = new Set(json.oils.map((o: { id: string }) => o.id));
-          const existing = prev.filter(o => !newIds.has(o.id));
-          return [...existing, ...json.oils];
+          const formattedDateStr = formattedDate;
+          const filtered = prev.filter((o: { date: Date | string; branchId?: string }) => {
+            const oDate = new Date(o.date).toISOString().split('T')[0];
+            const oBranchId = (o as { branchId?: string }).branchId;
+            // Keep oil sales that are NOT for this date/branch combination
+            return !(oDate === formattedDateStr && oBranchId === branchId);
+          });
+          return [...filtered, ...json.oils];
         });
+        return json.oils;
       }
+      return [];
     } catch (error) {
       console.error("Failed to fetch oil sales for date", error);
+      return [];
     }
   };
 
@@ -297,187 +289,103 @@ const fleetPayment = form.watch("fleetPayment");
 
 useEffect(() => {
   if (selectedDate && selectedBranchId) {
-    const formattedDate = new Date(selectedDate).toLocaleDateString();
+    setIsDataReady(false);
 
-    // --- Fuel Sales ---
-    // Filter by both date AND branch
-    const matchingReadings = meterReading.filter(
-      (reading) => {
-        const readingDate = new Date(reading.date).toLocaleDateString();
-        const readingBranchId = (reading as { branchId?: string }).branchId;
-        return readingDate === formattedDate && readingBranchId === selectedBranchId;
-      }
-    );
+    // Always fetch fresh data when date/branch changes to ensure we have all readings
+    // This fixes the issue where HSD-DIESEL or other fuel types might be missing due to pagination
+    setIsLoadingData(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const promises: Promise<any[]>[] = [
+      fetchMeterReadingForDate(new Date(selectedDate), selectedBranchId),
+      fetchOilSalesForDate(new Date(selectedDate), selectedBranchId)
+    ];
+      
+      // Wait for all fetches to complete, then calculate immediately
+      Promise.all(promises).then(([readings, oils]) => {
+        // Always use the freshly fetched data for calculation to ensure accuracy
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fetchedReadings = readings as any[];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fetchedOils = oils as any[];
+        
+        // Calculate fuel totals dynamically based on available fuel types
+        const fuelTotals: Record<string, number> = {};
+        fetchedReadings.forEach((reading: { fuelType?: string; fuelRate?: number; sale?: number; totalAmount?: number; difference?: number }) => {
+          const fuelType = reading.fuelType;
+          if (fuelType) {
+            // Use totalAmount if available, otherwise calculate from sale * fuelRate or difference * fuelRate
+            const amount = reading.totalAmount 
+              ? Math.round(reading.totalAmount)
+              : reading.sale 
+                ? Math.round((reading.fuelRate || 0) * (reading.sale || 0))
+                : reading.difference
+                  ? Math.round((reading.fuelRate || 0) * (reading.difference || 0))
+                  : 0;
+            fuelTotals[fuelType] = (fuelTotals[fuelType] || 0) + amount;
+          }
+        });
 
-    // --- Oil & Gas Sales (Dynamic products) ---
-    // Filter by both date AND branch
-    const matchingOils = oilSales.filter(
-      (item) => {
-        const itemDate = new Date(item.date).toLocaleDateString();
-        const itemBranchId = (item as { branchId?: string }).branchId;
-        return itemDate === formattedDate && itemBranchId === selectedBranchId;
-      }
-    );
+        const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
+        
+        // For backward compatibility, set legacy fields if they exist
+        const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
+        const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
+        const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
+        const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
 
-    // If no matching data found, fetch data for this specific date and branch and return early
-    if (matchingReadings.length === 0 || matchingOils.length === 0) {
-      if (matchingReadings.length === 0) {
-        fetchMeterReadingForDate(new Date(selectedDate), selectedBranchId);
-      }
-      if (matchingOils.length === 0) {
-        fetchOilSalesForDate(new Date(selectedDate), selectedBranchId);
-      }
-      return; // Exit early, calculation will happen when data is fetched
-    }
+        const productsObj: Record<string, number> = {};
+        fetchedOils.forEach((o: { productType?: string; price?: number }) => {
+          const key = o.productType?.toUpperCase() || "UNKNOWN";
+          const amount = Number(o.price || 0);
+          productsObj[key] = (productsObj[key] || 0) + amount;
+        });
 
-    // Calculate fuel totals dynamically based on available fuel types
-    const fuelTotals: Record<string, number> = {};
-    matchingReadings.forEach((reading) => {
-      const fuelType = reading.fuelType;
-      if (fuelType) {
-        const amount = Math.round((reading.fuelRate || 0) * (reading.sale || 0));
-        fuelTotals[fuelType] = (fuelTotals[fuelType] || 0) + amount;
-      }
-    });
+        form.setValue("products", productsObj);
 
-    const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
-    
-    // For backward compatibility, set legacy fields if they exist
-    const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
-    const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
-    const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
-    const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
+        // --- Grand Total ---
+        const dynamicProductsTotal = Math.round(Object.values(productsObj).reduce(
+          (s, n) => s + (Number(n) || 0),
+          0
+        ));
 
-    const productsObj: Record<string, number> = {};
-    matchingOils.forEach((o) => {
-      const key = o.productType?.toUpperCase() || "UNKNOWN";
-      const amount = Number(o.price || 0);
-      productsObj[key] = (productsObj[key] || 0) + amount;
-    });
+        const total = fuelTotal + dynamicProductsTotal;
+        const roundedTotal = Math.round(total);
 
-    form.setValue("products", productsObj);
+        // --- Payments ---
+        const totalPayments =
+          (Number(atmPayment) || 0) +
+          (Number(paytmPayment) || 0) +
+          (Number(fleetPayment) || 0);
 
-    // --- Grand Total ---
-    const dynamicProductsTotal = Math.round(Object.values(productsObj).reduce(
-      (s, n) => s + (Number(n) || 0),
-      0
-    ));
+        const cashPayment = roundedTotal - totalPayments;
 
-    const total = fuelTotal + dynamicProductsTotal;
-    const roundedTotal = Math.round(total);
-
-    // --- Payments ---
-    const totalPayments =
-      (Number(atmPayment) || 0) +
-      (Number(paytmPayment) || 0) +
-      (Number(fleetPayment) || 0);
-
-    const cashPayment = roundedTotal - totalPayments;
-
-    // --- Auto-fill form fields ---
-    form.setValue("rate", roundedTotal);
-    form.setValue("hsdDieselTotal", Math.round(hsdTotal));
-    form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
-    form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
-    form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
-    // Save all fuel totals dynamically
-    form.setValue("fuelTotals", fuelTotals);
-    form.setValue("cashPayment", cashPayment);
+        // --- Auto-fill form fields ---
+        form.setValue("rate", roundedTotal);
+        form.setValue("hsdDieselTotal", Math.round(hsdTotal));
+        form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
+        form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
+        form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
+        form.setValue("fuelTotals", fuelTotals);
+        form.setValue("cashPayment", cashPayment);
+        
+        setIsDataReady(true);
+        setIsLoadingData(false);
+      }).catch((error) => {
+        console.error("Error fetching data:", error);
+        setIsLoadingData(false);
+      });
   }
 }, [
   selectedDate,
   selectedBranchId,
-  meterReading,
-  oilSales,
   atmPayment,
   paytmPayment,
   fleetPayment,
   form,
 ]);
 
-// Separate useEffect to handle calculation when data is updated
-useEffect(() => {
-  if (selectedDate && selectedBranchId && meterReading.length > 0 && oilSales.length > 0) {
-    const formattedDate = new Date(selectedDate).toLocaleDateString();
 
-    // --- Fuel Sales ---
-    // Filter by both date AND branch
-    const matchingReadings = meterReading.filter(
-      (reading) => {
-        const readingDate = new Date(reading.date).toLocaleDateString();
-        const readingBranchId = (reading as { branchId?: string }).branchId;
-        return readingDate === formattedDate && readingBranchId === selectedBranchId;
-      }
-    );
 
-    // --- Oil & Gas Sales (Dynamic products) ---
-    // Filter by both date AND branch
-    const matchingOils = oilSales.filter(
-      (item) => {
-        const itemDate = new Date(item.date).toLocaleDateString();
-        const itemBranchId = (item as { branchId?: string }).branchId;
-        return itemDate === formattedDate && itemBranchId === selectedBranchId;
-      }
-    );
-
-    // Only calculate if we have matching data
-    if (matchingReadings.length > 0 || matchingOils.length > 0) {
-      // Calculate fuel totals dynamically based on available fuel types
-      const fuelTotals: Record<string, number> = {};
-      matchingReadings.forEach((reading) => {
-        const fuelType = reading.fuelType;
-        if (fuelType) {
-          const amount = Math.round((reading.fuelRate || 0) * (reading.sale || 0));
-          fuelTotals[fuelType] = (fuelTotals[fuelType] || 0) + amount;
-        }
-      });
-
-      const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
-      
-      // For backward compatibility, set legacy fields if they exist
-      const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
-      const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
-      const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
-      const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
-
-      const productsObj: Record<string, number> = {};
-      matchingOils.forEach((o) => {
-        const key = o.productType?.toUpperCase() || "UNKNOWN";
-        const amount = Number(o.price || 0);
-        productsObj[key] = (productsObj[key] || 0) + amount;
-      });
-
-      form.setValue("products", productsObj);
-
-      // --- Grand Total ---
-      const dynamicProductsTotal = Math.round(Object.values(productsObj).reduce(
-        (s, n) => s + (Number(n) || 0),
-        0
-      ));
-
-      const total = fuelTotal + dynamicProductsTotal;
-      const roundedTotal = Math.round(total);
-
-      // --- Payments ---
-      const totalPayments =
-        (Number(atmPayment) || 0) +
-        (Number(paytmPayment) || 0) +
-        (Number(fleetPayment) || 0);
-
-      const cashPayment = roundedTotal - totalPayments;
-
-      // --- Auto-fill form fields ---
-      form.setValue("rate", roundedTotal);
-      form.setValue("hsdDieselTotal", Math.round(hsdTotal));
-      form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
-      form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
-      form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
-      // Save all fuel totals dynamically
-      form.setValue("fuelTotals", fuelTotals);
-      form.setValue("cashPayment", cashPayment);
-    }
-  }
-}, [selectedDate, selectedBranchId, meterReading, oilSales, atmPayment, paytmPayment, fleetPayment, form]);
 
   // Add debug handler - ensure it's not async blocking
   const onSubmitHandler = (values: SalesFormValues) => {
@@ -771,12 +679,17 @@ useEffect(() => {
           </DialogClose>
           <Button
             type="submit"
-            disabled={form.formState.isSubmitting}
+            disabled={form.formState.isSubmitting || isLoadingData || !isDataReady}
           >
             {form.formState.isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
+              </>
+            ) : isLoadingData ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
               </>
             ) : (
               sales ? "Update" : "Save"

@@ -44,13 +44,19 @@ export async function GET(req: NextRequest) {
       where: finalWhereClause,
     });
 
-    // Get paginated readings
+    // When date filter is provided, disable pagination to get all readings for that date
+    // This ensures sales form gets all fuel type totals correctly
+    const isDateFilter = !!date;
+    const finalLimit = isDateFilter ? 1000 : limit; // Max 1000 records when filtering by date
+    const finalSkip = isDateFilter ? undefined : skip;
+
+    // Get readings (paginated or all based on date filter)
     const readings = await prisma.meterReading.findMany({
       where: finalWhereClause,
       orderBy: { date: "desc" },
       include: { nozzle: true, branch: true },
-      skip,
-      take: limit,
+      skip: finalSkip,
+      take: finalLimit,
     });
 
     // Calculate difference
@@ -71,11 +77,11 @@ export async function GET(req: NextRequest) {
       })()
     }));
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = isDateFilter ? 1 : Math.ceil(totalCount / limit);
 
     return NextResponse.json({ 
       withDifference,
-      pagination: {
+      pagination: isDateFilter ? undefined : {
         currentPage: page,
         totalPages,
         totalCount,
