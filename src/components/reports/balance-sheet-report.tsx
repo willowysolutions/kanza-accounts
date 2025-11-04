@@ -651,7 +651,7 @@ export function BalanceSheetReport({
                 <thead>
                   <tr>
                     <th className="border border-gray-300 px-4 py-2 text-left">Customer Name</th>
-                    {/* <th className="border border-gray-300 px-4 py-2 text-right">Opening Balance (₹)</th> */}
+                    <th className="border border-gray-300 px-4 py-2 text-right">Opening Balance (₹)</th>
                     <th className="border border-gray-300 px-4 py-2 text-right">Debit (₹)</th>
                     <th className="border border-gray-300 px-4 py-2 text-right">Credit (₹)</th>
                     <th className="border border-gray-300 px-4 py-2 text-right">Pending (₹)</th>
@@ -672,9 +672,9 @@ export function BalanceSheetReport({
                 <tfoot>
                   <tr className="bg-primary text-primary-foreground font-semibold">
                     <td className="border border-gray-300 px-4 py-2">TOTAL</td>
-                    {/* <td className="border border-gray-300 px-4 py-2 text-right">
+                    <td className="border border-gray-300 px-4 py-2 text-right">
                       {customerCreditReceivedData.reduce((sum, item) => sum + item.openingBalance, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td> */}
+                    </td>
                     <td className="border border-gray-300 px-4 py-2 text-right">
                       {customerCreditReceivedData.reduce((sum, item) => sum + item.debitTotal, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
@@ -1069,6 +1069,9 @@ function CustomerTableRow({ item }: {
     <>
       <tr>
         <td className="border border-gray-300 px-4 py-2">{customerNameCell}</td>
+        <td className="border border-gray-300 px-4 py-2 text-right">
+          {item.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </td>
         <td className="border border-gray-300 px-4 py-2 text-right">
           {item.debitTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
         </td>
