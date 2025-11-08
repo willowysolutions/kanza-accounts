@@ -19,7 +19,7 @@ interface FormDialogProps<T extends FieldValues = FieldValues> {
 
   // Form props
   form: UseFormReturn<T>;
-  onSubmit: (data: T, close: () => void) => void;
+  onSubmit: (data: T, close: () => void) => void | Promise<void>;
 
   // Content
   children: React.ReactNode;
@@ -71,8 +71,20 @@ export function FormDialog<T extends FieldValues = FieldValues>({
     if (externalOpenChange) externalOpenChange(newOpen);
   };
 
-  const handleSubmit = (data: T) =>
-    onSubmit(data, () => handleOpenChange(false));
+  const handleSubmit = (data: T) => {
+    console.log("📋 FormDialog handleSubmit called with data:", data);
+    try {
+      const result = onSubmit(data, () => handleOpenChange(false));
+      // Handle async onSubmit
+      if (result && typeof result === "object" && "then" in result && typeof (result as Promise<unknown>).then === "function") {
+        (result as Promise<void>).catch((error) => {
+          console.error("❌ FormDialog onSubmit error:", error);
+        });
+      }
+    } catch (error) {
+      console.error("❌ FormDialog handleSubmit error:", error);
+    }
+  };
 
   return (
     <FormDialogContext.Provider
@@ -107,7 +119,30 @@ export function FormDialogContent({
     <DialogContent className={className}>
       <Form {...context.form}>
         <form
-          onSubmit={context.form.handleSubmit(context.onSubmit)}
+          onSubmit={(e) => {
+            console.log("🔥 Form submit event triggered");
+            e.preventDefault();
+            context.form.handleSubmit(
+              (data) => {
+                console.log("✅ Form validation passed, calling onSubmit with data:", data);
+                context.onSubmit(data);
+              },
+              (errors) => {
+                console.error("❌ Form validation failed with errors:", errors);
+                // Show validation errors
+                const errorMessages = Object.entries(errors)
+                  .map(([field, error]) => {
+                    const err = error as { message?: string };
+                    return `${field}: ${err?.message || "Invalid"}`;
+                  })
+                  .join("\n");
+                if (errorMessages) {
+                  console.error("Validation errors:", errorMessages);
+                  // The parent component should handle showing toast errors
+                }
+              }
+            )();
+          }}
           className="space-y-4"
         >
           {children}

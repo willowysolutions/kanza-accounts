@@ -40,7 +40,17 @@ export async function POST(req: NextRequest) {
     const session = await auth.api.getSession({
       headers: await headers(),
     });
-    const branchId = session?.user?.branch;
+    
+    // Get branchId from request body if provided (for admin), otherwise use session branch
+    const branchId = body.branchId || session?.user?.branch;
+    
+    // Validate that branchId is set
+    if (!branchId) {
+      return NextResponse.json(
+        { error: "Branch ID is required. Please select a branch." },
+        { status: 400 }
+      );
+    }
 
     // Preserve the time as 18:30:00.000+00:00 (6:30 PM UTC)
     const readingDate = new Date(result.data.date);
@@ -109,15 +119,30 @@ export async function POST(req: NextRequest) {
             if (connectedTank.currentLevel - difference < 0) {
               throw new Error("Tank does not have sufficient current level"); 
             }
-              // ✅ Safe to decrement
-              await prisma.tank.update({
-                where: { id: connectedTank.id },
-                data: {
-                  currentLevel: {
-                    decrement: difference,
-                  },
+            
+            // ✅ Safe to decrement tank
+            await prisma.tank.update({
+              where: { id: connectedTank.id },
+              data: {
+                currentLevel: {
+                  decrement: difference,
                 },
-              });
+              },
+            });
+            
+            // ✅ Update stock for the specific branch only
+            await prisma.stock.updateMany({
+              where: {
+                item: nozzle.fuelType,
+                branchId: branchId // CRITICAL: Only update stock for this branch
+              },
+              data: {
+                quantity: {
+                  decrement: difference,
+                },
+              },
+            });
+            console.log(`Updated stock ${nozzle.fuelType} by ${difference} for branch ${branchId}`);
           }
         }
       }

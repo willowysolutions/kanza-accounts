@@ -53,10 +53,29 @@ export const SalesStep: React.FC = () => {
 
   const handleSubmit = useCallback(async (values: SalesFormValues): Promise<boolean> => {
     try {
+      // Ensure 0 values are explicitly included for fuel totals
+      const payload = {
+        ...values,
+        branchId: selectedBranchId,
+        // Explicitly include fuel totals even if they are 0
+        xgDieselTotal: values.xgDieselTotal !== undefined ? Number(values.xgDieselTotal) : undefined,
+        hsdDieselTotal: values.hsdDieselTotal !== undefined ? Number(values.hsdDieselTotal) : undefined,
+        msPetrolTotal: values.msPetrolTotal !== undefined ? Number(values.msPetrolTotal) : undefined,
+        powerPetrolTotal: values.powerPetrolTotal !== undefined ? Number(values.powerPetrolTotal) : undefined,
+        // Ensure products object includes all entries, even with 0 values
+        products: values.products ? Object.fromEntries(
+          Object.entries(values.products).map(([key, val]) => [key, Number(val) || 0])
+        ) : {},
+        // Ensure fuelTotals includes all entries, even with 0 values
+        fuelTotals: values.fuelTotals ? Object.fromEntries(
+          Object.entries(values.fuelTotals).map(([key, val]) => [key, Number(val) || 0])
+        ) : undefined,
+      };
+      
       const res = await fetch('/api/sales/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -216,11 +235,21 @@ export const SalesStep: React.FC = () => {
             }
           });
 
+          // Ensure all branch fuel types are in fuelTotals, even if 0
+          // Get all fuel product names for this branch
+          const branchFuelProductNames = branchFuelProducts.map((p: { productName: string }) => p.productName.toUpperCase());
+          branchFuelProductNames.forEach((productName: string) => {
+            if (!fuelTotals[productName] && fuelTotals[productName] !== 0) {
+              fuelTotals[productName] = 0;
+            }
+          });
+
           const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
-          const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
-          const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
-          const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
-          const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
+          // Explicitly set to 0 if undefined to ensure 0 values are saved
+          const xgDieselTotal = fuelTotals["XG-DIESEL"] ?? 0;
+          const msPetrolTotal = fuelTotals["MS-PETROL"] ?? 0;
+          const powerPetrolTotal = fuelTotals["POWER PETROL"] ?? 0;
+          const hsdTotal = fuelTotals["HSD-DIESEL"] ?? 0;
 
           const productsObj: Record<string, number> = {};
           fetchedOils.forEach((o) => {
@@ -243,6 +272,7 @@ export const SalesStep: React.FC = () => {
             (Number(fleetPayment) || 0);
           const cashPayment = roundedTotal - totalPayments;
 
+          // Explicitly set all fuel totals, including 0 values
           form.setValue("rate", roundedTotal);
           form.setValue("hsdDieselTotal", Math.round(hsdTotal));
           form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
@@ -250,6 +280,25 @@ export const SalesStep: React.FC = () => {
           form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
           form.setValue("fuelTotals", fuelTotals);
           form.setValue("cashPayment", cashPayment);
+          
+          // Ensure all fuel totals are explicitly set to 0 if they don't exist
+          // This ensures 0 values are properly tracked by the form
+          if (branchFuelProducts.length > 0) {
+            const fuelProductToFieldMap: Record<string, keyof SalesFormValues> = {
+              "HSD-DIESEL": "hsdDieselTotal",
+              "XG-DIESEL": "xgDieselTotal",
+              "MS-PETROL": "msPetrolTotal",
+              "POWER PETROL": "powerPetrolTotal",
+            };
+            
+            branchFuelProducts.forEach((p: { productName: string }) => {
+              const productName = p.productName.toUpperCase();
+              const fieldName = fuelProductToFieldMap[productName];
+              if (fieldName && fuelTotals[productName] === undefined) {
+                form.setValue(fieldName, 0);
+              }
+            });
+          }
 
           setIsDataReady(true);
           setIsLoadingData(false);
@@ -259,7 +308,7 @@ export const SalesStep: React.FC = () => {
           setIsLoadingData(false);
         });
     }
-  }, [selectedDate, selectedBranchId, atmPayment, paytmPayment, fleetPayment, form]);
+  }, [selectedDate, selectedBranchId, atmPayment, paytmPayment, fleetPayment, form, branchFuelProducts]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {

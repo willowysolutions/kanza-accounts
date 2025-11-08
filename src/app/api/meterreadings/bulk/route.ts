@@ -58,7 +58,16 @@ export async function POST(req: Request) {
     const parsed = bulkSchema.safeParse(body);
     
     // Use branchId from request body, fallback to session branch
+    // IMPORTANT: branchId is required - if undefined, we cannot proceed
     const branchId = body.branchId || session?.user?.branch || undefined;
+    
+    // Validate that branchId is set - required for stock/tank updates
+    if (!branchId) {
+      return NextResponse.json(
+        { error: "Branch ID is required. Please select a branch." },
+        { status: 400 }
+      );
+    }
 
     if (!parsed.success) {
       console.error("Validation failed", parsed.error.format());
@@ -123,6 +132,38 @@ export async function POST(req: Request) {
     const stockUpdates = new Map<string, number>();
     const nozzleUpdates = new Map<string, number>();
 
+    // Group readings by fuelType to calculate total sales per fuel type
+    const salesByFuelType = new Map<string, number>();
+    for (const reading of readingsToCreate) {
+      const currentSale = salesByFuelType.get(reading.fuelType) || 0;
+      salesByFuelType.set(reading.fuelType, currentSale + reading.difference);
+    }
+
+    // Validate stock availability for each fuel type
+    for (const [fuelType, totalSale] of salesByFuelType.entries()) {
+      const stock = await prisma.stock.findFirst({
+        where: { 
+          item: fuelType,
+          branchId: branchId
+        },
+      });
+
+      if (!stock) {
+        return NextResponse.json(
+          { error: `Stock not found for ${fuelType}` },
+          { status: 400 }
+        );
+      }
+
+      if (stock.quantity - totalSale < 0) {
+        return NextResponse.json(
+          { error: `Insufficient stock for ${fuelType}. Available: ${stock.quantity.toFixed(2)}L, Required: ${totalSale.toFixed(2)}L` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate tank levels for each reading
     for (const reading of readingsToCreate) {
       // Find nozzle and connected tank
       const nozzleWithTank = await prisma.nozzle.findUnique({
@@ -141,31 +182,18 @@ export async function POST(req: Request) {
       )?.tank;
 
       if (connectedTank) {
-        // Check tank level
-        if (connectedTank.currentLevel - reading.difference < 0) {
+        // Check tank level - use accumulated updates for this tank
+        const currentTankUpdate = tankUpdates.get(connectedTank.id) || 0;
+        const newTankLevel = connectedTank.currentLevel - currentTankUpdate - reading.difference;
+        
+        if (newTankLevel < 0) {
           return NextResponse.json(
-            { error: `Tank does not have sufficient current level for ${reading.fuelType}` },
-            { status: 400 }
-          );
-        }
-
-        // Check stock availability
-        const stock = await prisma.stock.findFirst({
-          where: { 
-            item: reading.fuelType,
-            branchId: branchId
-          },
-        });
-
-        if (!stock || stock.quantity - reading.difference < 0) {
-          return NextResponse.json(
-            { error: `Stock not available for ${reading.fuelType}` },
+            { error: `Tank "${connectedTank.tankName}" does not have sufficient current level for ${reading.fuelType}. Available: ${(connectedTank.currentLevel - currentTankUpdate).toFixed(2)}L, Required: ${reading.difference.toFixed(2)}L` },
             { status: 400 }
           );
         }
 
         // Accumulate tank updates
-        const currentTankUpdate = tankUpdates.get(connectedTank.id) || 0;
         tankUpdates.set(connectedTank.id, currentTankUpdate + reading.difference);
 
         // Accumulate stock updates
@@ -212,20 +240,29 @@ export async function POST(req: Request) {
       }
     );
 
-    // Third: Update stocks in parallel
+    // Third: Update stocks in parallel - ONLY for the specified branch
     const stockUpdatePromises = Array.from(stockUpdates.entries()).map(
       async ([fuelType, totalDifference]) => {
         try {
-          await prisma.stock.updateMany({
+          // CRITICAL: Ensure branchId is explicitly set to prevent updating all branches
+          const updateResult = await prisma.stock.updateMany({
             where: { 
               item: fuelType,
-              branchId: branchId
+              branchId: branchId // Explicitly require branchId - must not be undefined
             },
             data: { quantity: { decrement: totalDifference } },
           });
-          console.log(`Updated stock ${fuelType} by ${totalDifference} for branch ${branchId}`);
+          console.log(`Updated stock ${fuelType} by ${totalDifference} for branch ${branchId} (${updateResult.count} records updated)`);
+          
+          // Verify that exactly one stock record was updated (safety check)
+          if (updateResult.count === 0) {
+            console.warn(`Warning: No stock record found for ${fuelType} in branch ${branchId}`);
+          } else if (updateResult.count > 1) {
+            console.error(`ERROR: Multiple stock records updated for ${fuelType} in branch ${branchId}! This should not happen.`);
+            throw new Error(`Multiple stock records found for ${fuelType} in branch ${branchId}`);
+          }
         } catch (error) {
-          console.error(`Failed to update stock ${fuelType}:`, error);
+          console.error(`Failed to update stock ${fuelType} for branch ${branchId}:`, error);
           throw error;
         }
       }

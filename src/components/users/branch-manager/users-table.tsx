@@ -2,7 +2,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { IconSearch, IconDotsVertical, IconTrash, IconPencil } from '@tabler/icons-react';
+import { IconSearch, IconDotsVertical, IconTrash, IconPencil, IconEye, IconLock } from '@tabler/icons-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,8 @@ import { authClient } from '@/lib/auth-client';
 import { User } from '@prisma/client';
 import { UserForm } from './user-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ViewUserModal } from './view-user-modal';
+import { UpdatePasswordModal } from './update-password-modal';
 
 export function UsersTable({ users, roles, branches }: UsersTableProps) {
   const router = useRouter();
@@ -55,6 +57,10 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [updatingBranchUserId, setUpdatingBranchUserId] = useState<string | null>(null);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [passwordUpdateUser, setPasswordUpdateUser] = useState<User | null>(null);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   console.log(branches);
   
@@ -137,8 +143,18 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
   };
 
   const handleEditClick = (user: User) => {
-  setEditingUser(user);
-  setShowEditDialog(true);
+    setEditingUser(user);
+    setShowEditDialog(true);
+  };
+
+  const handleViewClick = (user: User) => {
+    setViewingUser(user);
+    setShowViewDialog(true);
+  };
+
+  const handleUpdatePasswordClick = (user: User) => {
+    setPasswordUpdateUser(user);
+    setShowPasswordDialog(true);
   };
 
 
@@ -339,9 +355,17 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewClick(user)}>
+                                <IconEye className="mr-2 h-4 w-4" />
+                                View
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleEditClick(user)}>
                                 <IconPencil className="mr-2 h-4 w-4" />
                                 Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdatePasswordClick(user)}>
+                                <IconLock className="mr-2 h-4 w-4" />
+                                Update Password
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
@@ -383,6 +407,32 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
             />
           </DialogContent>
         </Dialog>
+      )}
+
+      <ViewUserModal
+        user={viewingUser}
+        isOpen={showViewDialog}
+        onClose={() => {
+          setShowViewDialog(false);
+          setViewingUser(null);
+        }}
+        branches={branches}
+        roles={roles}
+      />
+
+      {passwordUpdateUser && (
+        <UpdatePasswordModal
+          userId={passwordUpdateUser.id}
+          userName={passwordUpdateUser.name}
+          isOpen={showPasswordDialog}
+          onClose={() => {
+            setShowPasswordDialog(false);
+            setPasswordUpdateUser(null);
+          }}
+          onSuccess={() => {
+            router.refresh();
+          }}
+        />
       )}
 
 

@@ -40,6 +40,7 @@ export const MeterReadingStep: React.FC = () => {
   // const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const router = useRouter();
   const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
+  const [stockLevels, setStockLevels] = useState<Record<string, number>>({}); // fuelType -> stock quantity
 
   const { commonDate } = useWizard();
 
@@ -84,37 +85,19 @@ export const MeterReadingStep: React.FC = () => {
 
   }, [tankLevels]);
 
-  // Function to check stock availability for each product type
-  const validateStockAvailability = useCallback(() => {
+  // Function to get current stock for a fuel type
+  const getCurrentStock = useCallback((fuelType: string) => {
+    return stockLevels[fuelType] || 0;
+  }, [stockLevels]);
+
+  // Function to check if stock is negative for any fuel type
+  const hasNegativeStock = useCallback((fuelType: string) => {
     const rows = form.getValues('rows');
-    const stockIssues: { fuelType: string; totalSale: number; availableStock: number }[] = [];
-
-    // Calculate total sales by fuel type
-    const salesByFuelType = new Map<string, number>();
-    rows.forEach(row => {
-      if (row.sale && row.fuelType) {
-        const currentSale = salesByFuelType.get(row.fuelType) || 0;
-        salesByFuelType.set(row.fuelType, currentSale + row.sale);
-      }
-    });
-
-    // Check stock for each fuel type
-    salesByFuelType.forEach((totalSale, fuelType) => {
-      // Find the tank level for this fuel type
-      const tankInfo = Object.values(tankLevels).find(tank => tank.fuelType === fuelType);
-      if (tankInfo) {
-        if (totalSale > tankInfo.currentLevel) {
-          stockIssues.push({
-            fuelType,
-            totalSale,
-            availableStock: tankInfo.currentLevel
-          });
-        }
-      }
-    });
-
-    return stockIssues;
-  }, [form, tankLevels]);
+    const totalSale = rows
+      .filter(r => r.fuelType === fuelType && r.sale != null)
+      .reduce((sum, r) => sum + (r.sale || 0), 0);
+    return getCurrentStock(fuelType) - totalSale < 0;
+  }, [form, getCurrentStock]);
 
   // Function to check if there are any validation errors
   const checkValidationErrors = useCallback(() => {
@@ -256,6 +239,36 @@ export const MeterReadingStep: React.FC = () => {
     };
 
     fetchBranchFuelProducts();
+  }, [selectedBranchId]);
+
+  // Fetch stock levels for the selected branch
+  useEffect(() => {
+    const fetchStockLevels = async () => {
+      if (!selectedBranchId) {
+        setStockLevels({});
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/stocks");
+        const json = await res.json();
+        
+        // Create a map of fuelType -> stock quantity for the selected branch
+        const stockMap: Record<string, number> = {};
+        json.data?.forEach((stock: { branchId?: string; item?: string; quantity?: number }) => {
+          if (stock.branchId === selectedBranchId && stock.item) {
+            stockMap[stock.item] = stock.quantity || 0;
+          }
+        });
+        
+        setStockLevels(stockMap);
+      } catch (error) {
+        console.error("Failed to fetch stock levels", error);
+        setStockLevels({});
+      }
+    };
+
+    fetchStockLevels();
   }, [selectedBranchId]);
 
   const rows = form.watch('rows');
@@ -472,9 +485,33 @@ export const MeterReadingStep: React.FC = () => {
                             render={({ field }) => {
                               const openingValue = form.getValues(`rows.${idx}.opening`);
                               const closingValue = field.value;
+                              const fuelType = n.fuelType;
                               const validation = closingValue != null && openingValue != null 
                                 ? validateTankLevel(n.id, closingValue, openingValue) 
                                 : null;
+                              
+                              // Calculate remaining stock for this fuel type
+                              const rows = form.watch('rows');
+                              const currentStock = getCurrentStock(fuelType);
+                              
+                              // Calculate total sale for this fuel type excluding current row
+                              const otherRowsSale = rows
+                                .filter((r, i) => r.fuelType === fuelType && i !== idx && r.sale != null)
+                                .reduce((sum, r) => sum + (r.sale || 0), 0);
+                              
+                              // Calculate sale for current row
+                              const currentRowSale = closingValue != null && openingValue != null
+                                ? closingValue - openingValue
+                                : 0;
+                              
+                              // Calculate remaining stock after all sales including this row
+                              const remainingStock = currentStock - otherRowsSale - currentRowSale;
+                              
+                              // Check if this fuel type has negative stock (from other rows)
+                              // Disable all remaining closing reading fields when stock goes negative
+                              const isStockNegative = hasNegativeStock(fuelType);
+                              // Disable if stock is negative and this field hasn't been filled yet (empty or equals opening)
+                              const isDisabled = isStockNegative && (field.value == null || field.value === openingValue);
 
                               return (
                                 <FormItem>
@@ -483,7 +520,8 @@ export const MeterReadingStep: React.FC = () => {
                                       type="number"
                                       placeholder="closing"
                                       value={field.value ?? ""}
-                                      className={`${validation && !validation.isValid ? "border-red-500" : ""} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                      disabled={isDisabled}
+                                      className={`${validation && !validation.isValid ? "border-red-500" : ""} ${isDisabled ? "opacity-50 cursor-not-allowed" : ""} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                                       onWheel={(e) => e.currentTarget.blur()}
                                       onChange={(e) => {
                                         const newClosingValue = e.target.value === "" ? undefined : Number(e.target.value);
@@ -516,6 +554,16 @@ export const MeterReadingStep: React.FC = () => {
                                   {validation && (
                                     <div className={`text-xs mt-1 ${validation.isValid ? 'text-green-600' : 'text-red-600'}`}>
                                       {validation.message}
+                                    </div>
+                                  )}
+                                  {closingValue != null && openingValue != null && (
+                                    <div className={`text-xs mt-1 ${remainingStock < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                                      Stock: {remainingStock.toFixed(2)}L
+                                    </div>
+                                  )}
+                                  {isDisabled && (
+                                    <div className="text-xs mt-1 text-red-600">
+                                      No stock available for {fuelType}
                                     </div>
                                   )}
                                 </FormItem>
@@ -681,39 +729,46 @@ export const MeterReadingStep: React.FC = () => {
               </div>
             </div>
 
-            {/* Stock Validation Messages */}
-            {(() => {
-              const stockIssues = validateStockAvailability();
-              if (stockIssues.length > 0) {
-                return (
-                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="text-yellow-800 font-semibold mb-2">⚠️ Stock Warning</h4>
-                    <div className="space-y-1">
-                      {stockIssues.map((issue, index) => (
-                        <div key={index} className="text-yellow-700 text-sm">
-                          <strong>{issue.fuelType}:</strong> Total sale ({issue.totalSale.toFixed(2)}L) exceeds available stock ({issue.availableStock.toFixed(2)}L)
-                        </div>
-                      ))}
-                    </div>
-                    <div className="text-yellow-600 text-xs mt-2">
-                      Note: You can still save these readings, but stock levels will go negative.
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
           </form>
 
-          {/* Complete Button */}
-          <div className="flex justify-end pt-4 border-t">
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={markCurrentStepCompleted}
-            >
-              Complete
-            </Button>
+          {/* Footer with Stock Display and Complete Button */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
+            {/* Current Stock Display - Bottom Left */}
+            <div className="p-3 bg-muted/50 rounded-lg border w-full sm:w-auto">
+              <div className="text-sm font-semibold mb-2">Current Stock Levels</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {branchFuelProducts.map((product) => {
+                  const fuelType = product.productName;
+                  const currentStock = getCurrentStock(fuelType);
+                  const rows = form.watch('rows');
+                  const totalSale = rows
+                    .filter(r => r.fuelType === fuelType && r.sale != null)
+                    .reduce((sum, r) => sum + (r.sale || 0), 0);
+                  const remainingStock = currentStock - totalSale;
+                  
+                  return (
+                    <div key={fuelType} className="text-xs">
+                      <div className="font-medium">{fuelType}:</div>
+                      <div className={`${remainingStock < 0 ? 'text-red-600 font-semibold' : 'text-muted-foreground'}`}>
+                        {remainingStock.toFixed(2)}L
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Complete Button - Bottom Right */}
+            <div className="w-full sm:w-auto">
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={markCurrentStepCompleted}
+                className="w-full sm:w-auto"
+              >
+                Complete
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

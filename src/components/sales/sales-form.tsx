@@ -95,12 +95,13 @@ useEffect(() => {
     close: () => void
   ) => {
     console.log("🔵 handleSubmit called", { values, selectedBranchId });
+    
     try {
       // Ensure branchId is set
       if (!selectedBranchId) {
         console.error("❌ No branch selected");
         toast.error("Please select a branch");
-        return;
+        throw new Error("No branch selected");
       }
 
       // Prepare the payload, converting empty strings/undefined to null for nullable fields
@@ -111,12 +112,37 @@ useEffect(() => {
         return isNaN(num) ? null : num;
       };
 
+      // Helper function to safely convert to number, defaulting to 0 if invalid
+      const safeNumber = (val: unknown): number => {
+        if (val === null || val === undefined || val === "") return 0;
+        const num = Number(val);
+        return isNaN(num) ? 0 : num;
+      };
+
+      // Ensure 0 values are explicitly included for fuel totals
       const payload = {
         ...values,
         branchId: selectedBranchId,
         atmPayment: transformValue(values.atmPayment),
         paytmPayment: transformValue(values.paytmPayment),
         fleetPayment: transformValue(values.fleetPayment),
+        // Explicitly include fuel totals even if they are 0
+        xgDieselTotal: values.xgDieselTotal !== undefined ? safeNumber(values.xgDieselTotal) : undefined,
+        hsdDieselTotal: values.hsdDieselTotal !== undefined ? safeNumber(values.hsdDieselTotal) : undefined,
+        msPetrolTotal: values.msPetrolTotal !== undefined ? safeNumber(values.msPetrolTotal) : undefined,
+        powerPetrolTotal: values.powerPetrolTotal !== undefined ? safeNumber(values.powerPetrolTotal) : undefined,
+        // Ensure products object includes all entries with valid numbers (0 if invalid/NaN)
+        products: values.products ? Object.fromEntries(
+          Object.entries(values.products)
+            .map(([key, val]) => [key, safeNumber(val)])
+            .filter(([, val]) => typeof val === "number" && !isNaN(val))
+        ) : {},
+        // Ensure fuelTotals includes all entries with valid numbers (0 if invalid/NaN)
+        fuelTotals: values.fuelTotals ? Object.fromEntries(
+          Object.entries(values.fuelTotals)
+            .map(([key, val]) => [key, safeNumber(val)])
+            .filter(([, val]) => typeof val === "number" && !isNaN(val))
+        ) : undefined,
       };
 
       console.log("📤 Sending payload:", payload);
@@ -128,6 +154,10 @@ useEffect(() => {
 
       console.log(`📡 Making ${method} request to ${url}`);
 
+      console.log("📡 About to make fetch request to:", url);
+      console.log("📡 Method:", method);
+      console.log("📡 Payload being sent:", JSON.stringify(payload, null, 2));
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -135,6 +165,7 @@ useEffect(() => {
       });
 
       console.log("📥 Response status:", res.status, res.statusText);
+      console.log("📥 Response ok:", res.ok);
 
       const responseData = await res.json();
 
@@ -154,7 +185,7 @@ useEffect(() => {
           toast.error(error);
         }
         console.error("API Error:", responseData);
-        return;
+        throw new Error(error || "Failed to save sale");
       }
 
       toast.success(
@@ -166,7 +197,9 @@ useEffect(() => {
       router.refresh();
     } catch (error) {
       console.error("Something went wrong:", error);
-      toast.error("Something went wrong while saving sale");
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong while saving sale";
+      toast.error(errorMessage);
+      throw error; // Re-throw to let onSubmitHandler handle it
     }
   };
 
@@ -325,13 +358,23 @@ useEffect(() => {
           }
         });
 
+        // Ensure all branch fuel types are in fuelTotals, even if 0
+        // Get all fuel product names for this branch
+        const branchFuelProductNames = branchFuelProducts.map((p: { productName: string }) => p.productName.toUpperCase());
+        branchFuelProductNames.forEach((productName: string) => {
+          if (!fuelTotals[productName] && fuelTotals[productName] !== 0) {
+            fuelTotals[productName] = 0;
+          }
+        });
+
         const fuelTotal = Object.values(fuelTotals).reduce((sum, amount) => sum + amount, 0);
         
         // For backward compatibility, set legacy fields if they exist
-        const xgDieselTotal = fuelTotals["XG-DIESEL"] || 0;
-        const msPetrolTotal = fuelTotals["MS-PETROL"] || 0;
-        const powerPetrolTotal = fuelTotals["POWER PETROL"] || 0;
-        const hsdTotal = fuelTotals["HSD-DIESEL"] || 0;
+        // Explicitly set to 0 if undefined to ensure 0 values are saved
+        const xgDieselTotal = fuelTotals["XG-DIESEL"] ?? 0;
+        const msPetrolTotal = fuelTotals["MS-PETROL"] ?? 0;
+        const powerPetrolTotal = fuelTotals["POWER PETROL"] ?? 0;
+        const hsdTotal = fuelTotals["HSD-DIESEL"] ?? 0;
 
         const productsObj: Record<string, number> = {};
         fetchedOils.forEach((o: { productType?: string; price?: number }) => {
@@ -360,6 +403,7 @@ useEffect(() => {
         const cashPayment = roundedTotal - totalPayments;
 
         // --- Auto-fill form fields ---
+        // Explicitly set all fuel totals, including 0 values
         form.setValue("rate", roundedTotal);
         form.setValue("hsdDieselTotal", Math.round(hsdTotal));
         form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
@@ -367,6 +411,25 @@ useEffect(() => {
         form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
         form.setValue("fuelTotals", fuelTotals);
         form.setValue("cashPayment", cashPayment);
+        
+        // Ensure all fuel totals are explicitly set to 0 if they don't exist
+        // This ensures 0 values are properly tracked by the form
+        if (branchFuelProducts.length > 0) {
+          const fuelProductToFieldMap: Record<string, keyof SalesFormValues> = {
+            "HSD-DIESEL": "hsdDieselTotal",
+            "XG-DIESEL": "xgDieselTotal",
+            "MS-PETROL": "msPetrolTotal",
+            "POWER PETROL": "powerPetrolTotal",
+          };
+          
+          branchFuelProducts.forEach((p: { productName: string }) => {
+            const productName = p.productName.toUpperCase();
+            const fieldName = fuelProductToFieldMap[productName];
+            if (fieldName && fuelTotals[productName] === undefined) {
+              form.setValue(fieldName, 0);
+            }
+          });
+        }
         
         setIsDataReady(true);
         setIsLoadingData(false);
@@ -382,24 +445,64 @@ useEffect(() => {
   paytmPayment,
   fleetPayment,
   form,
+  branchFuelProducts,
 ]);
 
 
 
 
-  // Add debug handler - ensure it's not async blocking
-  const onSubmitHandler = (values: SalesFormValues) => {
-    console.log("🟢 FormDialog onSubmit called with values:", values);
+  // Form submission handler - matches FormDialog's expected signature
+  const onSubmitHandler = async (values: SalesFormValues, close: () => void) => {
+    console.log("🟢🟢🟢 FormDialog onSubmitHandler CALLED with values:", values);
     console.log("🟢 Form validation state:", form.formState);
     console.log("🟢 Form errors:", form.formState.errors);
+    console.log("🟢 Selected branch ID:", selectedBranchId);
     
-    // Call handleSubmit without awaiting to avoid blocking form submission
-    handleSubmit(values, () => {
-      console.log("🟢 Closing dialog");
-      openChange?.(false);
-    }).catch((error) => {
+    // Clean up the values before validation - ensure no NaN values
+    const cleanedValues = {
+      ...values,
+      products: values.products ? Object.fromEntries(
+        Object.entries(values.products)
+          .map(([key, val]) => {
+            if (val === null || val === undefined || (typeof val === "string" && val === "")) return [key, 0];
+            const num = Number(val);
+            return [key, isNaN(num) ? 0 : num];
+          })
+          .filter(([, val]) => typeof val === "number" && !isNaN(val))
+      ) : {},
+      fuelTotals: values.fuelTotals ? Object.fromEntries(
+        Object.entries(values.fuelTotals)
+          .map(([key, val]) => {
+            if (val === null || val === undefined || (typeof val === "string" && val === "")) return [key, 0];
+            const num = Number(val);
+            return [key, isNaN(num) ? 0 : num];
+          })
+          .filter(([, val]) => typeof val === "number" && !isNaN(val))
+      ) : undefined,
+    };
+
+    // Validate the cleaned form data
+    const validationResult = salesSchema.safeParse(cleanedValues);
+    if (!validationResult.success) {
+      console.error("❌ Validation failed:", validationResult.error.flatten().fieldErrors);
+      const errorMessages = Object.entries(validationResult.error.flatten().fieldErrors)
+        .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(", ") : errors}`)
+        .join("\n");
+      toast.error(`Validation errors:\n${errorMessages}`);
+      throw new Error(`Validation failed: ${errorMessages}`); // Throw to prevent submission
+    }
+    
+    // Use cleaned values for submission
+    const finalValues = cleanedValues as SalesFormValues;
+    
+    try {
+      // Call handleSubmit with cleaned values and await it to ensure proper error handling
+      await handleSubmit(finalValues, close);
+    } catch (error) {
       console.error("❌ Error in handleSubmit:", error);
-    });
+      toast.error(error instanceof Error ? error.message : "Failed to save sale");
+      // Don't close dialog on error
+    }
   };
 
   return (

@@ -103,6 +103,10 @@ export const SIDEBAR_DATA: SidebarData = {
           title: "Balance Sheet Report",
           url: "/reports/balancesheet-reports",
         },
+        {
+          title: "Stock Report",
+          url: "/reports/stock-reports",
+        },
         
       ],
     },
