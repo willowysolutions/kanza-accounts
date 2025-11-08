@@ -202,7 +202,6 @@ const SalesActions = ({ sales, userRole, userBranchId }: { sales: Sales; userRol
       ]);
     });
   
-    // (optional) subtotal row like your screenshot
   const total = Math.round(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (readings as any[]).reduce(
@@ -282,8 +281,13 @@ const SalesActions = ({ sales, userRole, userBranchId }: { sales: Sales; userRol
   
     const receiptRows: TableRowData[] = [
       [{ content: "SALE", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, reportData.totals.totalSale],
-      [{ content: "BALANCE RECEIPT", colSpan: 2 , styles: { halign: "center", underline: true, fontStyle: "bold" }}, reportData.totals.totalBalanceReceipt],
-      [{ content: "", colSpan: 2 },{content: reportData.totals.salesAndBalaceReceipt, styles: { fillColor: [253, 224, 71]}}],
+      [{ content: "BALANCE RECEIPT", colSpan: 2 , styles: { halign: "center", underline: true, fontStyle: "bold" }}, reportData.totals.totalBalanceReceipt.toFixed(2)],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...reportData.customerPayments.map((cp: any) => [
+        { content: cp.customer.name, colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } },
+        cp.amount.toFixed(2)
+      ] as TableRowData),
+      [{ content: "", colSpan: 2 },{content: reportData.totals.salesAndBalaceReceipt.toFixed(2), styles: { fillColor: [253, 224, 71]}}],
       [{ content: "EXPENSES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, reportData.totals.expenseSum.toFixed(2)],
       [{ content: "BANK DEPOSITES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, ""],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -302,9 +306,9 @@ const SalesActions = ({ sales, userRole, userBranchId }: { sales: Sales; userRol
       ...reportData.sales.map((s: any) => [{ content: "FLEET", colSpan: 2, styles: { fontStyle: "bold" } }, s.fleetPayment] as TableRowData),
       // Expenses
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...reportData.credits.map((c: any) => [{ content: c.customer?.name, colSpan: 2, styles: { fontStyle: "bold" } }, c.amount] as TableRowData),
+      ...reportData.credits.map((c: any) => [{ content: c.customer?.name, colSpan: 2, styles: { fontStyle: "bold" } }, c.amount.toFixed(2)] as TableRowData),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...reportData.expenses.map((e: any) => [{ content: e.category.name, colSpan: 2, styles: { fontStyle: "bold" } }, e.amount] as TableRowData),
+      ...reportData.expenses.map((e: any) => [{ content: e.category.name, colSpan: 2, styles: { fontStyle: "bold" } }, e.amount.toFixed(2)] as TableRowData),
       [
         { content: "EXPENSES TOTAL", colSpan: 2, styles: { fontStyle: "bold" } },
         { content: reportData.totals.expenseSum.toFixed(2), styles: { fillColor: [253, 224, 71], fontStyle: "bold" } },

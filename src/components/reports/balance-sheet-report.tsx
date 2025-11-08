@@ -317,16 +317,87 @@ export function BalanceSheetReport({
 
   // Calculate customer data with opening balance, outstanding amount, debit (credits), and credit (payments)
   const customerCreditReceivedData = useMemo(() => {
+    // Calculate month start and end dates in UTC format (18:30:00)
+    // Start of month = last day of previous month at 18:30:00 UTC
+    // End of month = last day of selected month at 18:30:00 UTC
+    let monthStartDate: Date | undefined;
+    let monthEndDate: Date | undefined;
+    
+    if (dateFilter === "month" && selectedDate) {
+      // Start of selected month = last day of previous month at 18:30:00 UTC
+      const lastDayOfPrevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0);
+      monthStartDate = new Date(lastDayOfPrevMonth);
+      monthStartDate.setUTCHours(18, 30, 0, 0);
+      
+      // End of selected month = last day of selected month at 18:30:00 UTC
+      const lastDayOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      monthEndDate = new Date(lastDayOfMonth);
+      monthEndDate.setUTCHours(18, 30, 0, 0);
+    }
+    
     // Create a map of customer data from the customers array
     const customerDataMap = new Map();
     
     // Initialize all customers with their base data
     customers.forEach((customer) => {
+      // Calculate opening balance: customer.openingBalance + credits before month start - payments before month start
+      let calculatedOpeningBalance = customer.openingBalance || 0;
+      
+      // Calculate pending: opening balance + credits up to month end - payments up to month end
+      let calculatedPending = calculatedOpeningBalance;
+      
+      if (monthStartDate && monthEndDate) {
+        // Sum all credits before month start
+        const creditsBeforeStart = credits
+          .filter((credit) => {
+            if (!credit.customerId || credit.customerId !== customer.id) return false;
+            const creditDate = new Date(credit.date);
+            return creditDate < monthStartDate!;
+          })
+          .reduce((sum, credit) => sum + (credit.amount || 0), 0);
+        
+        // Sum all payments before month start
+        const paymentsBeforeStart = payments
+          .filter((payment) => {
+            if (!payment.customerId || payment.customerId !== customer.id) return false;
+            const paymentDate = new Date(payment.paidOn);
+            return paymentDate < monthStartDate!;
+          })
+          .reduce((sum, payment) => sum + (payment.paidAmount || payment.amount || 0), 0);
+        
+        // Opening balance = base opening + credits before start - payments before start
+        calculatedOpeningBalance = (customer.openingBalance || 0) + creditsBeforeStart - paymentsBeforeStart;
+        
+        // Sum all credits up to month end (including the month)
+        const creditsUpToEnd = credits
+          .filter((credit) => {
+            if (!credit.customerId || credit.customerId !== customer.id) return false;
+            const creditDate = new Date(credit.date);
+            return creditDate <= monthEndDate!;
+          })
+          .reduce((sum, credit) => sum + (credit.amount || 0), 0);
+        
+        // Sum all payments up to month end (including the month)
+        const paymentsUpToEnd = payments
+          .filter((payment) => {
+            if (!payment.customerId || payment.customerId !== customer.id) return false;
+            const paymentDate = new Date(payment.paidOn);
+            return paymentDate <= monthEndDate!;
+          })
+          .reduce((sum, payment) => sum + (payment.paidAmount || payment.amount || 0), 0);
+        
+        // Pending = base opening + credits up to end - payments up to end
+        calculatedPending = (customer.openingBalance || 0) + creditsUpToEnd - paymentsUpToEnd;
+      } else {
+        // If not monthly filter, use current outstanding amount
+        calculatedPending = customer.outstandingPayments || 0;
+      }
+      
       customerDataMap.set(customer.id, {
         customerId: customer.id,
         customerName: customer.name || 'Unknown',
-        openingBalance: customer.openingBalance || 0,
-        outstandingAmount: customer.outstandingPayments || 0,
+        openingBalance: calculatedOpeningBalance,
+        outstandingAmount: calculatedPending,
         debitTotal: 0, // Credits for the selected period
         creditTotal: 0, // Payments for the selected period
       });
@@ -381,7 +452,7 @@ export function BalanceSheetReport({
     }
 
     return result;
-  }, [customers, filteredData.credits, filteredData.payments, selectedCustomer]);
+  }, [customers, credits, payments, filteredData.credits, filteredData.payments, selectedCustomer, dateFilter, selectedDate]);
 
   // Get unique customer names for dropdown
   const allCustomers = useMemo(() => {

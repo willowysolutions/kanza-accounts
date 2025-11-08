@@ -293,13 +293,13 @@ if (report.oils.length > 0) {
 
   const receiptRows: TableRowData[] = [
     [{ content: "SALE", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, report.totals.totalSale],
-    [{ content: "BALANCE RECEIPT", colSpan: 2 , styles: { halign: "center", underline: true, fontStyle: "bold" }}, report.totals.totalBalanceReceipt],
+    [{ content: "BALANCE RECEIPT", colSpan: 2 , styles: { halign: "center", underline: true, fontStyle: "bold" }}, report.totals.totalBalanceReceipt.toFixed(2)],
     // Customer Payments
     ...report.customerPayments.map((cp) => [
       { content: cp.customer.name, colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } },
-      cp.amount
+      cp.amount.toFixed(2)
     ] as TableRowData),
-    [{ content: "", colSpan: 2 },{content: report.totals.salesAndBalaceReceipt, styles: { fillColor: [253, 224, 71]}}],
+    [{ content: "", colSpan: 2 },{content: report.totals.salesAndBalaceReceipt.toFixed(2), styles: { fillColor: [253, 224, 71]}}],
     [{ content: "EXPENSES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, report.totals.expenseSum.toFixed(2)],
     [{ content: "BANK DEPOSITES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, ""],
     ...report.bankDeposite.map((b) => [{ content: b.bank.bankName, colSpan: 2 }, b.amount] as TableRowData),
@@ -313,8 +313,8 @@ if (report.oils.length > 0) {
     ...report.sales.map((s) => [{ content: "PAYTM", colSpan: 2, styles: { fontStyle: "bold" } }, s.paytmPayment] as TableRowData),
     ...report.sales.map((s) => [{ content: "FLEET", colSpan: 2, styles: { fontStyle: "bold" } }, s.fleetPayment] as TableRowData),
     // Expenses
-    ...report.credits.map((c) => [{ content: c.customer?.name, colSpan: 2, styles: { fontStyle: "bold" } }, c.amount] as TableRowData),
-    ...report.expenses.map((e) => [{ content: e.category.name, colSpan: 2, styles: { fontStyle: "bold" } }, e.amount] as TableRowData),
+    ...report.credits.map((c) => [{ content: c.customer?.name, colSpan: 2, styles: { fontStyle: "bold" } }, c.amount.toFixed(2)] as TableRowData),
+    ...report.expenses.map((e) => [{ content: e.category.name, colSpan: 2, styles: { fontStyle: "bold" } }, e.amount.toFixed(2)] as TableRowData),
     [
       { content: "EXPENSES TOTAL", colSpan: 2, styles: { fontStyle: "bold" } },
       { content: report.totals.expenseSum.toFixed(2), styles: { fillColor: [253, 224, 71], fontStyle: "bold" } },
