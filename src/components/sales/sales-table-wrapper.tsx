@@ -1,7 +1,7 @@
 'use client';
 
 import { SalesTable } from './sales-table';
-import { salesColumns } from './sales-column';
+import { useSalesColumns } from './sales-column';
 import { Sales } from '@/types/sales';
 
 interface SalesTableWrapperProps {
@@ -11,10 +11,12 @@ interface SalesTableWrapperProps {
 }
 
 export function SalesTableWrapper({ data, userRole, branchId }: SalesTableWrapperProps) {
+  const columns = useSalesColumns(userRole, branchId);
+  
   return (
     <SalesTable 
       data={data} 
-      columns={salesColumns(userRole)}
+      columns={columns}
       userRole={userRole} 
       branchId={branchId}
     />

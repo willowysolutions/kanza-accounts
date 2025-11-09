@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Eye, Download } from "lucide-react";
 import { Button } from "../ui/button";
@@ -8,8 +8,172 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { Sales } from "@/types/sales";
 import { ReportModal } from "./report-modal";
 
+// Hook to get dynamic columns based on branch products
+export const useReportColumns = (userRole?: string, branchId?: string, userBranchId?: string): ColumnDef<Sales>[] => {
+  const [branchProducts, setBranchProducts] = useState<Array<{ productName: string }>>([]);
+  
+  // Fetch branch products to determine which columns to show
+  useEffect(() => {
+    if (!branchId) return;
+    
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`/api/products?branchId=${branchId}`);
+        const json = await res.json();
+        const products = json.data || [];
+        
+        // Filter only FUEL category products
+        const fuelProducts = products.filter(
+          (p: { productCategory?: string; branchId?: string | null }) => 
+            p.productCategory === "FUEL" && p.branchId === branchId
+        );
+        
+        // Get unique product names
+        const uniqueProducts = Array.from(
+          new Set(fuelProducts.map((p: { productName: string }) => p.productName))
+        ).map((name) => ({ productName: name as string }));
+        
+        setBranchProducts(uniqueProducts);
+      } catch (error) {
+        console.error("Failed to fetch branch products:", error);
+      }
+    };
+    
+    fetchProducts();
+  }, [branchId]);
+  
+  // Determine which fuel products the branch has
+  const hasXgDiesel = useMemo(() => {
+    return branchProducts.some((p) => p.productName.toUpperCase() === "XG-DIESEL");
+  }, [branchProducts]);
+  
+  const hasPowerPetrol = useMemo(() => {
+    return branchProducts.some(
+      (p) =>
+        p.productName.toUpperCase() === "POWER PETROL" ||
+        p.productName.toUpperCase() === "XP 95 PETROL"
+    );
+  }, [branchProducts]);
+  
+  const columns: ColumnDef<Sales>[] = useMemo(() => [
+    {
+      accessorKey: "date",
+      header: "Date & Time",
+      cell:({row}) => {
+        const dateTime = row.original.date
+        return (
+          <div>{formatDate(dateTime)}</div>
+        )
+      }
+    },
+    {
+      accessorKey: "branchId",
+      header: "Branch",
+      cell: ({ row }) => {
+        const branch = row.original.branch.name;
+        return <div>{branch ? String(branch) : "..."}</div>;
+      },
+    },
+    {
+      accessorKey:"cashPayment",
+      header:"Cash Payment"
+    },
+    {
+      accessorKey:"atmPayment",
+      header:"ATM Payment"
+    },
+    {
+      accessorKey:"paytmPayment",
+      header:"Paytm Payment"
+    },
+    {
+      accessorKey:"fleetPayment",
+      header:"Fleet Payment"
+    },
+    {
+      accessorKey:"hsdDieselTotal",
+      header:"HSD-DIESEL",
+      cell: ({row}) => {
+        const fuelTotals = typeof row.original.fuelTotals === 'object' && row.original.fuelTotals
+          ? row.original.fuelTotals as Record<string, number>
+          : {};
+        const value = fuelTotals["HSD-DIESEL"] ?? row.original.hsdDieselTotal ?? 0;
+        return (
+          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-blue-100 text-blue-800`}>
+            {formatCurrency(value)}
+          </div>
+        )
+      }
+    },
+    // Conditionally show XG-DIESEL or POWER PETROL based on branch products
+    ...(hasXgDiesel ? [{
+      accessorKey:"xgDieselTotal",
+      header:"XG-DIESEL",
+      cell: ({row}) => {
+        const fuelTotals = typeof row.original.fuelTotals === 'object' && row.original.fuelTotals
+          ? row.original.fuelTotals as Record<string, number>
+          : {};
+        const value = fuelTotals["XG-DIESEL"] ?? row.original.xgDieselTotal ?? 0;
+        return (
+          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-green-100 text-green-800`}>
+            {formatCurrency(value)}
+          </div>
+        )
+      }
+    } as ColumnDef<Sales>] : []),
+    ...(!hasXgDiesel && hasPowerPetrol ? [{
+      accessorKey:"powerPetrolTotal",
+      header:"POWER PETROL",
+      cell: ({row}) => {
+        const fuelTotals = typeof row.original.fuelTotals === 'object' && row.original.fuelTotals
+          ? row.original.fuelTotals as Record<string, number>
+          : {};
+        const value = fuelTotals["POWER PETROL"] ?? fuelTotals["XP 95 PETROL"] ?? row.original.powerPetrolTotal ?? 0;
+        return (
+          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-purple-100 text-purple-800`}>
+            {formatCurrency(value)}
+          </div>
+        )
+      }
+    } as ColumnDef<Sales>] : []),
+    {
+      accessorKey:"msPetrolTotal",
+      header:"MS-PETROL",
+      cell: ({row}) => {
+        const fuelTotals = typeof row.original.fuelTotals === 'object' && row.original.fuelTotals
+          ? row.original.fuelTotals as Record<string, number>
+          : {};
+        const value = fuelTotals["MS-PETROL"] ?? row.original.msPetrolTotal ?? 0;
+        return (
+          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium bg-red-100 text-red-800`}>
+            {formatCurrency(value)}
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: "rate",
+      header: "Total Amount",
+      cell:({row}) => {
+        const rate = row.original.rate
 
+        return (
+          <div>
+            {formatCurrency(rate)}
+          </div>
+        )
+      }
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => <SalesActions sales={row.original} userRole={userRole} userBranchId={userBranchId || branchId} />,
+    },
+  ], [hasXgDiesel, hasPowerPetrol, userRole, userBranchId, branchId]);
 
+  return columns;
+};
+
+// Legacy function for backward compatibility (returns static columns)
 export const createReportColumns = (userRole?: string, userBranchId?: string): ColumnDef<Sales>[] => [
   {
     accessorKey: "date",

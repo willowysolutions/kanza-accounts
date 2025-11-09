@@ -10,11 +10,44 @@ import { OilTable } from "../oil/oil-table";
 import { OilFormModal } from "../oil/oil-form";
 import { Sales } from "@/types/sales";
 import { ReportTable } from "../export-report/report-table";
-import { createReportColumns } from "../export-report/report-column";
+import { useReportColumns } from "../export-report/report-column";
 import { Oil } from "@/types/oils";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
+
+// Wrapper component to use the hook
+function ReportTableWithDynamicColumns({
+  data,
+  userRole,
+  branchId,
+  pagination,
+  currentPage,
+}: {
+  data: Sales[];
+  userRole?: string;
+  branchId: string;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  currentPage?: number;
+}) {
+  const columns = useReportColumns(userRole, branchId);
+  
+  return (
+    <ReportTable 
+      data={data} 
+      columns={columns}
+      pagination={pagination}
+      currentPage={currentPage}
+    />
+  );
+}
 
 type MeterTabManagementProps = {
   meterReading: MeterReading[];
@@ -114,9 +147,10 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches,
                 </TabsContent>
 
                 <TabsContent value="report">
-                  <ReportTable 
+                  <ReportTableWithDynamicColumns 
                     data={branchSales} 
-                    columns={createReportColumns(userRole, undefined)}
+                    userRole={userRole}
+                    branchId={branchId}
                     pagination={salesPagination}
                     currentPage={currentPage}
                   />

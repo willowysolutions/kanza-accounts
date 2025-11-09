@@ -1,9 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const branchId = searchParams.get("branchId");
+
+    const whereClause = branchId ? { branchId } : {};
+
     const product = await prisma.product.findMany({
+      where: whereClause,
       orderBy: { productName: "asc" },
       select: {
         id: true,
