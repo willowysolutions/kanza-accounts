@@ -56,6 +56,45 @@ export async function POST(req: NextRequest) {
     const readingDate = new Date(result.data.date);
     readingDate.setUTCHours(18, 30, 0, 0); // Set to 18:30:00.000 UTC
 
+    // ✅ Check for duplicate readings per nozzle per date (not per branch)
+    // Multiple nozzles can have readings on the same date, but same nozzle cannot have duplicate readings
+    for (const machine of result.data.machines) {
+      for (const nozzle of machine.nozzles) {
+        const existingReading = await prisma.meterReading.findFirst({
+          where: {
+            nozzleId: nozzle.nozzleId,
+            branchId,
+            date: {
+              gte: new Date(readingDate.getFullYear(), readingDate.getMonth(), readingDate.getDate()),
+              lt: new Date(readingDate.getFullYear(), readingDate.getMonth(), readingDate.getDate() + 1),
+            },
+          },
+        });
+
+        if (existingReading) {
+          return NextResponse.json(
+            { error: `A meter reading already exists for nozzle ${nozzle.nozzleId} on this date.` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // ✅ Validate date is not present or future (only allow past dates)
+    const { getCurrentDateIST } = await import("@/lib/date-utils");
+    const currentDate = getCurrentDateIST();
+    const inputDate = new Date(result.data.date);
+    // Compare dates (ignore time)
+    const inputDateOnly = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+    const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    
+    if (inputDateOnly >= currentDateOnly) {
+      return NextResponse.json(
+        { error: "Cannot store meter reading for present or future dates. Only past dates are allowed." },
+        { status: 400 }
+      );
+    }
+
     const createdReadings = [];
 
     for (const machine of result.data.machines) {

@@ -30,6 +30,21 @@ export async function POST(req: NextRequest) {
     const branchId = result.data.branchId || session?.user?.branch;
     const { bankId, amount, date } = result.data;
 
+    // ✅ Validate date is not present or future (only allow past dates)
+    const { getCurrentDateIST } = await import("@/lib/date-utils");
+    const currentDate = getCurrentDateIST();
+    const inputDate = new Date(date);
+    // Compare dates (ignore time)
+    const inputDateOnly = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+    const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    
+    if (inputDateOnly >= currentDateOnly) {
+      return NextResponse.json(
+        { error: "Cannot store bank deposit for present or future dates. Only past dates are allowed." },
+        { status: 400 }
+      );
+    }
+
     const bankDeposite = await prisma.$transaction(async (tx) => {
       // 1. Create BankDeposit
       const newDeposit = await tx.bankDeposite.create({

@@ -104,12 +104,14 @@ export async function POST(req: Request) {
     });
 
     // -----------------------------
-    // Duplicate check (per nozzle per date)
+    // Duplicate check (per nozzle per date) - prevent same nozzle from having duplicate readings on same date
+    // Multiple nozzles can have readings on the same date, but same nozzle cannot have duplicate readings
     // -----------------------------
     for (const reading of readingsToCreate) {
-      const exists = await prisma.meterReading.findFirst({
+      const existingReading = await prisma.meterReading.findFirst({
         where: {
           nozzleId: reading.nozzleId,
+          branchId,
           date: {
             gte: new Date(new Date(reading.date).setHours(0, 0, 0, 0)),
             lt: new Date(new Date(reading.date).setHours(23, 59, 59, 999)),
@@ -117,9 +119,28 @@ export async function POST(req: Request) {
         },
       });
 
-      if (exists) {
+      if (existingReading) {
         return NextResponse.json(
-          { error: `Reading already exists for nozzle ${reading.nozzleId}` },
+          { error: `A meter reading already exists for this nozzle on this date.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // -----------------------------
+    // Date validation - prevent present/future dates
+    // -----------------------------
+    const { getCurrentDateIST } = await import("@/lib/date-utils");
+    const currentDate = getCurrentDateIST();
+    const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    
+    for (const reading of readingsToCreate) {
+      const readingDate = new Date(reading.date);
+      const readingDateOnly = new Date(readingDate.getFullYear(), readingDate.getMonth(), readingDate.getDate());
+      
+      if (readingDateOnly >= currentDateOnly) {
+        return NextResponse.json(
+          { error: "Cannot store meter reading for present or future dates. Only past dates are allowed." },
           { status: 400 }
         );
       }

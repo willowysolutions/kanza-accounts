@@ -36,6 +36,21 @@ export async function POST(req: NextRequest) {
     // Use branchId from form data if provided, otherwise fall back to session branch
     const branchId = result.data.branchId || session?.user?.branch;
 
+    // ✅ Validate date is not present or future (only allow past dates)
+    const { getCurrentDateIST } = await import("@/lib/date-utils");
+    const currentDate = getCurrentDateIST();
+    const inputDate = result.data.date;
+    // Compare dates (ignore time)
+    const inputDateOnly = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+    const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    
+    if (inputDateOnly >= currentDateOnly) {
+      return NextResponse.json(
+        { error: "Cannot store sale for present or future dates. Only past dates are allowed." },
+        { status: 400 }
+      );
+    }
+
     // ✅ Check if sale already exists for the same date and branch
     const existingSale = await prisma.sale.findFirst({
       where: {

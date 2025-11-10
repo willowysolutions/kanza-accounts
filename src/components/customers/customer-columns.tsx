@@ -74,11 +74,12 @@ export const customerColumns = (userRole?: string, userBranchId?: string): Colum
     header: "Address",
     cell: ({ row }) => <div className="px-3">{row.getValue("address") || "..."}</div>,
   },
-  {
+  // Only add Actions column for admin users
+  ...(userRole?.toLowerCase() === "admin" ? [{
     id: "actions",
     header: "Actions",
     cell: ({ row }) => <CustomerActions customer={row.original} userRole={userRole} userBranchId={userBranchId} />,
-  },
+  } as ColumnDef<Customer>] : []),
 ];
 
 const CustomerActions = ({ customer, userRole, userBranchId }: { customer: Customer; userRole?: string; userBranchId?: string }) => {
