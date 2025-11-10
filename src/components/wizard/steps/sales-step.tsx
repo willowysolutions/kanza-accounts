@@ -51,24 +51,44 @@ export const SalesStep: React.FC = () => {
     },
   });
 
+  // Helper function to safely convert to number, defaulting to 0 if invalid
+  const safeNumber = (val: unknown): number => {
+    if (val === null || val === undefined || val === "") return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Helper function to safely convert to number or null for optional fields
+  const safeNumberOrNull = (val: unknown): number | null => {
+    if (val === null || val === undefined || val === "") return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  };
+
   const handleSubmit = useCallback(async (values: SalesFormValues): Promise<boolean> => {
     try {
-      // Ensure 0 values are explicitly included for fuel totals
+      // Convert ALL values to numbers before sending - ensure no NaN values
       const payload = {
         ...values,
         branchId: selectedBranchId,
-        // Explicitly include fuel totals even if they are 0
-        xgDieselTotal: values.xgDieselTotal !== undefined ? Number(values.xgDieselTotal) : undefined,
-        hsdDieselTotal: values.hsdDieselTotal !== undefined ? Number(values.hsdDieselTotal) : undefined,
-        msPetrolTotal: values.msPetrolTotal !== undefined ? Number(values.msPetrolTotal) : undefined,
-        powerPetrolTotal: values.powerPetrolTotal !== undefined ? Number(values.powerPetrolTotal) : undefined,
-        // Ensure products object includes all entries, even with 0 values
+        // Convert all payment fields to numbers
+        cashPayment: safeNumber(values.cashPayment),
+        atmPayment: safeNumberOrNull(values.atmPayment),
+        paytmPayment: safeNumberOrNull(values.paytmPayment),
+        fleetPayment: safeNumberOrNull(values.fleetPayment),
+        rate: safeNumber(values.rate),
+        // Convert legacy fuel total fields
+        xgDieselTotal: values.xgDieselTotal !== undefined ? safeNumber(values.xgDieselTotal) : undefined,
+        hsdDieselTotal: values.hsdDieselTotal !== undefined ? safeNumber(values.hsdDieselTotal) : undefined,
+        msPetrolTotal: values.msPetrolTotal !== undefined ? safeNumber(values.msPetrolTotal) : undefined,
+        powerPetrolTotal: values.powerPetrolTotal !== undefined ? safeNumber(values.powerPetrolTotal) : undefined,
+        // Convert products object - ensure all values are numbers
         products: values.products ? Object.fromEntries(
-          Object.entries(values.products).map(([key, val]) => [key, Number(val) || 0])
+          Object.entries(values.products).map(([key, val]) => [key, safeNumber(val)])
         ) : {},
-        // Ensure fuelTotals includes all entries, even with 0 values
+        // Convert fuelTotals object - ensure all values are numbers
         fuelTotals: values.fuelTotals ? Object.fromEntries(
-          Object.entries(values.fuelTotals).map(([key, val]) => [key, Number(val) || 0])
+          Object.entries(values.fuelTotals).map(([key, val]) => [key, safeNumber(val)])
         ) : undefined,
       };
       
@@ -258,7 +278,14 @@ export const SalesStep: React.FC = () => {
             productsObj[key] = (productsObj[key] || 0) + amount;
           });
 
-          form.setValue("products", productsObj);
+          // Ensure all values are valid numbers (no NaN)
+          const cleanedProductsObj: Record<string, number> = {};
+          Object.entries(productsObj).forEach(([key, val]) => {
+            const num = Number(val);
+            cleanedProductsObj[key] = isNaN(num) ? 0 : num;
+          });
+
+          form.setValue("products", cleanedProductsObj);
 
           const dynamicProductsTotal = Math.round(
             Object.values(productsObj).reduce((s, n) => s + (Number(n) || 0), 0)
@@ -272,14 +299,20 @@ export const SalesStep: React.FC = () => {
             (Number(fleetPayment) || 0);
           const cashPayment = roundedTotal - totalPayments;
 
-          // Explicitly set all fuel totals, including 0 values
-          form.setValue("rate", roundedTotal);
-          form.setValue("hsdDieselTotal", Math.round(hsdTotal));
-          form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
-          form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
-          form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
-          form.setValue("fuelTotals", fuelTotals);
-          form.setValue("cashPayment", cashPayment);
+          // Explicitly set all fuel totals, including 0 values - ensure all are numbers
+          form.setValue("rate", Number(roundedTotal) || 0);
+          form.setValue("hsdDieselTotal", Number(Math.round(hsdTotal)) || 0);
+          form.setValue("xgDieselTotal", Number(Math.round(xgDieselTotal)) || 0);
+          form.setValue("msPetrolTotal", Number(Math.round(msPetrolTotal)) || 0);
+          form.setValue("powerPetrolTotal", Number(Math.round(powerPetrolTotal)) || 0);
+          // Ensure fuelTotals has all numeric values
+          const cleanedFuelTotals: Record<string, number> = {};
+          Object.entries(fuelTotals).forEach(([key, val]) => {
+            const num = Number(val);
+            cleanedFuelTotals[key] = isNaN(num) ? 0 : num;
+          });
+          form.setValue("fuelTotals", cleanedFuelTotals);
+          form.setValue("cashPayment", Number(cashPayment) || 0);
           
           // Ensure all fuel totals are explicitly set to 0 if they don't exist
           // This ensures 0 values are properly tracked by the form
@@ -295,7 +328,7 @@ export const SalesStep: React.FC = () => {
               const productName = p.productName.toUpperCase();
               const fieldName = fuelProductToFieldMap[productName];
               if (fieldName && fuelTotals[productName] === undefined) {
-                form.setValue(fieldName, 0);
+                form.setValue(fieldName, Number(0));
               }
             });
           }
@@ -375,7 +408,11 @@ export const SalesStep: React.FC = () => {
                         type="number"
                         placeholder="Enter amount"
                         {...field}
-                        value={field.value ?? ""}
+                        value={field.value != null ? Number(field.value) : ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? undefined : Number(val));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -396,7 +433,11 @@ export const SalesStep: React.FC = () => {
                         type="number"
                         placeholder="Enter amount"
                         {...field}
-                        value={field.value ?? ""}
+                        value={field.value != null ? Number(field.value) : ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? undefined : Number(val));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -415,7 +456,11 @@ export const SalesStep: React.FC = () => {
                         type="number"
                         placeholder="Enter amount"
                         {...field}
-                        value={field.value ?? ""}
+                        value={field.value != null ? Number(field.value) : ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? undefined : Number(val));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -530,7 +575,7 @@ export const SalesStep: React.FC = () => {
                                   type="number"
                                   placeholder="Enter amount"
                                   {...field}
-                                  value={field.value != null ? String(field.value) : ""}
+                                  value={field.value != null ? Number(field.value) : ""}
                                 />
                               </FormControl>
                               <FormMessage />

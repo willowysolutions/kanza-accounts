@@ -62,12 +62,23 @@ export function SalesFormModal({
 
   const router = useRouter();
 
+// Helper to ensure products object has all numeric values
+const ensureNumericProducts = (products: Record<string, unknown> | undefined): Record<string, number> => {
+  if (!products) return {};
+  const cleaned: Record<string, number> = {};
+  Object.entries(products).forEach(([key, val]) => {
+    const num = Number(val);
+    cleaned[key] = isNaN(num) ? 0 : num;
+  });
+  return cleaned;
+};
+
 const form = useForm<SalesFormValues>({
   resolver: zodResolver(salesSchema),
   defaultValues: {
     date: sales?.date ? new Date(sales.date) : new Date(),
     rate: sales?.rate ?? undefined,
-    products: parseProducts(sales?.products),
+    products: ensureNumericProducts(parseProducts(sales?.products)),
     xgDieselTotal: sales?.xgDieselTotal ?? undefined,
     hsdDieselTotal: sales?.hsdDieselTotal ?? undefined,
     msPetrolTotal: sales?.msPetrolTotal ?? undefined,
@@ -90,6 +101,21 @@ useEffect(() => {
   }
 }, [sales]);
 
+
+  // Helper function to safely convert to number, defaulting to 0 if invalid
+  const safeNumber = (val: unknown): number => {
+    if (val === null || val === undefined || val === "") return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Helper function to safely convert to number or null for optional fields
+  const safeNumberOrNull = (val: unknown): number | null => {
+    if (val === null || val === undefined || val === "") return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  };
+
   const handleSubmit = async (
     values: SalesFormValues,
     close: () => void
@@ -104,44 +130,28 @@ useEffect(() => {
         throw new Error("No branch selected");
       }
 
-      // Prepare the payload, converting empty strings/undefined to null for nullable fields
-      // Transform empty strings to null before sending
-      const transformValue = (val: unknown): number | null => {
-        if (val === "" || val === null || val === undefined) return null;
-        const num = Number(val);
-        return isNaN(num) ? null : num;
-      };
-
-      // Helper function to safely convert to number, defaulting to 0 if invalid
-      const safeNumber = (val: unknown): number => {
-        if (val === null || val === undefined || val === "") return 0;
-        const num = Number(val);
-        return isNaN(num) ? 0 : num;
-      };
-
-      // Ensure 0 values are explicitly included for fuel totals
+      // Convert ALL values to numbers before sending - ensure no NaN values
       const payload = {
         ...values,
         branchId: selectedBranchId,
-        atmPayment: transformValue(values.atmPayment),
-        paytmPayment: transformValue(values.paytmPayment),
-        fleetPayment: transformValue(values.fleetPayment),
-        // Explicitly include fuel totals even if they are 0
+        // Convert all payment fields to numbers
+        cashPayment: safeNumber(values.cashPayment),
+        atmPayment: safeNumberOrNull(values.atmPayment),
+        paytmPayment: safeNumberOrNull(values.paytmPayment),
+        fleetPayment: safeNumberOrNull(values.fleetPayment),
+        rate: safeNumber(values.rate),
+        // Convert legacy fuel total fields
         xgDieselTotal: values.xgDieselTotal !== undefined ? safeNumber(values.xgDieselTotal) : undefined,
         hsdDieselTotal: values.hsdDieselTotal !== undefined ? safeNumber(values.hsdDieselTotal) : undefined,
         msPetrolTotal: values.msPetrolTotal !== undefined ? safeNumber(values.msPetrolTotal) : undefined,
         powerPetrolTotal: values.powerPetrolTotal !== undefined ? safeNumber(values.powerPetrolTotal) : undefined,
-        // Ensure products object includes all entries with valid numbers (0 if invalid/NaN)
+        // Convert products object - ensure all values are numbers
         products: values.products ? Object.fromEntries(
-          Object.entries(values.products)
-            .map(([key, val]) => [key, safeNumber(val)])
-            .filter(([, val]) => typeof val === "number" && !isNaN(val))
+          Object.entries(values.products).map(([key, val]) => [key, safeNumber(val)])
         ) : {},
-        // Ensure fuelTotals includes all entries with valid numbers (0 if invalid/NaN)
+        // Convert fuelTotals object - ensure all values are numbers
         fuelTotals: values.fuelTotals ? Object.fromEntries(
-          Object.entries(values.fuelTotals)
-            .map(([key, val]) => [key, safeNumber(val)])
-            .filter(([, val]) => typeof val === "number" && !isNaN(val))
+          Object.entries(values.fuelTotals).map(([key, val]) => [key, safeNumber(val)])
         ) : undefined,
       };
 
@@ -383,7 +393,14 @@ useEffect(() => {
           productsObj[key] = (productsObj[key] || 0) + amount;
         });
 
-        form.setValue("products", productsObj);
+        // Ensure all values are valid numbers (no NaN)
+        const cleanedProductsObj: Record<string, number> = {};
+        Object.entries(productsObj).forEach(([key, val]) => {
+          const num = Number(val);
+          cleanedProductsObj[key] = isNaN(num) ? 0 : num;
+        });
+
+        form.setValue("products", cleanedProductsObj);
 
         // --- Grand Total ---
         const dynamicProductsTotal = Math.round(Object.values(productsObj).reduce(
@@ -403,14 +420,20 @@ useEffect(() => {
         const cashPayment = roundedTotal - totalPayments;
 
         // --- Auto-fill form fields ---
-        // Explicitly set all fuel totals, including 0 values
-        form.setValue("rate", roundedTotal);
-        form.setValue("hsdDieselTotal", Math.round(hsdTotal));
-        form.setValue("xgDieselTotal", Math.round(xgDieselTotal));
-        form.setValue("msPetrolTotal", Math.round(msPetrolTotal));
-        form.setValue("powerPetrolTotal", Math.round(powerPetrolTotal));
-        form.setValue("fuelTotals", fuelTotals);
-        form.setValue("cashPayment", cashPayment);
+        // Explicitly set all fuel totals, including 0 values - ensure all are numbers
+        form.setValue("rate", Number(roundedTotal) || 0);
+        form.setValue("hsdDieselTotal", Number(Math.round(hsdTotal)) || 0);
+        form.setValue("xgDieselTotal", Number(Math.round(xgDieselTotal)) || 0);
+        form.setValue("msPetrolTotal", Number(Math.round(msPetrolTotal)) || 0);
+        form.setValue("powerPetrolTotal", Number(Math.round(powerPetrolTotal)) || 0);
+        // Ensure fuelTotals has all numeric values
+        const cleanedFuelTotals: Record<string, number> = {};
+        Object.entries(fuelTotals).forEach(([key, val]) => {
+          const num = Number(val);
+          cleanedFuelTotals[key] = isNaN(num) ? 0 : num;
+        });
+        form.setValue("fuelTotals", cleanedFuelTotals);
+        form.setValue("cashPayment", Number(cashPayment) || 0);
         
         // Ensure all fuel totals are explicitly set to 0 if they don't exist
         // This ensures 0 values are properly tracked by the form
@@ -426,7 +449,7 @@ useEffect(() => {
             const productName = p.productName.toUpperCase();
             const fieldName = fuelProductToFieldMap[productName];
             if (fieldName && fuelTotals[productName] === undefined) {
-              form.setValue(fieldName, 0);
+              form.setValue(fieldName, Number(0));
             }
           });
         }
@@ -458,26 +481,29 @@ useEffect(() => {
     console.log("🟢 Form errors:", form.formState.errors);
     console.log("🟢 Selected branch ID:", selectedBranchId);
     
-    // Clean up the values before validation - ensure no NaN values
+    // Clean up ALL values before validation - ensure no NaN values
     const cleanedValues = {
       ...values,
+      // Convert all payment fields to numbers
+      cashPayment: safeNumber(values.cashPayment),
+      atmPayment: safeNumberOrNull(values.atmPayment),
+      paytmPayment: safeNumberOrNull(values.paytmPayment),
+      fleetPayment: safeNumberOrNull(values.fleetPayment),
+      rate: safeNumber(values.rate),
+      // Convert legacy fuel total fields
+      xgDieselTotal: values.xgDieselTotal !== undefined ? safeNumber(values.xgDieselTotal) : undefined,
+      hsdDieselTotal: values.hsdDieselTotal !== undefined ? safeNumber(values.hsdDieselTotal) : undefined,
+      msPetrolTotal: values.msPetrolTotal !== undefined ? safeNumber(values.msPetrolTotal) : undefined,
+      powerPetrolTotal: values.powerPetrolTotal !== undefined ? safeNumber(values.powerPetrolTotal) : undefined,
+      // Convert products object - ensure all values are numbers
       products: values.products ? Object.fromEntries(
         Object.entries(values.products)
-          .map(([key, val]) => {
-            if (val === null || val === undefined || (typeof val === "string" && val === "")) return [key, 0];
-            const num = Number(val);
-            return [key, isNaN(num) ? 0 : num];
-          })
-          .filter(([, val]) => typeof val === "number" && !isNaN(val))
+          .map(([key, val]) => [key, safeNumber(val)])
       ) : {},
+      // Convert fuelTotals object - ensure all values are numbers
       fuelTotals: values.fuelTotals ? Object.fromEntries(
         Object.entries(values.fuelTotals)
-          .map(([key, val]) => {
-            if (val === null || val === undefined || (typeof val === "string" && val === "")) return [key, 0];
-            const num = Number(val);
-            return [key, isNaN(num) ? 0 : num];
-          })
-          .filter(([, val]) => typeof val === "number" && !isNaN(val))
+          .map(([key, val]) => [key, safeNumber(val)])
       ) : undefined,
     };
 
@@ -586,7 +612,11 @@ useEffect(() => {
                     type="number"
                     placeholder="Enter amount"
                     {...field}
-                    value={field.value ?? ""}
+                    value={field.value != null ? Number(field.value) : ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      field.onChange(val === "" ? undefined : Number(val));
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -607,7 +637,11 @@ useEffect(() => {
                     type="number"
                     placeholder="Enter amount"
                     {...field}
-                    value={field.value ?? ""}
+                    value={field.value != null ? Number(field.value) : ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      field.onChange(val === "" ? undefined : Number(val));
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -626,7 +660,11 @@ useEffect(() => {
                     type="number"
                     placeholder="Enter amount"
                     {...field}
-                    value={field.value ?? ""}
+                    value={field.value != null ? Number(field.value) : ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      field.onChange(val === "" ? undefined : Number(val));
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -672,15 +710,22 @@ useEffect(() => {
               key={product}
               control={form.control}
               name={`products.${product}` as `products.${string}`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{product}</FormLabel>
-                  <FormControl>
-                    <Input type="number" readOnly value={field.value ?? ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                // Ensure value is always a number for display, defaulting to 0
+                const numericValue = field.value != null 
+                  ? (isNaN(Number(field.value)) ? 0 : Number(field.value))
+                  : 0;
+                
+                return (
+                  <FormItem>
+                    <FormLabel>{product}</FormLabel>
+                    <FormControl>
+                      <Input type="number" readOnly value={numericValue} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
           ))}
         </div>
@@ -739,7 +784,7 @@ useEffect(() => {
                           type="number"
                           placeholder="Enter amount"
                           {...field}
-                          value={field.value != null ? String(field.value) : ""}
+                          value={field.value != null ? Number(field.value) : ""}
                         />
                       </FormControl>
                       <FormMessage />
