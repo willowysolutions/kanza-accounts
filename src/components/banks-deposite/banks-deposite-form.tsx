@@ -55,6 +55,7 @@ export const BankDepositeFormDialog = ({
       bankId: bankDeposite?.bankId || "",
       date: bankDeposite?.date ?? new Date(),
       amount: bankDeposite?.amount || undefined,
+      description: bankDeposite?.description || "",
     },
   });
 
@@ -154,7 +155,6 @@ export const BankDepositeFormDialog = ({
         />
 
         {/* Title */}
-        <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="bankId"
@@ -211,10 +211,8 @@ export const BankDepositeFormDialog = ({
             )}
           />
 
-        </div>
 
         {/* Amount */}
-        <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="amount"
@@ -234,7 +232,19 @@ export const BankDepositeFormDialog = ({
           )}
         />
 
-        </div>
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value ?? ""} placeholder="Description" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormDialogFooter>
           <DialogClose asChild>

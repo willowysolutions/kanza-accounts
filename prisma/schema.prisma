@@ -442,7 +442,8 @@ model BankDeposite {
   branch     Branch?   @relation(fields: [branchId], references: [id])
 
   date       DateTime
-  amount     Float         
+  amount     Float  
+  description String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

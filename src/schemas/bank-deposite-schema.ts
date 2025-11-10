@@ -4,7 +4,8 @@ export const bankDepositeSchema = z.object({
   bankId: z.string(),
   date: z.coerce.date(),
   amount: z.coerce.number(),
-  branchId: z.string().optional()
+  branchId: z.string().optional(),
+  description: z.string().optional()
 });
 
 export const bankDepositeSchemaWithId = bankDepositeSchema.extend({

@@ -35,6 +35,14 @@ export const bankDepositeColumns = (
       accessorKey: "amount",
       header: "Amount",
     },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => {
+        const description = row.original.description;
+        return <div className="px-3">{description ?? "..."}</div>;
+      },
+    },
   ];
 
   // Only add Actions column for admin users

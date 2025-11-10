@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 export interface BankDeposite extends PrismaBankDeposite {
   bank: { bankName: string };
   branch: { name: string };
+  description: string | null;
 }
 
 
