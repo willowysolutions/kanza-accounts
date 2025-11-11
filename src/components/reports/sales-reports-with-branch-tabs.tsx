@@ -19,6 +19,7 @@ import { FilterSelect } from "@/components/filters/filter-select";
 import { CustomDateFilter } from "@/components/filters/custom-date-filter";
 import { SalesReportExport } from "@/components/reports/sales-report-export";
 import { PaginationControls } from "@/components/ui/pagination-controls";
+import { SalesDateDetailSheet } from "@/components/reports/sales-date-detail-sheet";
 
 type SalesReportsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
@@ -48,6 +49,8 @@ export function SalesReportsWithBranchTabs({
   currentPage // eslint-disable-line @typescript-eslint/no-unused-vars
 }: SalesReportsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   // Get current branch data
   const currentBranchData = salesByBranch.find(branch => branch.branchId === activeBranch);
@@ -121,11 +124,19 @@ export function SalesReportsWithBranchTabs({
                       {currentSales.map((sale: any) => (
                         <TableRow key={sale.id.toString()}>
                           <TableCell>
-                            {new Date(sale.date).toLocaleDateString('en-GB', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
-                            })}
+                            <button
+                              onClick={() => {
+                                setSelectedDate(new Date(sale.date));
+                                setSheetOpen(true);
+                              }}
+                              className="text-blue-600 hover:underline cursor-pointer"
+                            >
+                              {new Date(sale.date).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}
+                            </button>
                           </TableCell>
                           <TableCell className="text-right">
                             {formatCurrency(sale.atmPayment)}
@@ -210,6 +221,13 @@ export function SalesReportsWithBranchTabs({
             </TabsContent>
           ))}
         </Tabs>
+
+        <SalesDateDetailSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          selectedDate={selectedDate}
+          branchId={activeBranch}
+        />
       </div>
     </div>
   );

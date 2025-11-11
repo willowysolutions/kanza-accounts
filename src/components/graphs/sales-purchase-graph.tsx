@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useState, useEffect } from "react";
 import { getMonthlySalesAndPurchases } from "@/lib/actions/getMonthlySalesAndPurchases";
 
@@ -61,12 +61,12 @@ export default function DashboardCharts({
             </div>
           ) : salesData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={salesData}>
+              <BarChart data={salesData}>
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#16a34a" strokeWidth={3} dot={{ r: 5 }} />
-              </LineChart>
+                <Bar dataKey="value" fill="#16a34a" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px]">
@@ -88,12 +88,12 @@ export default function DashboardCharts({
             </div>
           ) : purchaseData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={purchaseData}>
+              <BarChart data={purchaseData}>
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#4f46e5" strokeWidth={3} dot={{ r: 5 }} />
-              </LineChart>
+                <Bar dataKey="value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px]">
