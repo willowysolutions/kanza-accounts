@@ -187,12 +187,36 @@ export async function PATCH(
     }
 
     // 3. Update stock quantity if difference changed
-    if (fuelType && qtyChange !== 0) {
+    if (fuelType && qtyChange !== 0 && existingReading.branchId) {
+      // If decreasing stock, validate availability first
+      if (qtyChange > 0) {
+        const stock = await prisma.stock.findFirst({
+          where: {
+            item: fuelType,
+            branchId: existingReading.branchId,
+          },
+        });
+
+        if (!stock) {
+          return NextResponse.json(
+            { error: `Stock not found for ${fuelType} in this branch` },
+            { status: 400 }
+          );
+        }
+
+        if (stock.quantity - qtyChange < 0) {
+          return NextResponse.json(
+            { error: `No stock available for ${fuelType}. Available: ${stock.quantity.toFixed(2)}L, Required: ${qtyChange.toFixed(2)}L` },
+            { status: 400 }
+          );
+        }
+      }
+
       updateOperations.push(
         prisma.stock.updateMany({
           where: { 
             item: fuelType,
-            branchId: existingReading.branchId
+            branchId: existingReading.branchId, // CRITICAL: Only update stock for this branch
           },
           data: {
             quantity:
@@ -239,9 +263,76 @@ export async function DELETE(
   }
 
   try {
+    // Get the meter reading with related data BEFORE deleting
+    const existingReading = await prisma.meterReading.findUnique({
+      where: { id },
+      include: {
+        nozzle: {
+          include: {
+            machine: {
+              include: {
+                machineTanks: { include: { tank: true } }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!existingReading) {
+      return NextResponse.json({ error: "Meter reading not found" }, { status: 404 });
+    }
+
+    // Calculate the difference to restore
+    const difference = existingReading.closingReading - existingReading.openingReading;
+    const fuelType = existingReading.fuelType;
+    const branchId = existingReading.branchId;
+
+    // Get connected tank
+    const connectedTank = existingReading.nozzle?.machine?.machineTanks.find(
+      (mt) => mt.tank?.fuelType === fuelType
+    )?.tank;
+
+    // Delete the meter reading
     const meterReadingDelete = await prisma.meterReading.delete({
       where: { id },
     });
+
+    // Restore stock and tank level for the specific branch
+    const restoreOperations = [];
+
+    // 1. Restore tank current level
+    if (connectedTank && difference > 0) {
+      restoreOperations.push(
+        prisma.tank.update({
+          where: { id: connectedTank.id },
+          data: {
+            currentLevel: { increment: difference },
+          },
+        })
+      );
+    }
+
+    // 2. Restore stock quantity for the specific branch only
+    if (fuelType && branchId && difference > 0) {
+      restoreOperations.push(
+        prisma.stock.updateMany({
+          where: {
+            item: fuelType,
+            branchId: branchId, // CRITICAL: Only restore stock for this branch
+          },
+          data: {
+            quantity: { increment: difference },
+          },
+        })
+      );
+    }
+
+    // Execute restore operations
+    if (restoreOperations.length > 0) {
+      await Promise.all(restoreOperations);
+      console.log(`Restored stock ${fuelType} by ${difference} and tank level for branch ${branchId}`);
+    }
 
     return NextResponse.json({ data: meterReadingDelete }, { status: 200 });
   } catch (error) {

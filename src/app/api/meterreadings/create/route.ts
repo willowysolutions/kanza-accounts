@@ -153,10 +153,25 @@ export async function POST(req: NextRequest) {
           )?.tank;
 
           if (connectedTank) {
-
-            // check if stock is enough
+            // Check if tank level is sufficient
             if (connectedTank.currentLevel - difference < 0) {
-              throw new Error("Tank does not have sufficient current level"); 
+              throw new Error(`Tank "${connectedTank.tankName}" does not have sufficient current level. Available: ${connectedTank.currentLevel.toFixed(2)}L, Required: ${difference.toFixed(2)}L`); 
+            }
+
+            // Check if stock is sufficient for the specific branch
+            const stock = await prisma.stock.findFirst({
+              where: {
+                item: nozzle.fuelType,
+                branchId: branchId, // CRITICAL: Check stock for this branch only
+              },
+            });
+
+            if (!stock) {
+              throw new Error(`Stock not found for ${nozzle.fuelType} in this branch`);
+            }
+
+            if (stock.quantity - difference < 0) {
+              throw new Error(`No stock available for ${nozzle.fuelType}. Available: ${stock.quantity.toFixed(2)}L, Required: ${difference.toFixed(2)}L`);
             }
             
             // ✅ Safe to decrement tank
@@ -170,10 +185,10 @@ export async function POST(req: NextRequest) {
             });
             
             // ✅ Update stock for the specific branch only
-            await prisma.stock.updateMany({
+            const updateResult = await prisma.stock.updateMany({
               where: {
                 item: nozzle.fuelType,
-                branchId: branchId // CRITICAL: Only update stock for this branch
+                branchId: branchId, // CRITICAL: Only update stock for this branch
               },
               data: {
                 quantity: {
@@ -181,6 +196,36 @@ export async function POST(req: NextRequest) {
                 },
               },
             });
+
+            // Verify that exactly one stock record was updated
+            if (updateResult.count === 0) {
+              throw new Error(`No stock record found for ${nozzle.fuelType} in branch ${branchId}`);
+            } else if (updateResult.count > 1) {
+              throw new Error(`Multiple stock records found for ${nozzle.fuelType} in branch ${branchId}`);
+            }
+
+            // Double-check stock didn't go negative (safety check)
+            const updatedStock = await prisma.stock.findFirst({
+              where: {
+                item: nozzle.fuelType,
+                branchId: branchId,
+              },
+            });
+
+            if (updatedStock && updatedStock.quantity < 0) {
+              // Rollback: restore the stock
+              await prisma.stock.updateMany({
+                where: {
+                  item: nozzle.fuelType,
+                  branchId: branchId,
+                },
+                data: {
+                  quantity: { increment: difference },
+                },
+              });
+              throw new Error(`Stock would go negative for ${nozzle.fuelType}. Operation cancelled.`);
+            }
+
             console.log(`Updated stock ${nozzle.fuelType} by ${difference} for branch ${branchId}`);
           }
         }

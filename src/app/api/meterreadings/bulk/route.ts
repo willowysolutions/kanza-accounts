@@ -277,10 +277,32 @@ export async function POST(req: Request) {
           
           // Verify that exactly one stock record was updated (safety check)
           if (updateResult.count === 0) {
-            console.warn(`Warning: No stock record found for ${fuelType} in branch ${branchId}`);
+            throw new Error(`No stock record found for ${fuelType} in branch ${branchId}`);
           } else if (updateResult.count > 1) {
             console.error(`ERROR: Multiple stock records updated for ${fuelType} in branch ${branchId}! This should not happen.`);
             throw new Error(`Multiple stock records found for ${fuelType} in branch ${branchId}`);
+          }
+
+          // Double-check stock didn't go negative (safety check after update)
+          const updatedStock = await prisma.stock.findFirst({
+            where: {
+              item: fuelType,
+              branchId: branchId,
+            },
+          });
+
+          if (updatedStock && updatedStock.quantity < 0) {
+            // Rollback: restore the stock
+            await prisma.stock.updateMany({
+              where: {
+                item: fuelType,
+                branchId: branchId,
+              },
+              data: {
+                quantity: { increment: totalDifference },
+              },
+            });
+            throw new Error(`No stock available for ${fuelType}. Stock would go negative. Available: ${(updatedStock.quantity + totalDifference).toFixed(2)}L, Required: ${totalDifference.toFixed(2)}L`);
           }
         } catch (error) {
           console.error(`Failed to update stock ${fuelType} for branch ${branchId}:`, error);
