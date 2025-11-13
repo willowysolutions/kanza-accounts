@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Form,
   FormControl,
   FormField,
   FormItem,
@@ -10,15 +11,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  FormDialog,
-  FormDialogContent,
-  FormDialogDescription,
-  FormDialogFooter,
-  FormDialogHeader,
-  FormDialogTitle,
-  FormDialogTrigger,
-} from "@/components/ui/form-dialog";
-import { DialogClose } from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Pencil, Loader2 } from "lucide-react";
@@ -531,35 +532,43 @@ useEffect(() => {
     }
   };
 
-  return (
-    <FormDialog
-      open={open}
-      openChange={openChange}
-      form={form}
-      onSubmit={onSubmitHandler}
-    >
-      <FormDialogTrigger asChild>
-        <Button>
-          {sales ? (
-            <Pencil className="size-4 mr-2" />
-          ) : (
-            <Plus className="size-4 mr-2" />
-          )}
-          {sales ? "Edit Sale" : "New Sale"}
-        </Button>
-      </FormDialogTrigger>
+  const isControlled = typeof open === "boolean";
 
-      <FormDialogContent className="sm:max-w-md">
-        <FormDialogHeader>
-          <FormDialogTitle>
-            {sales ? "Edit Sale" : "Record New Sale"}
-          </FormDialogTitle>
-          <FormDialogDescription>
-            {sales
-              ? "Update the existing sale entry"
-              : "Enter details for a new fuel sale transaction."}
-          </FormDialogDescription>
-        </FormDialogHeader>
+  return (
+    <Sheet open={open} onOpenChange={openChange}>
+      {!isControlled && (
+        <SheetTrigger asChild>
+          <Button>
+            {sales ? (
+              <Pencil className="size-4 mr-2" />
+            ) : (
+              <Plus className="size-4 mr-2" />
+            )}
+            {sales ? "Edit Sale" : "New Sale"}
+          </Button>
+        </SheetTrigger>
+      )}
+
+      <SheetContent side="top" className="w-full h-[90vh] overflow-y-auto p-8">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((values) => {
+              onSubmitHandler(values, () => {
+                if (openChange) openChange(false);
+              });
+            })}
+            className="space-y-4"
+          >
+            <SheetHeader>
+              <SheetTitle>
+                {sales ? "Edit Sale" : "Record New Sale"}
+              </SheetTitle>
+              <SheetDescription>
+                {sales
+                  ? "Update the existing sale entry"
+                  : "Enter details for a new fuel sale transaction."}
+              </SheetDescription>
+            </SheetHeader>
 
         {/* Branch Selector */}
         <BranchSelector
@@ -819,32 +828,38 @@ useEffect(() => {
           />
         </div>
 
-        <FormDialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button
-            type="submit"
-            disabled={form.formState.isSubmitting || isLoadingData || !isDataReady}
-          >
-            {form.formState.isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : isLoadingData ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              sales ? "Update" : "Save"
-            )}
-          </Button>
-        </FormDialogFooter>
-      </FormDialogContent>
-    </FormDialog>
+            <SheetFooter>
+            <div className="mt-4 flex justify-end gap-2">
+
+              <SheetClose asChild>
+                <Button type="button" variant="outline" size="lg">
+                  Cancel
+                </Button>
+              </SheetClose>
+              <Button
+                type="submit"
+                size="lg"
+                disabled={form.formState.isSubmitting || isLoadingData || !isDataReady}
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : isLoadingData ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  sales ? "Update" : "Save"
+                )}
+              </Button>
+              </div>
+            </SheetFooter>
+          </form>
+        </Form>
+      </SheetContent>
+    </Sheet>
   );
 }
