@@ -44,7 +44,14 @@ export async function POST(req: NextRequest) {
     const inputDateOnly = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
     const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
     
+    console.log("📅 Date validation:", {
+      inputDate: inputDateOnly.toISOString(),
+      currentDate: currentDateOnly.toISOString(),
+      isFuture: inputDateOnly >= currentDateOnly
+    });
+    
     if (inputDateOnly >= currentDateOnly) {
+      console.error("❌ Date validation failed: Future date not allowed");
       return NextResponse.json(
         { error: "Cannot store sale for present or future dates. Only past dates are allowed." },
         { status: 400 }

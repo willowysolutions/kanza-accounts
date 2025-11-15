@@ -395,10 +395,12 @@ useEffect(() => {
         });
 
         // Ensure all values are valid numbers (no NaN)
+        // Sanitize product keys for form field names (replace special regex characters)
         const cleanedProductsObj: Record<string, number> = {};
         Object.entries(productsObj).forEach(([key, val]) => {
           const num = Number(val);
-          cleanedProductsObj[key] = isNaN(num) ? 0 : num;
+          const sanitizedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '_');
+          cleanedProductsObj[sanitizedKey] = isNaN(num) ? 0 : num;
         });
 
         form.setValue("products", cleanedProductsObj);
@@ -477,56 +479,90 @@ useEffect(() => {
 
   // Form submission handler - matches FormDialog's expected signature
   const onSubmitHandler = async (values: SalesFormValues, close: () => void) => {
-    console.log("🟢🟢🟢 FormDialog onSubmitHandler CALLED with values:", values);
+    try {
+      console.log("🟢🟢🟢 FormDialog onSubmitHandler CALLED with values:", values);
     console.log("🟢 Form validation state:", form.formState);
     console.log("🟢 Form errors:", form.formState.errors);
-    console.log("🟢 Selected branch ID:", selectedBranchId);
-    
-    // Clean up ALL values before validation - ensure no NaN values
-    const cleanedValues = {
-      ...values,
-      // Convert all payment fields to numbers
-      cashPayment: safeNumber(values.cashPayment),
-      atmPayment: safeNumberOrNull(values.atmPayment),
-      paytmPayment: safeNumberOrNull(values.paytmPayment),
-      fleetPayment: safeNumberOrNull(values.fleetPayment),
-      rate: safeNumber(values.rate),
-      // Convert legacy fuel total fields
-      xgDieselTotal: values.xgDieselTotal !== undefined ? safeNumber(values.xgDieselTotal) : undefined,
-      hsdDieselTotal: values.hsdDieselTotal !== undefined ? safeNumber(values.hsdDieselTotal) : undefined,
-      msPetrolTotal: values.msPetrolTotal !== undefined ? safeNumber(values.msPetrolTotal) : undefined,
-      powerPetrolTotal: values.powerPetrolTotal !== undefined ? safeNumber(values.powerPetrolTotal) : undefined,
-      // Convert products object - ensure all values are numbers
-      products: values.products ? Object.fromEntries(
-        Object.entries(values.products)
-          .map(([key, val]) => [key, safeNumber(val)])
-      ) : {},
-      // Convert fuelTotals object - ensure all values are numbers
-      fuelTotals: values.fuelTotals ? Object.fromEntries(
-        Object.entries(values.fuelTotals)
-          .map(([key, val]) => [key, safeNumber(val)])
-      ) : undefined,
-    };
+      console.log("🟢 Selected branch ID:", selectedBranchId);
+      
+      // Ensure branchId is set
+      if (!selectedBranchId) {
+        console.error("❌ No branch selected in onSubmitHandler");
+        toast.error("Please select a branch");
+        return; // Don't proceed if no branch
+      }
+      
+      // Clean up ALL values before validation - ensure no NaN values
+      const cleanedValues = {
+        ...values,
+        // Convert all payment fields to numbers
+        cashPayment: safeNumber(values.cashPayment),
+        atmPayment: safeNumberOrNull(values.atmPayment),
+        paytmPayment: safeNumberOrNull(values.paytmPayment),
+        fleetPayment: safeNumberOrNull(values.fleetPayment),
+        rate: safeNumber(values.rate),
+        // Convert legacy fuel total fields
+        xgDieselTotal: values.xgDieselTotal !== undefined ? safeNumber(values.xgDieselTotal) : undefined,
+        hsdDieselTotal: values.hsdDieselTotal !== undefined ? safeNumber(values.hsdDieselTotal) : undefined,
+        msPetrolTotal: values.msPetrolTotal !== undefined ? safeNumber(values.msPetrolTotal) : undefined,
+        powerPetrolTotal: values.powerPetrolTotal !== undefined ? safeNumber(values.powerPetrolTotal) : undefined,
+        // Convert products object - ensure all values are numbers
+      // Map sanitized keys back to original product names
+      products: values.products ? (() => {
+        const productsMap: Record<string, number> = {};
+        // Get all unique product names from oilSales to create reverse mapping
+        const productNameMap = new Map<string, string>();
+        Array.from(new Set(
+          oilSales
+            .filter(o => {
+              const itemDate = new Date(o.date).toLocaleDateString();
+              const formDate = selectedDate ? new Date(selectedDate).toLocaleDateString() : "";
+              const itemBranchId = (o as { branchId?: string }).branchId;
+              return itemDate === formDate && itemBranchId === selectedBranchId;
+            })
+            .map(o => (o.productType || '').toUpperCase())
+        )).forEach(product => {
+          const sanitized = product.replace(/[.*+?^${}()|[\]\\]/g, '_');
+          productNameMap.set(sanitized, product);
+        });
+        
+        // Map sanitized keys back to original product names
+        Object.entries(values.products).forEach(([key, val]) => {
+          const originalName = productNameMap.get(key) || key;
+          productsMap[originalName] = safeNumber(val);
+        });
+        return productsMap;
+      })() : {},
+        // Convert fuelTotals object - ensure all values are numbers
+        fuelTotals: values.fuelTotals ? Object.fromEntries(
+          Object.entries(values.fuelTotals)
+            .map(([key, val]) => [key, safeNumber(val)])
+        ) : undefined,
+      };
 
-    // Validate the cleaned form data
-    const validationResult = salesSchema.safeParse(cleanedValues);
-    if (!validationResult.success) {
-      console.error("❌ Validation failed:", validationResult.error.flatten().fieldErrors);
-      const errorMessages = Object.entries(validationResult.error.flatten().fieldErrors)
-        .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(", ") : errors}`)
-        .join("\n");
-      toast.error(`Validation errors:\n${errorMessages}`);
-      throw new Error(`Validation failed: ${errorMessages}`); // Throw to prevent submission
-    }
-    
-    // Use cleaned values for submission
-    const finalValues = cleanedValues as SalesFormValues;
-    
-    try {
+      console.log("🟢 Cleaned values:", cleanedValues);
+
+      // Validate the cleaned form data
+      const validationResult = salesSchema.safeParse(cleanedValues);
+      if (!validationResult.success) {
+        console.error("❌ Validation failed:", validationResult.error.flatten().fieldErrors);
+        const errorMessages = Object.entries(validationResult.error.flatten().fieldErrors)
+          .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(", ") : errors}`)
+          .join("\n");
+        toast.error(`Validation errors:\n${errorMessages}`);
+        return; // Don't proceed if validation fails
+      }
+      
+      // Use cleaned values for submission
+      const finalValues = cleanedValues as SalesFormValues;
+      
+      console.log("🟢 Calling handleSubmit with finalValues");
       // Call handleSubmit with cleaned values and await it to ensure proper error handling
       await handleSubmit(finalValues, close);
+      console.log("🟢 handleSubmit completed successfully");
     } catch (error) {
-      console.error("❌ Error in handleSubmit:", error);
+      console.error("❌ Error in onSubmitHandler:", error);
+      console.error("❌ Error stack:", error instanceof Error ? error.stack : "No stack trace");
       toast.error(error instanceof Error ? error.message : "Failed to save sale");
       // Don't close dialog on error
     }
@@ -538,35 +574,57 @@ useEffect(() => {
     <Sheet open={open} onOpenChange={openChange}>
       {!isControlled && (
         <SheetTrigger asChild>
-          <Button>
-            {sales ? (
-              <Pencil className="size-4 mr-2" />
-            ) : (
-              <Plus className="size-4 mr-2" />
-            )}
-            {sales ? "Edit Sale" : "New Sale"}
-          </Button>
+        <Button>
+          {sales ? (
+            <Pencil className="size-4 mr-2" />
+          ) : (
+            <Plus className="size-4 mr-2" />
+          )}
+          {sales ? "Edit Sale" : "New Sale"}
+        </Button>
         </SheetTrigger>
       )}
 
       <SheetContent side="top" className="w-full h-[90vh] overflow-y-auto p-8">
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((values) => {
-              onSubmitHandler(values, () => {
-                if (openChange) openChange(false);
-              });
-            })}
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("🟡 Form onSubmit event triggered");
+              form.handleSubmit(
+                (values) => {
+                  console.log("🟡 Form handleSubmit callback called with values:", values);
+                  onSubmitHandler(values, () => {
+                    if (openChange) openChange(false);
+                  });
+                },
+                (errors) => {
+                  console.error("❌ Form validation failed:", errors);
+                  console.error("❌ Form errors object:", JSON.stringify(errors, null, 2));
+                  const errorMessages = Object.entries(errors)
+                    .map(([field, error]) => {
+                      const err = error as { message?: string; type?: string };
+                      return `${field}: ${err?.message || "Invalid"}`;
+                    })
+                    .join("\n");
+                  if (errorMessages) {
+                    toast.error(`Form validation errors:\n${errorMessages}`);
+                  } else {
+                    toast.error("Form validation failed. Please check all fields.");
+                  }
+                }
+              )(e);
+            }}
             className="space-y-4"
           >
             <SheetHeader>
               <SheetTitle>
-                {sales ? "Edit Sale" : "Record New Sale"}
+            {sales ? "Edit Sale" : "Record New Sale"}
               </SheetTitle>
               <SheetDescription>
-                {sales
-                  ? "Update the existing sale entry"
-                  : "Enter details for a new fuel sale transaction."}
+            {sales
+              ? "Update the existing sale entry"
+              : "Enter details for a new fuel sale transaction."}
               </SheetDescription>
             </SheetHeader>
 
@@ -714,29 +772,33 @@ useEffect(() => {
                 })
                 .map(o => (o.productType || '').toUpperCase())
             )
-          ).map((product) => (
-            <FormField
-              key={product}
-              control={form.control}
-              name={`products.${product}` as `products.${string}`}
-              render={({ field }) => {
-                // Ensure value is always a number for display, defaulting to 0
-                const numericValue = field.value != null 
-                  ? (isNaN(Number(field.value)) ? 0 : Number(field.value))
-                  : 0;
-                
-                return (
-                  <FormItem>
-                    <FormLabel>{product}</FormLabel>
-                    <FormControl>
-                      <Input type="number" readOnly value={numericValue} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
-          ))}
+          ).map((product) => {
+            // Sanitize product name for use as form field key (replace special regex characters)
+            const sanitizedKey = product.replace(/[.*+?^${}()|[\]\\]/g, '_');
+            return (
+              <FormField
+                key={product}
+                control={form.control}
+                name={`products.${sanitizedKey}` as `products.${string}`}
+                render={({ field }) => {
+                  // Ensure value is always a number for display, defaulting to 0
+                  const numericValue = field.value != null 
+                    ? (isNaN(Number(field.value)) ? 0 : Number(field.value))
+                    : 0;
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>{product}</FormLabel>
+                      <FormControl>
+                        <Input type="number" readOnly value={numericValue} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* Dynamic Fuel Type Fields - Show fields based on branch's fuel products from Product table */}
@@ -833,28 +895,43 @@ useEffect(() => {
 
               <SheetClose asChild>
                 <Button type="button" variant="outline" size="lg">
-                  Cancel
-                </Button>
+              Cancel
+            </Button>
               </SheetClose>
-              <Button
-                type="submit"
-                size="lg"
-                disabled={form.formState.isSubmitting || isLoadingData || !isDataReady}
-              >
-                {form.formState.isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : isLoadingData ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  sales ? "Update" : "Save"
-                )}
-              </Button>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={form.formState.isSubmitting || isLoadingData || !isDataReady}
+            onClick={(e) => {
+              console.log("🟡 Save button clicked");
+              console.log("🟡 isSubmitting:", form.formState.isSubmitting);
+              console.log("🟡 isLoadingData:", isLoadingData);
+              console.log("🟡 isDataReady:", isDataReady);
+              console.log("🟡 Button disabled:", form.formState.isSubmitting || isLoadingData || !isDataReady);
+              console.log("🟡 Current form values:", form.getValues());
+              console.log("🟡 Form errors:", form.formState.errors);
+              console.log("🟡 Selected branch ID:", selectedBranchId);
+              if (!isDataReady) {
+                console.error("❌ Button is disabled because isDataReady is false");
+                toast.error("Please wait for data to load before saving");
+                e.preventDefault();
+              }
+            }}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : isLoadingData ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              sales ? "Update" : "Save"
+            )}
+          </Button>
               </div>
             </SheetFooter>
           </form>

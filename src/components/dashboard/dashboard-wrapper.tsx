@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -87,10 +87,13 @@ export function DashboardWrapper({
     ? branches
     : branches.filter((b) => b.id === (userBranchId ?? ""));
 
-  // Common branch selector state
-  const [selectedBranchId, setSelectedBranchId] = useState(
-    visibleBranches[0]?.id || ""
-  );
+  // Common branch selector state - ensure we have a valid initial value
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
+    if (visibleBranches.length > 0 && visibleBranches[0]?.id) {
+      return visibleBranches[0].id;
+    }
+    return "";
+  });
 
   // State for products, rates, and stocks for the selected branch
   const [branchProducts, setBranchProducts] = useState<
