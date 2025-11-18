@@ -4,6 +4,7 @@ import { headers, cookies } from "next/headers";
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { BankDepositsWithBranchTabs } from "@/components/banks-deposite/bank-deposits-with-branch-tabs";
+import { BankDeposite } from "@/types/bank-deposite";
 
 export default async function BankDepositePage() {
 const hdrs = await headers();
@@ -24,8 +25,11 @@ const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
 const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
 
 // Fetch bank deposits and branches
+const bankDepositsUrl = new URL(`${proto}://${host}/api/bank-deposite`);
+bankDepositsUrl.searchParams.set("limit", "1000");
+
 const [bankDepositsRes, branchesRes] = await Promise.all([
-  fetch(`${proto}://${host}/api/bank-deposite`, {
+  fetch(bankDepositsUrl.toString(), {
     cache: "no-store",
     headers: { cookie },
   }),
@@ -35,19 +39,26 @@ const [bankDepositsRes, branchesRes] = await Promise.all([
   })
 ]);
 
-const { bankDeposite } = await bankDepositsRes.json();
+const { bankDeposite }: { bankDeposite: BankDeposite[] } = await bankDepositsRes.json();
 const { data: allBranches } = await branchesRes.json();
 
 // Filter branches based on user role
 const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
-// Group bank deposits by visible branches only
-const depositsByBranch = visibleBranches.map((branch: { id: string; name: string }) => ({
-  branchId: branch.id,
-  branchName: branch.name,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  deposits: bankDeposite.filter((deposit: any) => deposit.branchId === branch.id)
-}));
+// Group bank deposits by visible branches only and sort by newest first
+const depositsByBranch = visibleBranches.map((branch: { id: string; name: string }) => {
+  const branchDeposits = bankDeposite
+    .filter((deposit) => deposit.branchId === branch.id)
+    .sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+  return {
+    branchId: branch.id,
+    branchName: branch.name,
+    deposits: branchDeposits,
+  };
+});
 
   return (
     <div className="flex flex-1 flex-col">
