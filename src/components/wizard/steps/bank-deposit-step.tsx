@@ -47,6 +47,18 @@ export const BankDepositStep: React.FC = () => {
   });
 
   const handleSubmit = useCallback(async (values: z.infer<typeof bankDepositeSchema>): Promise<boolean> => {
+    if (!selectedBranchId) {
+      toast.error("Please select a branch before adding bank deposits");
+      return false;
+    }
+
+    const payload: z.infer<typeof bankDepositeSchema> & { branchId: string } = {
+      ...values,
+      branchId: selectedBranchId,
+      date: values.date ?? commonDate,
+      amount: Number(values.amount ?? 0),
+    };
+
     try {
       // If we're editing, use PUT/PATCH, otherwise use POST
       if (editingIndex !== null) {
@@ -55,7 +67,7 @@ export const BankDepositStep: React.FC = () => {
           const res = await fetch(`/api/bank-deposite/${deposit.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
           
           if (!res.ok) {
@@ -65,13 +77,13 @@ export const BankDepositStep: React.FC = () => {
           }
           
           setAddedDeposits(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, amount: Number(values.amount), id: deposit.id, tempId: deposit.tempId } : item
+            index === editingIndex ? { ...payload, amount: Number(payload.amount), id: deposit.id, tempId: deposit.tempId } : item
           ));
           toast.success("Bank deposit updated successfully");
           setEditingIndex(null);
           form.reset({
             bankId: "",
-            date: new Date(),
+            date: payload.date,
             amount: undefined,
           });
           return true;
@@ -82,7 +94,7 @@ export const BankDepositStep: React.FC = () => {
           const res = await fetch('/api/bank-deposite/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
 
           if (!res.ok) {
@@ -103,14 +115,14 @@ export const BankDepositStep: React.FC = () => {
           
           // Update the local state with the new ID
           setAddedDeposits(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, amount: Number(values.amount), id: depositId, tempId: item.tempId } : item
+            index === editingIndex ? { ...payload, amount: Number(payload.amount), id: depositId, tempId: item.tempId } : item
           ));
           
           toast.success("Deposit updated and saved to database");
           setEditingIndex(null);
           form.reset({
             bankId: "",
-            date: new Date(),
+            date: payload.date,
             amount: undefined,
           });
           router.refresh();
@@ -121,7 +133,7 @@ export const BankDepositStep: React.FC = () => {
         const res = await fetch('/api/bank-deposite/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -142,7 +154,7 @@ export const BankDepositStep: React.FC = () => {
         
         toast.success("Bank deposit added successfully");
         setSavedRecords(prev => ({ ...prev, deposits: prev.deposits + 1 }));
-        const depositWithId = { ...values, amount: Number(values.amount), id: depositId, tempId: `temp_${Date.now()}` };
+        const depositWithId = { ...payload, amount: Number(payload.amount), id: depositId, tempId: `temp_${Date.now()}` };
         setAddedDeposits(prev => [...prev, depositWithId]);
         router.refresh();
         return true;
@@ -152,7 +164,7 @@ export const BankDepositStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedDeposits, form, setAddedDeposits, setSavedRecords, selectedBranchId]);
+  }, [router, editingIndex, addedDeposits, form, setAddedDeposits, setSavedRecords, selectedBranchId, commonDate]);
 
   const handleAddAnother = async () => {
     setIsAdding(true);

@@ -69,6 +69,18 @@ export const ExpenseStep: React.FC = () => {
       return false;
     }
 
+    if (!selectedBranchId) {
+      toast.error("Please select a branch before adding expenses");
+      return false;
+    }
+
+    const payload: z.infer<typeof expenseSchema> & { branchId: string } = {
+      ...values,
+      branchId: selectedBranchId,
+      date: values.date ?? commonDate,
+      amount: Number(values.amount ?? 0),
+    };
+
     try {
       // If we're editing, use PUT/PATCH, otherwise use POST
       if (editingIndex !== null) {
@@ -77,7 +89,7 @@ export const ExpenseStep: React.FC = () => {
           const res = await fetch(`/api/expenses/${expense.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
           
           if (!res.ok) {
@@ -87,14 +99,14 @@ export const ExpenseStep: React.FC = () => {
           }
           
           setAddedExpenses(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, amount: Number(values.amount), id: expense.id, tempId: expense.tempId } : item
+            index === editingIndex ? { ...payload, amount: Number(payload.amount), id: expense.id, tempId: expense.tempId } : item
           ));
           toast.success("Expense updated successfully");
           setEditingIndex(null);
           form.reset({
             description: "",
             amount: undefined,
-            date: new Date(),
+            date: payload.date,
             expenseCategoryId: "",
             bankId: undefined,
             reason: "",
@@ -107,7 +119,7 @@ export const ExpenseStep: React.FC = () => {
           const res = await fetch('/api/expenses/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
 
           if (!res.ok) {
@@ -128,7 +140,7 @@ export const ExpenseStep: React.FC = () => {
           
           // Update the local state with the new ID
           setAddedExpenses(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, amount: Number(values.amount), id: expenseId, tempId: item.tempId } : item
+            index === editingIndex ? { ...payload, amount: Number(payload.amount), id: expenseId, tempId: item.tempId } : item
           ));
           
           toast.success("Expense updated and saved to database");
@@ -136,7 +148,7 @@ export const ExpenseStep: React.FC = () => {
           form.reset({
             description: "",
             amount: undefined,
-            date: new Date(),
+            date: payload.date,
             expenseCategoryId: "",
             bankId: undefined,
             reason: "",
@@ -149,7 +161,7 @@ export const ExpenseStep: React.FC = () => {
         const res = await fetch('/api/expenses/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -170,7 +182,7 @@ export const ExpenseStep: React.FC = () => {
         
         toast.success("Expense created successfully");
         setSavedRecords(prev => ({ ...prev, expenses: prev.expenses + 1 }));
-        const expenseWithId = { ...values, amount: Number(values.amount), id: expenseId, tempId: `temp_${Date.now()}` };
+        const expenseWithId = { ...payload, amount: Number(payload.amount), id: expenseId, tempId: `temp_${Date.now()}` };
         setAddedExpenses(prev => [...prev, expenseWithId]);
         router.refresh();
         return true;
@@ -180,7 +192,7 @@ export const ExpenseStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedExpenses, form, setAddedExpenses, setSavedRecords, exceedsLimit, selectedBranchId]);
+  }, [router, editingIndex, addedExpenses, form, setAddedExpenses, setSavedRecords, exceedsLimit, selectedBranchId, commonDate]);
 
   const handleAddAnother = async () => {
     setIsAdding(true);

@@ -113,6 +113,19 @@ export const ProductsStep: React.FC = () => {
   }, [selectedBranchId]);
 
   const handleSubmit = useCallback(async (values: OilFormValues): Promise<boolean> => {
+    if (!selectedBranchId) {
+      toast.error("Please select a branch before adding products");
+      return false;
+    }
+
+    const payload: OilFormValues & { branchId: string } = {
+      ...values,
+      branchId: selectedBranchId,
+      date: values.date ?? commonDate,
+      quantity: Number(values.quantity ?? 0),
+      price: Number(values.price ?? 0),
+    };
+
     try {
       // If we're editing, use PUT/PATCH, otherwise use POST
       if (editingIndex !== null) {
@@ -121,7 +134,7 @@ export const ProductsStep: React.FC = () => {
           const res = await fetch(`/api/oils/${product.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
           
           if (!res.ok) {
@@ -131,12 +144,12 @@ export const ProductsStep: React.FC = () => {
           }
           
           setAddedProducts(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, price: Number(values.price), id: product.id, tempId: product.tempId } : item
+            index === editingIndex ? { ...payload, price: Number(payload.price), id: product.id, tempId: product.tempId } : item
           ));
           toast.success("Product updated successfully");
           setEditingIndex(null);
           form.reset({
-            date: new Date(),
+            date: payload.date,
             productType: "",
             quantity: undefined,
             price: undefined,
@@ -149,7 +162,7 @@ export const ProductsStep: React.FC = () => {
           const res = await fetch('/api/oils/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
 
           if (!res.ok) {
@@ -170,13 +183,13 @@ export const ProductsStep: React.FC = () => {
           
           // Update the local state with the new ID
           setAddedProducts(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, price: Number(values.price), id: productId, tempId: item.tempId } : item
+            index === editingIndex ? { ...payload, price: Number(payload.price), id: productId, tempId: item.tempId } : item
           ));
           
           toast.success("Product updated and saved to database");
           setEditingIndex(null);
           form.reset({
-            date: new Date(),
+            date: payload.date,
             productType: "",
             quantity: undefined,
             price: undefined,
@@ -189,7 +202,7 @@ export const ProductsStep: React.FC = () => {
         const res = await fetch('/api/oils/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -210,7 +223,7 @@ export const ProductsStep: React.FC = () => {
         
         toast.success("Oil entry created successfully");
         setSavedRecords(prev => ({ ...prev, products: prev.products + 1 }));
-        const productWithId = { ...values, price: Number(values.price), id: productId, tempId: `temp_${Date.now()}` };
+        const productWithId = { ...payload, price: Number(payload.price), id: productId, tempId: `temp_${Date.now()}` };
         setAddedProducts(prev => [...prev, productWithId]);
         router.refresh();
         return true;
@@ -220,7 +233,7 @@ export const ProductsStep: React.FC = () => {
       toast.error("Something went wrong while saving oil entry");
       return false;
     }
-  }, [router, editingIndex, addedProducts, form, setAddedProducts, setSavedRecords, selectedBranchId]);
+  }, [router, editingIndex, addedProducts, form, setAddedProducts, setSavedRecords, selectedBranchId, commonDate]);
 
   const handleAddAnother = async () => {
     setIsAdding(true);

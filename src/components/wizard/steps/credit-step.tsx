@@ -74,6 +74,19 @@ export const CreditStep: React.FC = () => {
       return false;
     }
 
+    if (!selectedBranchId) {
+      toast.error("Please select a branch before adding credits");
+      return false;
+    }
+
+    const payload: z.infer<typeof creditSchema> & { branchId: string } = {
+      ...values,
+      branchId: selectedBranchId,
+      date: values.date ?? commonDate,
+      amount: Number(values.amount ?? 0),
+      quantity: values.quantity != null ? Number(values.quantity) : undefined,
+    };
+
     try {
       // If we're editing, use PUT/PATCH, otherwise use POST
       if (editingIndex !== null) {
@@ -82,7 +95,7 @@ export const CreditStep: React.FC = () => {
           const res = await fetch(`/api/credits/${credit.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
           
           if (!res.ok) {
@@ -92,7 +105,7 @@ export const CreditStep: React.FC = () => {
           }
           
           setAddedCredits(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, amount: Number(values.amount), id: credit.id, tempId: credit.tempId } : item
+            index === editingIndex ? { ...payload, amount: Number(payload.amount), id: credit.id, tempId: credit.tempId } : item
           ));
           toast.success("Credit updated successfully");
           setEditingIndex(null);
@@ -101,7 +114,7 @@ export const CreditStep: React.FC = () => {
             fuelType: "",
             quantity: undefined,
             amount: undefined,
-            date: new Date(),
+            date: payload.date,
             reason: "",
           });
           return true;
@@ -112,7 +125,7 @@ export const CreditStep: React.FC = () => {
           const res = await fetch('/api/credits/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, branchId: selectedBranchId }),
+            body: JSON.stringify(payload),
           });
 
           if (!res.ok) {
@@ -133,7 +146,7 @@ export const CreditStep: React.FC = () => {
           
           // Update the local state with the new ID
           setAddedCredits(prev => prev.map((item, index) => 
-            index === editingIndex ? { ...values, amount: Number(values.amount), id: creditId, tempId: item.tempId } : item
+            index === editingIndex ? { ...payload, amount: Number(payload.amount), id: creditId, tempId: item.tempId } : item
           ));
           
           toast.success("Credit updated and saved to database");
@@ -143,7 +156,7 @@ export const CreditStep: React.FC = () => {
             fuelType: "",
             quantity: undefined,
             amount: undefined,
-            date: new Date(),
+            date: payload.date,
             reason: "",
           });
           router.refresh();
@@ -154,7 +167,7 @@ export const CreditStep: React.FC = () => {
         const res = await fetch('/api/credits/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -175,7 +188,7 @@ export const CreditStep: React.FC = () => {
         
         toast.success("Credits created successfully");
         setSavedRecords(prev => ({ ...prev, credits: prev.credits + 1 }));
-        const creditWithId = { ...values, amount: Number(values.amount), id: creditId, tempId: `temp_${Date.now()}` };
+        const creditWithId = { ...payload, amount: Number(payload.amount), id: creditId, tempId: `temp_${Date.now()}` };
         setAddedCredits(prev => [...prev, creditWithId]);
         router.refresh();
         return true;
@@ -185,7 +198,7 @@ export const CreditStep: React.FC = () => {
       toast.error("Unexpected error occurred");
       return false;
     }
-  }, [router, editingIndex, addedCredits, form, setAddedCredits, setSavedRecords, exceedsLimit, selectedBranchId]);
+  }, [router, editingIndex, addedCredits, form, setAddedCredits, setSavedRecords, exceedsLimit, selectedBranchId, commonDate]);
 
   const handleAddAnother = async () => {
     setIsAdding(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SalesFormValues, salesSchema } from '@/schemas/sales-schema';
@@ -65,7 +65,44 @@ export const SalesStep: React.FC = () => {
     return isNaN(num) ? null : num;
   };
 
+  const sanitizeProductKey = (name: string) =>
+    name.replace(/[.*+?^${}()|[\]\\]/g, '_');
+
+  const productNameMap = useMemo(() => {
+    if (!commonDate || !selectedBranchId) return new Map<string, string>();
+    const map = new Map<string, string>();
+    oilSales
+      .filter((o) => {
+        const itemDate = new Date(o.date).toLocaleDateString();
+        const targetDate = new Date(commonDate).toLocaleDateString();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const branchId = (o as any).branchId as string | undefined;
+        return itemDate === targetDate && branchId === selectedBranchId;
+      })
+      .forEach((o) => {
+        const productName = (o.productType || '').toUpperCase();
+        if (!productName) return;
+        map.set(sanitizeProductKey(productName), productName);
+      });
+    return map;
+  }, [oilSales, commonDate, selectedBranchId]);
+
   const handleSubmit = useCallback(async (values: SalesFormValues): Promise<boolean> => {
+    if (!selectedBranchId) {
+      toast.error("Please select a branch");
+      return false;
+    }
+
+    const productsPayload = values.products
+      ? (() => {
+          const result: Record<string, number> = {};
+          Object.entries(values.products).forEach(([key, val]) => {
+            const originalName = productNameMap.get(key) || key;
+            result[originalName] = safeNumber(val);
+          });
+          return result;
+        })()
+      : {};
     try {
       // Convert ALL values to numbers before sending - ensure no NaN values
       const payload = {
@@ -83,9 +120,7 @@ export const SalesStep: React.FC = () => {
         msPetrolTotal: values.msPetrolTotal !== undefined ? safeNumber(values.msPetrolTotal) : undefined,
         powerPetrolTotal: values.powerPetrolTotal !== undefined ? safeNumber(values.powerPetrolTotal) : undefined,
         // Convert products object - ensure all values are numbers
-        products: values.products ? Object.fromEntries(
-          Object.entries(values.products).map(([key, val]) => [key, safeNumber(val)])
-        ) : {},
+        products: productsPayload,
         // Convert fuelTotals object - ensure all values are numbers
         fuelTotals: values.fuelTotals ? Object.fromEntries(
           Object.entries(values.fuelTotals).map(([key, val]) => [key, safeNumber(val)])
@@ -113,7 +148,7 @@ export const SalesStep: React.FC = () => {
       toast.error("Something went wrong while saving sale");
       return false;
     }
-  }, [router, selectedBranchId]);
+  }, [router, selectedBranchId, productNameMap]);
 
   // Recent meter readings fetch removed – not needed
 
@@ -279,11 +314,12 @@ export const SalesStep: React.FC = () => {
           });
 
           // Ensure all values are valid numbers (no NaN)
-          const cleanedProductsObj: Record<string, number> = {};
-          Object.entries(productsObj).forEach(([key, val]) => {
-            const num = Number(val);
-            cleanedProductsObj[key] = isNaN(num) ? 0 : num;
-          });
+        const cleanedProductsObj: Record<string, number> = {};
+        Object.entries(productsObj).forEach(([key, val]) => {
+          const num = Number(val);
+          const sanitizedKey = sanitizeProductKey(key);
+          cleanedProductsObj[sanitizedKey] = isNaN(num) ? 0 : num;
+        });
 
           form.setValue("products", cleanedProductsObj);
 
@@ -493,25 +529,42 @@ export const SalesStep: React.FC = () => {
               {Array.from(
                 new Set(
                   oilSales
-                    .filter(o => new Date(o.date).toLocaleDateString() === new Date(selectedDate).toLocaleDateString())
+                    .filter(o => {
+                      const itemDate = new Date(o.date).toLocaleDateString();
+                      const targetDate = selectedDate ? new Date(selectedDate).toLocaleDateString() : "";
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const branchId = (o as any).branchId as string | undefined;
+                      return itemDate === targetDate && branchId === selectedBranchId;
+                    })
                     .map(o => (o.productType || '').toUpperCase())
                 )
-              ).map((product) => (
-                <FormField
-                  key={product}
-                  control={form.control}
-                  name={`products.${product}` as `products.${string}`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{product}</FormLabel>
-                      <FormControl>
-                        <Input type="number" readOnly value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
+              ).map((product) => {
+                const sanitizedKey = sanitizeProductKey(product);
+                return (
+                  <FormField
+                    key={product}
+                    control={form.control}
+                    name={`products.${sanitizedKey}` as `products.${string}`}
+                    render={({ field }) => {
+                      const numericValue =
+                        field.value != null
+                          ? isNaN(Number(field.value))
+                            ? 0
+                            : Number(field.value)
+                          : 0;
+                      return (
+                        <FormItem>
+                          <FormLabel>{product}</FormLabel>
+                          <FormControl>
+                            <Input type="number" readOnly value={numericValue} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                );
+              })}
             </div>
 
             {/* Dynamic Fuel Type Fields - Show fields based on branch's fuel products from Product table */}
