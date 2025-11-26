@@ -153,15 +153,17 @@ export async function POST(req: Request) {
     const stockUpdates = new Map<string, number>();
     const nozzleUpdates = new Map<string, number>();
 
-    // Group readings by fuelType to calculate total sales per fuel type
-    const salesByFuelType = new Map<string, number>();
+    // Group readings by branch + fuelType to calculate total sales per branch per fuel type
+    const salesByBranchFuel = new Map<string, number>();
     for (const reading of readingsToCreate) {
-      const currentSale = salesByFuelType.get(reading.fuelType) || 0;
-      salesByFuelType.set(reading.fuelType, currentSale + reading.difference);
+      const key = `${branchId}::${reading.fuelType}`;
+      const currentSale = salesByBranchFuel.get(key) || 0;
+      salesByBranchFuel.set(key, currentSale + reading.difference);
     }
 
-    // Validate stock availability for each fuel type
-    for (const [fuelType, totalSale] of salesByFuelType.entries()) {
+    // Validate stock availability for each branch + fuel type
+    for (const [key, totalSale] of salesByBranchFuel.entries()) {
+      const [, fuelType] = key.split("::");
       const stock = await prisma.stock.findFirst({
         where: { 
           item: fuelType,
@@ -171,14 +173,14 @@ export async function POST(req: Request) {
 
       if (!stock) {
         return NextResponse.json(
-          { error: `Stock not found for ${fuelType}` },
+          { error: `Stock not found for ${fuelType} in branch ${branchId}` },
           { status: 400 }
         );
       }
 
       if (stock.quantity - totalSale < 0) {
         return NextResponse.json(
-          { error: `Insufficient stock for ${fuelType}. Available: ${stock.quantity.toFixed(2)}L, Required: ${totalSale.toFixed(2)}L` },
+          { error: `Insufficient stock for ${fuelType} in branch ${branchId}. Available: ${stock.quantity.toFixed(2)}L, Required: ${totalSale.toFixed(2)}L` },
           { status: 400 }
         );
       }
@@ -217,9 +219,10 @@ export async function POST(req: Request) {
         // Accumulate tank updates
         tankUpdates.set(connectedTank.id, currentTankUpdate + reading.difference);
 
-        // Accumulate stock updates
-        const currentStockUpdate = stockUpdates.get(reading.fuelType) || 0;
-        stockUpdates.set(reading.fuelType, currentStockUpdate + reading.difference);
+        // Accumulate stock updates per branch + fuel type
+        const stockKey = `${branchId}::${reading.fuelType}`;
+        const currentStockUpdate = stockUpdates.get(stockKey) || 0;
+        stockUpdates.set(stockKey, currentStockUpdate + reading.difference);
       }
 
       // Accumulate nozzle updates
@@ -263,7 +266,8 @@ export async function POST(req: Request) {
 
     // Third: Update stocks in parallel - ONLY for the specified branch
     const stockUpdatePromises = Array.from(stockUpdates.entries()).map(
-      async ([fuelType, totalDifference]) => {
+      async ([key, totalDifference]) => {
+        const [, fuelType] = key.split("::");
         try {
           // CRITICAL: Ensure branchId is explicitly set to prevent updating all branches
           const updateResult = await prisma.stock.updateMany({
