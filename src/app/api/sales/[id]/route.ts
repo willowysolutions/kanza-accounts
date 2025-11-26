@@ -87,7 +87,8 @@ export async function PATCH(
           existingSale.branchId, 
           existingSale.date, 
           diff, // Positive or negative amount change
-          tx
+          tx,
+          { carryForwardOnExisting: false }
         );
       }
 
@@ -152,7 +153,8 @@ export async function DELETE(
           existingSale.branchId, 
           existingSale.date, 
           -totalAmountAdded, // Negative amount to decrement the entire amount
-          tx
+          tx,
+          { carryForwardOnExisting: false }
         );
       }
     });

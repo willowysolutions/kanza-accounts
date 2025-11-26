@@ -109,7 +109,13 @@ export async function POST(req: NextRequest) {
       // Update balance receipt with cash payment (positive amount = cash received)
       // Note: Only cash payments affect the cash balance, non-cash payments don't
       if (branchId) {
-        await updateBalanceReceiptIST(branchId, result.data.date, newSale.cashPayment, tx);
+        await updateBalanceReceiptIST(
+          branchId,
+          result.data.date,
+          newSale.cashPayment,
+          tx,
+          { carryForwardOnExisting: true }
+        );
       }
 
       return newSale;

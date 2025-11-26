@@ -5,13 +5,24 @@ import { getISTDateRangeForQuery } from "@/lib/date-utils";
  * IST-aware balance receipt utilities
  * Handles dates in IST timezone consistently
  */
+type BalanceReceiptOptions = {
+  /**
+   * When true, add yesterday's balance even if a balance receipt
+   * already exists for the date (used when sales are saved after
+   * other adjustments like expenses or deposits).
+   */
+  carryForwardOnExisting?: boolean;
+};
+
 export async function updateBalanceReceiptIST(
   branchId: string,
   date: Date,
   amountChange: number,
-  tx?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  tx?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  options?: BalanceReceiptOptions
 ) {
   const prismaClient = tx || prisma;
+  const { carryForwardOnExisting = false } = options || {};
   
   // Convert the date to IST date string using the same logic as report modal
   const dateString = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -31,8 +42,10 @@ export async function updateBalanceReceiptIST(
   if (existingReceipt) {
     // For sales, we need to add yesterday's balance + cash payment to existing receipt
     if (amountChange > 0) {
-      // This is a sale - add yesterday's balance + cash payment to existing amount
-      const previousBalance = await getPreviousDayBalanceIST(branchId, date, prismaClient);
+      // This is a sale - optionally add yesterday's balance before incrementing
+      const previousBalance = carryForwardOnExisting
+        ? await getPreviousDayBalanceIST(branchId, date, prismaClient)
+        : 0;
       const newAmount = existingReceipt.amount + previousBalance + amountChange;
       
       const result = await prismaClient.balanceReceipt.update({
