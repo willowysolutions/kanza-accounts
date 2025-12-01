@@ -65,6 +65,7 @@ export function PurchasePaymentFormDialog({
       amount: payments?.amount || undefined,
       paymentMethod: payments?.paymentMethod || "",
       paidOn: payments?.paidOn || new Date(),
+      description: payments?.description || "",
     },
   });
 
@@ -239,6 +240,21 @@ export function PurchasePaymentFormDialog({
             )}
           />
         </div>
+
+        {/* Optional Description */}
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem className="mt-4">
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Description" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormDialogFooter>
           <DialogClose asChild>

@@ -67,6 +67,8 @@ export function PaymentFormDialog({
       amount: payments?.amount || undefined,
       paymentMethod: payments?.paymentMethod || "",
       paidOn: payments?.paidOn || new Date(),
+      branchId: payments?.branchId || userBranchId || "",
+      description: payments?.description || "",
     },
   });
 
@@ -149,7 +151,9 @@ export function PaymentFormDialog({
           onValueChange={setSelectedBranchId}
           userRole={userRole}
           userBranchId={userBranchId}
-          isEditMode={!!payments}
+          // Payments dialog is always treated as "create" for branch users,
+          // so only admins can change the branch selection.
+          isEditMode={false}
         />
 
         {/* Customer */}
@@ -260,6 +264,21 @@ export function PaymentFormDialog({
             )}
           />
         </div>
+
+        {/* Optional Description */}
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem className="mt-4">
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Description" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormDialogFooter>
           <DialogClose asChild>

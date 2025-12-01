@@ -54,6 +54,10 @@ export const paymentHistoryColumns = (userRole?: string): ColumnDef<PaymentHisto
       header: "Payment Method",
     },
     {
+      accessorKey: "description",
+      header: "Description",
+    },
+    {
       accessorKey: "paidOn",
       header: "Date",
       cell: ({ row }) => {

@@ -198,6 +198,7 @@ model CustomerPayment {
   branch         Branch?   @relation(fields: [branchId], references: [id])
 
   reason        String?
+  description   String?
   amount        Float
   paymentMethod String
   paidOn        DateTime
@@ -215,6 +216,7 @@ model SupplierPayment {
   branchId      String?   @db.ObjectId
   branch        Branch?   @relation(fields: [branchId], references: [id])
 
+  description   String?
   amount        Float
   paymentMethod String
   paidOn        DateTime
@@ -238,6 +240,7 @@ model PaymentHistory {
 
   paidAmount    Float
   paymentMethod String
+  description   String?
   paidOn        DateTime
 
   createdAt DateTime @default(now())

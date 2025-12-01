@@ -22,6 +22,7 @@ export default function PaymentTable({
     creditGiven?: number;
     customer?: { name?: string; outstandingPayments?: number };
     supplier?: { name?: string; outstandingPayments?: number };
+    description?: string | null;
   }[];
   type: "customer" | "supplier";
   pagination?: {
@@ -80,6 +81,7 @@ export default function PaymentTable({
               <TableHead className="text-white">Amount Received</TableHead>
               <TableHead className="text-white">Outstanding Payments</TableHead>
               <TableHead className="text-white">Method</TableHead>
+              <TableHead className="text-white">Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -105,11 +107,12 @@ export default function PaymentTable({
                       : p.supplier?.outstandingPayments ?? 0}
                   </TableCell>
                   <TableCell>{p.paymentMethod}</TableCell>
+                  <TableCell>{p.description ?? "-"}</TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   No {type} payments found
                 </TableCell>
               </TableRow>
@@ -129,6 +132,7 @@ export default function PaymentTable({
                   return sum + outstanding;
                 }, 0).toLocaleString()}
               </TableCell>
+              <TableCell>-</TableCell>
               <TableCell>-</TableCell>
             </TableRow>
           </TableFooter>

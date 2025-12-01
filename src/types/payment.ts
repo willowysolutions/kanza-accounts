@@ -35,6 +35,7 @@ export interface PaymentFormData {
   paymentMethod: string;
   paidOn: Date;
   customerName?: string;
+  description?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -47,6 +48,7 @@ export interface SupplierPaymentFormData {
   paymentMethod: string;
   paidOn: Date;
   supplierName?: string;
+  description?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

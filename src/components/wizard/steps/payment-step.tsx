@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) => {
   const [openPayment, setOpenPayment] = useState(false);
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData | null>(null);
-  const { commonDate, addedPayments, setAddedPayments, selectedBranchId } = useWizard();
+  const { commonDate, addedPayments, setAddedPayments, selectedBranchId, userRole } = useWizard();
 
   const handleOpenPayment = () => {
     setPaymentFormData({
@@ -40,7 +40,8 @@ const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) => {
           amount: paymentData.amount, // Use 'amount' for customerPaymentSchema
           paymentMethod: paymentData.paymentMethod,
           paidOn: paymentData.paidOn,
-          branchId: selectedBranchId
+          branchId: selectedBranchId,
+          description: paymentData.description,
         }),
       });
 
@@ -84,6 +85,8 @@ const PaymentButton = ({ customer }: { customer: PaymentWithCustomer }) => {
           openChange={setOpenPayment}
           payments={paymentFormData}
           onPaymentAdded={handleAddPayment}
+          userBranchId={selectedBranchId || undefined}
+          userRole={userRole}
         />
       )}
     </div>

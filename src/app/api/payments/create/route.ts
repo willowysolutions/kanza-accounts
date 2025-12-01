@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     // Use branchId from form data if provided, otherwise fall back to session branch
     const branchId = result.data.branchId || session?.user?.branch;
 
-    const { customerId, amount, paymentMethod, paidOn } = result.data;
+    const { customerId, amount, paymentMethod, paidOn, description } = result.data;
 
     // ✅ Validate date is not present or future (only allow past dates)
     const { getCurrentDateIST } = await import("@/lib/date-utils");
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
           paymentMethod: paymentMethod,
           paidAmount: amount,
           paidOn: paidOn,
+          description,
         },
       });
 

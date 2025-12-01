@@ -49,9 +49,10 @@ export async function POST(req: NextRequest) {
         data: {
           supplierId,
           branchId,
-          paymentMethod:paymentMethod,
-          paidAmount:amount,
+          paymentMethod: paymentMethod,
+          paidAmount: amount,
           paidOn: paidOn,
+          // description is supported in schema; keep out of type until client is regenerated
         },
       }),
     ]);
