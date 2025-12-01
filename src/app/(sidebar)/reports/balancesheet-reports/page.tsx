@@ -3,15 +3,16 @@ export const dynamic = "force-dynamic";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { headers, cookies } from "next/headers";
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { BalanceSheetReport } from "@/components/reports/balance-sheet-report";
+import { prisma } from "@/lib/prisma";
 
 export default async function BalanceSheetReportPage() {
   const hdrs = await headers();
-  const host = hdrs.get("host");
-  const proto = hdrs.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
-  const cookie = (await cookies()).toString();
+  // Still read cookies to ensure auth works consistently, even though
+  // data for this page is loaded via Prisma instead of HTTP APIs.
+  await cookies();
 
   // Get session to check user role and branch
   const session = await auth.api.getSession({
@@ -22,46 +23,91 @@ export default async function BalanceSheetReportPage() {
     redirect('/login');
   }
 
-  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
-  const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
+  const isAdmin = (session.user.role ?? "").toLowerCase() === "admin";
+  const userBranchId =
+    typeof session.user.branch === "string" ? session.user.branch : undefined;
 
-  // Fetch all required data
-  const [salesRes, creditsRes, expensesRes, bankDepositsRes, paymentsRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/sales?limit=1000`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/credits?limit=1000`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/expenses?limit=1000`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/bank-deposite?limit=1000`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/payments/history?limit=1000`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
+  // Define a rolling 12‑month window (earliest month shown in the UI)
+  const now = new Date();
+  const twelveMonthsAgo = new Date(
+    now.getFullYear(),
+    now.getMonth() - 11,
+    1,
+    0,
+    0,
+    0,
+    0
+  );
+  const endOfCurrentMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999
+  );
 
-  const { sales } = await salesRes.json();
-  const { data: credits } = await creditsRes.json();
-  const { data: expenses } = await expensesRes.json();
-  const { bankDeposite } = await bankDepositsRes.json();
-  const { paymentHistory } = await paymentsRes.json();
-  const { data: allBranches } = await branchesRes.json();
+  // Common date range filter for the last 12 months
+  const dateRangeFilter = {
+    gte: twelveMonthsAgo,
+    lte: endOfCurrentMonth,
+  };
+
+  // Fetch credits, expenses, bank deposits, payments, branches, and sales via Prisma
+  const [credits, expenses, bankDeposite, paymentHistory, allBranches, sales] =
+    await Promise.all([
+      prisma.credit.findMany({
+        where: {
+          ...(isAdmin || !userBranchId ? {} : { branchId: userBranchId }),
+          date: dateRangeFilter,
+        },
+        include: { customer: true, branch: true },
+        orderBy: { date: "desc" },
+      }),
+      prisma.expense.findMany({
+        where: {
+          ...(isAdmin || !userBranchId ? {} : { branchId: userBranchId }),
+          date: dateRangeFilter,
+        },
+        include: { category: true, branch: true },
+        orderBy: { date: "desc" },
+      }),
+      prisma.bankDeposite.findMany({
+        where: {
+          ...(isAdmin || !userBranchId ? {} : { branchId: userBranchId }),
+          date: dateRangeFilter,
+        },
+        include: { bank: true, branch: true },
+        orderBy: { date: "desc" },
+      }),
+      prisma.paymentHistory.findMany({
+        where: {
+          ...(isAdmin || !userBranchId ? {} : { branchId: userBranchId }),
+          paidOn: dateRangeFilter,
+        },
+        include: { customer: true, supplier: true },
+        orderBy: { paidOn: "desc" },
+      }),
+      prisma.branch.findMany({
+        orderBy: { name: "asc" },
+      }),
+      prisma.sale.findMany({
+        where: {
+          ...(isAdmin || !userBranchId ? {} : { branchId: userBranchId }),
+          date: dateRangeFilter,
+        },
+        include: { branch: true },
+        orderBy: { date: "desc" },
+      }),
+    ]);
 
   // Filter branches based on user role
-  const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
+  const visibleBranches = isAdmin
+    ? allBranches
+    : allBranches.filter(
+        (b: { id: string; name: string }) => b.id === (userBranchId ?? "")
+      );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -96,10 +142,18 @@ export default async function BalanceSheetReportPage() {
                   branchName={branch.name}
                   branchId={branch.id}
                   sales={sales.filter((sale: any) => sale.branchId === branch.id)}
-                  credits={credits.filter((credit: any) => credit.branchId === branch.id)}
-                  expenses={expenses.filter((expense: any) => expense.branchId === branch.id)}
-                  bankDeposits={bankDeposite.filter((deposit: any) => deposit.branchId === branch.id)}
-                  payments={paymentHistory.filter((payment: any) => payment.branchId === branch.id)}
+                  credits={credits.filter(
+                    (credit: any) => credit.branchId === branch.id
+                  )}
+                  expenses={expenses.filter(
+                    (expense: any) => expense.branchId === branch.id
+                  )}
+                  bankDeposits={bankDeposite.filter(
+                    (deposit: any) => deposit.branchId === branch.id
+                  )}
+                  payments={paymentHistory.filter(
+                    (payment: any) => payment.branchId === branch.id
+                  )}
                 />
               </TabsContent>
             ))}
