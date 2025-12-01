@@ -196,6 +196,10 @@ export function BalanceSheetReport({
     };
   }, [sales, credits, expenses, bankDeposits, payments, getDateRangeForFilter]);
 
+  // Extract the active start/end dates once for passing to history modals
+  const activeStartDate = getDateRangeForFilter.startDate;
+  const activeEndDate = getDateRangeForFilter.endDate;
+
   // Calculate all products (unfiltered) for dropdown options
   const allProducts = useMemo(() => {
     const productTotals: { [key: string]: number } = {};
@@ -317,22 +321,32 @@ export function BalanceSheetReport({
 
   // Calculate customer data with opening balance, outstanding amount, debit (credits), and credit (payments)
   const customerCreditReceivedData = useMemo(() => {
-    // Calculate month start and end dates in UTC format (18:30:00)
-    // Start of month = last day of previous month at 18:30:00 UTC
-    // End of month = last day of selected month at 18:30:00 UTC
+    // Calculate month start and end dates in local time (IST via browser clock)
+    // monthStartDate = first day of selected month 00:00:00
+    // monthEndDate   = last day of selected month 23:59:59.999
     let monthStartDate: Date | undefined;
     let monthEndDate: Date | undefined;
     
     if (dateFilter === "month" && selectedDate) {
-      // Start of selected month = last day of previous month at 18:30:00 UTC
-      const lastDayOfPrevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0);
-      monthStartDate = new Date(lastDayOfPrevMonth);
-      monthStartDate.setUTCHours(18, 30, 0, 0);
+      monthStartDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        1,
+        0,
+        0,
+        0,
+        0
+      );
       
-      // End of selected month = last day of selected month at 18:30:00 UTC
-      const lastDayOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-      monthEndDate = new Date(lastDayOfMonth);
-      monthEndDate.setUTCHours(18, 30, 0, 0);
+      monthEndDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
     }
     
     // Create a map of customer data from the customers array
@@ -730,7 +744,12 @@ export function BalanceSheetReport({
                 </thead>
                 <tbody>
                   {customerCreditReceivedData.map((item, index) => (
-                    <CustomerTableRow key={item.customerId || index} item={item} />
+                    <CustomerTableRow
+                      key={item.customerId || index}
+                      item={item}
+                      activeStartDate={activeStartDate}
+                      activeEndDate={activeEndDate}
+                    />
                   ))}
                   {customerCreditReceivedData.length === 0 && (
                     <tr>
@@ -1077,7 +1096,9 @@ export function BalanceSheetReport({
       {selectedCategoryForHistory && (
         <ExpenseCategoryHistoryModal
           categoryName={selectedCategoryForHistory}
-          branchId={branchId}
+          defaultFrom={activeStartDate}
+          defaultTo={activeEndDate}
+          expenses={filteredData.expenses}
           open={isHistoryModalOpen}
           onOpenChange={setIsHistoryModalOpen}
         />
@@ -1087,7 +1108,9 @@ export function BalanceSheetReport({
       {selectedPaymentMethodForHistory && (
         <PaymentMethodHistoryModal
           paymentMethod={selectedPaymentMethodForHistory}
-          branchId={branchId}
+          sales={filteredData.sales}
+          defaultFrom={activeStartDate}
+          defaultTo={activeEndDate}
           open={isPaymentMethodHistoryModalOpen}
           onOpenChange={setIsPaymentMethodHistoryModalOpen}
         />
@@ -1096,6 +1119,8 @@ export function BalanceSheetReport({
         <BankDepositHistoryModal
           bankName={selectedBankForHistory}
           branchId={branchId}
+          defaultFrom={activeStartDate}
+          defaultTo={activeEndDate}
           open={isBankHistoryModalOpen}
           onOpenChange={setIsBankHistoryModalOpen}
         />
@@ -1105,15 +1130,21 @@ export function BalanceSheetReport({
 }
 
 // Customer Table Row Component with clickable name
-function CustomerTableRow({ item }: { 
-  item: { 
+function CustomerTableRow({
+  item,
+  activeStartDate,
+  activeEndDate,
+}: {
+  item: {
     customerId?: string;
-    customerName: string; 
-    openingBalance: number; 
+    customerName: string;
+    openingBalance: number;
     outstandingAmount: number;
-    debitTotal: number; 
+    debitTotal: number;
     creditTotal: number;
-  } 
+  };
+  activeStartDate?: Date;
+  activeEndDate?: Date;
 }) {
   const [openHistory, setOpenHistory] = useState(false);
 
@@ -1130,6 +1161,8 @@ function CustomerTableRow({ item }: {
         customerId={item.customerId}
         open={openHistory}
         onOpenChange={setOpenHistory}
+        defaultFrom={activeStartDate}
+        defaultTo={activeEndDate}
       />
     </>
   ) : (

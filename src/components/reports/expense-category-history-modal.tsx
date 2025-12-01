@@ -37,20 +37,25 @@ type ExpenseHistoryItem = {
 
 export function ExpenseCategoryHistoryModal({
   categoryName,
-  branchId,
   open,
   onOpenChange,
+  defaultFrom,
+  defaultTo,
+  expenses,
 }: {
   categoryName: string;
-  branchId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultFrom?: Date;
+  defaultTo?: Date;
+  // Pre-filtered expenses for this branch and current balance-sheet date range
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expenses?: any[];
 }) {
   const [history, setHistory] = useState<ExpenseHistoryItem[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   // Reset temp date range when popover opens
   useEffect(() => {
@@ -59,38 +64,27 @@ export function ExpenseCategoryHistoryModal({
     }
   }, [isPopoverOpen, dateRange]);
 
+  // Initialize date range from defaults (e.g. selected month in balance sheet)
+  useEffect(() => {
+    if (!open || !defaultFrom || !defaultTo) return;
+    const range: DateRange = { from: new Date(defaultFrom), to: new Date(defaultTo) };
+    setDateRange(range);
+    setTempDateRange(range);
+  }, [open, defaultFrom, defaultTo]);
+
+  // Base expenses list: use pre-filtered expenses from balance sheet when provided
   useEffect(() => {
     if (!open) return;
-    
-    setLoading(true);
-    // Fetch expenses by category
-    const params = new URLSearchParams({
-      limit: '1000', // Get all expenses for this category
-    });
-    
-    if (branchId) {
-      params.append('branchId', branchId);
-    }
 
-    fetch(`/api/expenses?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data) {
-          // Filter by category name
-          const filteredExpenses = data.data.filter(
-            (expense: ExpenseHistoryItem) => 
-              expense.category?.name === categoryName
-          );
-          setHistory(filteredExpenses);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching expense history:", error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [open, categoryName, branchId]);
+    if (expenses && Array.isArray(expenses)) {
+      const filtered = (expenses as ExpenseHistoryItem[]).filter(
+        (expense) => expense.category?.name === categoryName
+      );
+      setHistory(filtered);
+    } else {
+      setHistory([]);
+    }
+  }, [open, expenses, categoryName]);
 
   // Filtered history based on date range
   const filteredHistory = useMemo(() => {
@@ -235,16 +229,7 @@ export function ExpenseCategoryHistoryModal({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={3}
-                    className="text-center text-muted-foreground"
-                  >
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : sortedHistory.length === 0 ? (
+              {sortedHistory.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={3}

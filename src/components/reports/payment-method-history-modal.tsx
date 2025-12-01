@@ -39,20 +39,24 @@ type PaymentHistoryItem = {
 
 export function PaymentMethodHistoryModal({
   paymentMethod,
-  branchId,
   open,
   onOpenChange,
+  sales,
+  defaultFrom,
+  defaultTo,
 }: {
   paymentMethod: string;
-  branchId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // Pre-filtered sales for this branch and current balance-sheet date range
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sales?: any[];
+  defaultFrom?: Date;
+  defaultTo?: Date;
 }) {
-  const [history, setHistory] = useState<PaymentHistoryItem[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   // Reset temp date range when popover opens
   useEffect(() => {
@@ -61,48 +65,38 @@ export function PaymentMethodHistoryModal({
     }
   }, [isPopoverOpen, dateRange]);
 
+  // Initialize date range from defaults (e.g. selected month in balance sheet)
   useEffect(() => {
-    if (!open) return;
-    
-    setLoading(true);
-    // Fetch sales by payment method
-    const params = new URLSearchParams({
-      limit: '1000', // Get all sales for this payment method
-    });
-    
-    if (branchId) {
-      params.append('branchId', branchId);
-    }
+    if (!open || !defaultFrom || !defaultTo) return;
+    const range: DateRange = { from: new Date(defaultFrom), to: new Date(defaultTo) };
+    setDateRange(range);
+    setTempDateRange(range);
+  }, [open, defaultFrom, defaultTo]);
 
-    fetch(`/api/sales?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.sales) {
-          // Filter by payment method and only include sales that have this payment method > 0
-          const filteredSales = data.sales.filter((sale: PaymentHistoryItem) => {
-            switch (paymentMethod) {
-              case "Cash":
-                return (sale.cashPayment || 0) > 0;
-              case "ATM":
-                return (sale.atmPayment || 0) > 0;
-              case "Paytm":
-                return (sale.paytmPayment || 0) > 0;
-              case "Fleet":
-                return (sale.fleetPayment || 0) > 0;
-              default:
-                return false;
-            }
-          });
-          setHistory(filteredSales);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching payment method history:", error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [open, paymentMethod, branchId]);
+  // Base sales list: use pre-filtered sales from balance sheet when provided
+  const baseSales: PaymentHistoryItem[] = useMemo(() => {
+    // If no sales passed in, just use empty list (modal will show no records)
+    if (!sales || !Array.isArray(sales)) return [];
+    return sales as PaymentHistoryItem[];
+  }, [sales]);
+
+  // Filter by payment method and only include rows where that method amount > 0
+  const history = useMemo(() => {
+    return baseSales.filter((sale: PaymentHistoryItem) => {
+      switch (paymentMethod) {
+        case "Cash":
+          return (sale.cashPayment || 0) > 0;
+        case "ATM":
+          return (sale.atmPayment || 0) > 0;
+        case "Paytm":
+          return (sale.paytmPayment || 0) > 0;
+        case "Fleet":
+          return (sale.fleetPayment || 0) > 0;
+        default:
+          return false;
+      }
+    });
+  }, [baseSales, paymentMethod]);
 
   // Filtered history based on date range
   const filteredHistory = useMemo(() => {
@@ -263,16 +257,7 @@ export function PaymentMethodHistoryModal({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={3}
-                    className="text-center text-muted-foreground"
-                  >
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : sortedHistory.length === 0 ? (
+              {sortedHistory.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={3}

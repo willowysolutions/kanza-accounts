@@ -39,11 +39,15 @@ export function BankDepositHistoryModal({
   branchId,
   open,
   onOpenChange,
+  defaultFrom,
+  defaultTo,
 }: {
   bankName: string;
   branchId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultFrom?: Date;
+  defaultTo?: Date;
 }) {
   const [history, setHistory] = useState<BankDepositHistoryItem[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -57,6 +61,14 @@ export function BankDepositHistoryModal({
       setTempDateRange(dateRange);
     }
   }, [isPopoverOpen, dateRange]);
+
+  // Initialize date range from defaults (e.g. selected month in balance sheet)
+  useEffect(() => {
+    if (!open || !defaultFrom || !defaultTo) return;
+    const range: DateRange = { from: new Date(defaultFrom), to: new Date(defaultTo) };
+    setDateRange(range);
+    setTempDateRange(range);
+  }, [open, defaultFrom, defaultTo]);
 
   useEffect(() => {
     if (!open) return;

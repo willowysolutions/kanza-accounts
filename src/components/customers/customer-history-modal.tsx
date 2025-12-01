@@ -56,10 +56,14 @@ export function CustomerHistoryModal({
   customerId,
   open,
   onOpenChange,
+  defaultFrom,
+  defaultTo,
 }: {
   customerId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultFrom?: Date;
+  defaultTo?: Date;
 }) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
@@ -74,6 +78,14 @@ export function CustomerHistoryModal({
       setTempDateRange(dateRange);
     }
   }, [isPopoverOpen, dateRange]);
+
+  // Initialize date range from defaults (e.g. selected month in balance sheet)
+  useEffect(() => {
+    if (!open || !defaultFrom || !defaultTo) return;
+    const range: DateRange = { from: new Date(defaultFrom), to: new Date(defaultTo) };
+    setDateRange(range);
+    setTempDateRange(range);
+  }, [open, defaultFrom, defaultTo]);
 
   useEffect(() => {
     if (!open) return;
