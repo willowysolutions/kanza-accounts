@@ -27,35 +27,54 @@ export default async function MeterReadingPage({
   const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
-  // Get pagination parameters
-  const params = await searchParams;
-  const page = typeof params.page === "string" ? parseInt(params.page) : 1;
-  
   // 🔹 Forward cookies
   const cookie = cookies().toString();
-  
-  // 🔹 Fetch meter readings, sales, and branches (oils will be fetched by the table component)
-  const [meterReadingRes, salesRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/meterreadings`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/sales?page=${page}&limit=15`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
-  
-  const { withDifference } = await meterReadingRes.json();
-  const { sales, pagination } = await salesRes.json();
+  const params = await searchParams;
+
+  // Get pagination parameters
+  const page = typeof params.page === "string" ? parseInt(params.page) : 1;
+
+  // 🔹 Fetch branches first so we can determine the active branch for admin pagination
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+
   const { data: allBranches } = await branchesRes.json();
 
   // Filter branches based on user role
-  const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
+  const visibleBranches = isAdmin
+    ? allBranches
+    : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ""));
+
+  // Determine which branch's report we are viewing
+  const branchFromQuery =
+    typeof params.branchId === "string" ? params.branchId : undefined;
+
+  const activeBranchId =
+    branchFromQuery ||
+    (!isAdmin ? userBranchId : undefined) ||
+    visibleBranches[0]?.id;
+
+  // 🔹 Fetch meter readings (all branches; per-branch filtering is done client-side)
+  const meterReadingRes = await fetch(`${proto}://${host}/api/meterreadings`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+
+  // 🔹 Fetch sales for the active branch only so pagination is branch-specific
+  let salesUrl = `${proto}://${host}/api/sales?page=${page}&limit=15`;
+  if (activeBranchId) {
+    salesUrl += `&branchId=${activeBranchId}`;
+  }
+
+  const salesRes = await fetch(salesUrl, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+
+  const { withDifference } = await meterReadingRes.json();
+  const { sales, pagination } = await salesRes.json();
   
   return (
     <div className="flex flex-1 flex-col">
@@ -65,6 +84,7 @@ export default async function MeterReadingPage({
         sales={sales}
         branches={visibleBranches}
         userRole={session.user.role || undefined}
+        initialBranchId={activeBranchId}
         salesPagination={pagination}
         currentPage={page}
       />

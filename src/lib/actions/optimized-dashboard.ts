@@ -104,7 +104,7 @@ export async function getOptimizedDashboardData(branchId?: string) {
         select: { date: true },
       }),
 
-      // All sales - paginated approach
+      // All sales - full history for dashboard branch sales report
       prisma.sale.findMany({
         where: branchFilter,
         include: {
@@ -113,7 +113,6 @@ export async function getOptimizedDashboardData(branchId?: string) {
           }
         },
         orderBy: { date: "desc" },
-        take: 100, // Limit for performance
       }),
 
       // Customers - paginated approach with all required fields

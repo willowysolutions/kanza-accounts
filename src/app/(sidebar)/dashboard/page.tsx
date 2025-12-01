@@ -93,10 +93,10 @@ const purchaseData = groupByMonth(monthlyPurchases, "purchasePrice");
       initialSalesData={salesData}
       initialPurchaseData={purchaseData}
       allSales={transformedSales}
-      customers={customers as Customer[]}
-      role={session.user.role}
-      userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
-      page={page}
+          customers={customers as Customer[]}
+          role={session.user.role}
+          userBranchId={typeof session.user.branch === 'string' ? session.user.branch : undefined}
+          page={page}
       stocksByBranch={stocksByBranch}
     />
   );

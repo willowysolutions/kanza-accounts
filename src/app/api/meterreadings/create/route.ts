@@ -175,14 +175,14 @@ export async function POST(req: NextRequest) {
             }
             
             // ✅ Safe to decrement tank
-            await prisma.tank.update({
-              where: { id: connectedTank.id },
-              data: {
-                currentLevel: {
-                  decrement: difference,
+              await prisma.tank.update({
+                where: { id: connectedTank.id },
+                data: {
+                  currentLevel: {
+                    decrement: difference,
+                  },
                 },
-              },
-            });
+              });
             
             // ✅ Update stock for the specific branch only
             const updateResult = await prisma.stock.updateMany({

@@ -746,28 +746,28 @@ export const MeterReadingStep: React.FC = () => {
                     .reduce((sum, r) => sum + (r.sale || 0), 0);
                   const remainingStock = currentStock - totalSale;
                   
-                  return (
+                return (
                     <div key={fuelType} className="text-xs">
                       <div className="font-medium">{fuelType}:</div>
                       <div className={`${remainingStock < 0 ? 'text-red-600 font-semibold' : 'text-muted-foreground'}`}>
                         {remainingStock.toFixed(2)}L
-                      </div>
+                        </div>
                     </div>
                   );
                 })}
-              </div>
-            </div>
+                    </div>
+                  </div>
 
             {/* Complete Button - Bottom Right */}
             <div className="w-full sm:w-auto">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={markCurrentStepCompleted}
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={markCurrentStepCompleted}
                 className="w-full sm:w-auto"
-              >
-                Complete
-              </Button>
+            >
+              Complete
+            </Button>
             </div>
           </div>
         </CardContent>

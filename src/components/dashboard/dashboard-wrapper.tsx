@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/utils";
 import { formatDisplayDate } from "@/lib/date-utils";
 import { convertToISTDateString } from "@/lib/date-utils";
 import { Customer } from "@/types/customer";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Separate component for the customer name button (defined before use)
 function CustomerNameButton({ customer }: { customer: Customer }) {
@@ -87,6 +88,9 @@ export function DashboardWrapper({
     ? branches
     : branches.filter((b) => b.id === (userBranchId ?? ""));
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Common branch selector state - ensure we have a valid initial value
   const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
     if (visibleBranches.length > 0 && visibleBranches[0]?.id) {
@@ -108,6 +112,29 @@ export function DashboardWrapper({
     Array<{ item: string; quantity: number }>
   >([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+
+  // Keep selectedBranchId in sync with URL branchId (for reloads / direct links)
+  useEffect(() => {
+    const branchParam = searchParams.get("branchId");
+    if (branchParam && branchParam !== selectedBranchId) {
+      setSelectedBranchId(branchParam);
+    }
+  }, [searchParams, selectedBranchId]);
+
+  // Helper to build pagination hrefs while preserving current query params
+  const buildPageHref = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(newPage));
+    return `?${params.toString()}`;
+  };
+
+  const handleBranchChange = (branchId: string) => {
+    setSelectedBranchId(branchId);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("branchId", branchId);
+    params.set("page", "0"); // Reset pagination when branch changes
+    router.push(`?${params.toString()}`);
+  };
 
   // Fetch products and stocks for the selected branch
   useEffect(() => {
@@ -423,7 +450,7 @@ export function DashboardWrapper({
           <div className="w-full">
             <Tabs
               value={selectedBranchId}
-              onValueChange={setSelectedBranchId}
+              onValueChange={handleBranchChange}
               className="w-full"
             >
               <TabsList className="flex flex-wrap gap-2 w-full justify-start">
@@ -556,18 +583,18 @@ export function DashboardWrapper({
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={`?page=${Math.max(page - 1, 0)}`}
+                    href={buildPageHref(Math.max(page - 1, 0))}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                      !customerPages.hasPrevious ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                      !customerPages.hasPrevious ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
                     }`}
                     aria-disabled={!customerPages.hasPrevious}
                   >
                     Previous
                   </a>
                   <a
-                    href={`?page=${page + 1}`}
+                    href={buildPageHref(page + 1)}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                      !customerPages.hasNext ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                      !customerPages.hasNext ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
                     }`}
                     aria-disabled={!customerPages.hasNext}
                   >
@@ -678,18 +705,20 @@ export function DashboardWrapper({
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={`?page=${Math.max(page - 1, 0)}`}
+                    href={buildPageHref(Math.max(page - 1, 0))}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                      page <= 0 ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                      page <= 0 ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
                     }`}
                     aria-disabled={page <= 0}
                   >
                     Previous
                   </a>
                   <a
-                    href={`?page=${page + 1}`}
+                    href={buildPageHref(page + 1)}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                      page >= Math.ceil(branchSalesMap.size / 5) - 1 ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                      page >= Math.ceil(branchSalesMap.size / 5) - 1
+                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        : ""
                     }`}
                     aria-disabled={page >= Math.ceil(branchSalesMap.size / 5) - 1}
                   >

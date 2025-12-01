@@ -812,11 +812,11 @@ return (
 
             {/* Action Buttons - Bottom Right */}
             <div className="flex gap-2 w-full sm:w-auto">
-              <SheetClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </SheetClose>
+            <SheetClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </SheetClose>
 
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (

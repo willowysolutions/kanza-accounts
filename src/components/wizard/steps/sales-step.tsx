@@ -541,9 +541,9 @@ export const SalesStep: React.FC = () => {
               ).map((product) => {
                 const sanitizedKey = sanitizeProductKey(product);
                 return (
-                  <FormField
-                    key={product}
-                    control={form.control}
+                <FormField
+                  key={product}
+                  control={form.control}
                     name={`products.${sanitizedKey}` as `products.${string}`}
                     render={({ field }) => {
                       const numericValue =
@@ -553,16 +553,16 @@ export const SalesStep: React.FC = () => {
                             : Number(field.value)
                           : 0;
                       return (
-                        <FormItem>
-                          <FormLabel>{product}</FormLabel>
-                          <FormControl>
+                    <FormItem>
+                      <FormLabel>{product}</FormLabel>
+                      <FormControl>
                             <Input type="number" readOnly value={numericValue} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                       );
                     }}
-                  />
+                />
                 );
               })}
             </div>

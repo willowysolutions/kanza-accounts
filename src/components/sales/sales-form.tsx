@@ -776,9 +776,9 @@ useEffect(() => {
             // Sanitize product name for use as form field key (replace special regex characters)
             const sanitizedKey = product.replace(/[.*+?^${}()|[\]\\]/g, '_');
             return (
-              <FormField
-                key={product}
-                control={form.control}
+            <FormField
+              key={product}
+              control={form.control}
                 name={`products.${sanitizedKey}` as `products.${string}`}
                 render={({ field }) => {
                   // Ensure value is always a number for display, defaulting to 0
@@ -787,16 +787,16 @@ useEffect(() => {
                     : 0;
                   
                   return (
-                    <FormItem>
-                      <FormLabel>{product}</FormLabel>
-                      <FormControl>
+                <FormItem>
+                  <FormLabel>{product}</FormLabel>
+                  <FormControl>
                         <Input type="number" readOnly value={numericValue} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
                   );
                 }}
-              />
+            />
             );
           })}
         </div>

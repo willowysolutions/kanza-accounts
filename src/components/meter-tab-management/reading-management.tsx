@@ -55,6 +55,7 @@ type MeterTabManagementProps = {
   sales: Sales[];
   branches: { id: string; name: string }[];
   userRole?: string;
+  initialBranchId?: string;
   salesPagination?: {
     currentPage: number;
     totalPages: number;
@@ -66,19 +67,51 @@ type MeterTabManagementProps = {
   currentPage: number;
 };
 
-export default function MeterTabManagement({ meterReading, oil, sales, branches, userRole, salesPagination, currentPage }: MeterTabManagementProps) {
-    const [activeTab, setActiveTab] = useState("meter-reading");
-    const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
-    const router = useRouter();
-    const searchParams = useSearchParams();
+export default function MeterTabManagement({
+  meterReading,
+  oil,
+  sales,
+  branches,
+  userRole,
+  initialBranchId,
+  salesPagination,
+  currentPage,
+}: MeterTabManagementProps) {
+  const [activeTab, setActiveTab] = useState("meter-reading");
+  const [activeBranch, setActiveBranch] = useState(
+    initialBranchId || branches[0]?.id || ""
+  );
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-    // Check for tab parameter in URL and set active tab
-    useEffect(() => {
-      const tabParam = searchParams.get('tab');
-      if (tabParam && ['meter-reading', 'other-Products', 'report'].includes(tabParam)) {
-        setActiveTab(tabParam);
-      }
-    }, [searchParams]);
+  // Keep activeBranch in sync with server-selected branchId when URL changes
+  useEffect(() => {
+    const branchParam = searchParams.get("branchId");
+    if (branchParam && branchParam !== activeBranch) {
+      setActiveBranch(branchParam);
+    }
+  }, [searchParams, activeBranch]);
+
+  // Check for tab parameter in URL and set active tab
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam &&
+      ["meter-reading", "other-Products", "report"].includes(tabParam)
+    ) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleBranchChange = (branchId: string) => {
+    setActiveBranch(branchId);
+
+    // Preserve existing search params, but update branchId and reset page to 1
+    const current = new URLSearchParams(searchParams.toString());
+    current.set("branchId", branchId);
+    current.set("page", "1");
+    router.push(`?${current.toString()}`);
+  };
 
     // Group data by branch
     const dataByBranch = branches.map((branch) => ({
@@ -108,7 +141,7 @@ export default function MeterTabManagement({ meterReading, oil, sales, branches,
         </div>
 
         {/* Branch Tabs */}
-        <Tabs value={activeBranch} onValueChange={setActiveBranch} className="w-full">
+        <Tabs value={activeBranch} onValueChange={handleBranchChange} className="w-full">
           <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
             {branches.map((branch) => (
               <TabsTrigger key={branch.id} value={branch.id}>

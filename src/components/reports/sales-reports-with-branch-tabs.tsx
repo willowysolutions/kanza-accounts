@@ -131,11 +131,11 @@ export function SalesReportsWithBranchTabs({
                               }}
                               className="text-blue-600 hover:underline cursor-pointer"
                             >
-                              {new Date(sale.date).toLocaleDateString('en-GB', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric'
-                              })}
+                            {new Date(sale.date).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
                             </button>
                           </TableCell>
                           <TableCell className="text-right">

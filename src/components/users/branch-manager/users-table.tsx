@@ -143,8 +143,8 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
   };
 
   const handleEditClick = (user: User) => {
-    setEditingUser(user);
-    setShowEditDialog(true);
+  setEditingUser(user);
+  setShowEditDialog(true);
   };
 
   const handleViewClick = (user: User) => {
