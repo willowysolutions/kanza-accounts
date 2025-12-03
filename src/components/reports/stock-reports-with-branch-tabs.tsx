@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -15,16 +15,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
-import { FilterSelect } from "@/components/filters/filter-select";
-import { CustomDateFilter } from "@/components/filters/custom-date-filter";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { DateRange } from "react-day-picker";
 import { StockReportExport } from "@/components/reports/stock-report-export";
-import { PaginationControls } from "@/components/ui/pagination-controls";
+import { format } from "date-fns";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { IconFileExport } from "@tabler/icons-react";
 
 type StockReportItem = {
   product: string;
-  date: Date | string;
-  purchaseQty: number;
-  saleQty: number;
   balanceStock: number;
 };
 
@@ -71,13 +80,47 @@ export function StockReportsWithBranchTabs({
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProductFilter, setSelectedProductFilter] = useState(productName || "all");
+  const [selectedProductForModal, setSelectedProductForModal] = useState<string | null>(null);
+  const [modalDateRange, setModalDateRange] = useState<DateRange | undefined>();
+  const [modalTempDateRange, setModalTempDateRange] = useState<DateRange | undefined>();
+  const [isModalPopoverOpen, setIsModalPopoverOpen] = useState(false);
 
-  // Server-side pagination navigation
-  const goToPage = (page: number) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', page.toString());
-    window.location.href = url.toString();
-  };
+  // Month filter options (reuse approach from balance sheet: last 12 months up to current)
+  const monthOptions = useMemo(() => {
+    const options: { value: string; label: string }[] = [];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = format(d, "MMMM yyyy");
+      options.push({ value, label });
+    }
+
+    return options;
+  }, []);
+
+  // Determine initial month (from URL range if present, otherwise current month)
+  const initialMonthBase = useMemo(() => {
+    if (from) return from;
+    return new Date();
+  }, [from]);
+
+  const initialMonthString = useMemo(
+    () =>
+      `${initialMonthBase.getFullYear()}-${String(
+        initialMonthBase.getMonth() + 1
+      ).padStart(2, "0")}`,
+    [initialMonthBase]
+  );
+
+  const [selectedMonth, setSelectedMonth] = useState(initialMonthString);
+
+  const selectedMonthLabel = useMemo(
+    () => monthOptions.find((m) => m.value === selectedMonth)?.label ?? "",
+    [monthOptions, selectedMonth]
+  );
 
   // Get unique products from the active branch only for filter dropdown
   const allProducts = useMemo(() => {
@@ -92,7 +135,7 @@ export function StockReportsWithBranchTabs({
   }, [stockReportsByBranch, activeBranch]);
 
   // Get filtered and searched data for active branch
-  const getFilteredData = (branchId: string) => {
+  const getFilteredData = useCallback((branchId: string) => {
     const branchData = stockReportsByBranch.find(b => b.branchId === branchId);
     if (!branchData) return [];
 
@@ -103,19 +146,150 @@ export function StockReportsWithBranchTabs({
       filtered = filtered.filter(item => item.product === selectedProductFilter);
     }
 
-    // Search filter
+    // Search filter (by product name only)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(item => 
-        item.product.toLowerCase().includes(query) ||
-        formatDate(item.date).toLowerCase().includes(query)
+      filtered = filtered.filter((item) =>
+        item.product.toLowerCase().includes(query)
       );
     }
 
     return filtered;
-  };
+  }, [selectedProductFilter, searchQuery, stockReportsByBranch]);
 
   const filteredData = getFilteredData(activeBranch);
+
+  // Aggregate by product for main table: show only product and available stock
+  // Deduplicate by product so each product appears only once
+  const aggregatedByProduct = useMemo(() => {
+    const data = getFilteredData(activeBranch);
+    const byProduct = new Map<string, number>();
+
+    data.forEach((item) => {
+      // Last balanceStock wins; all rows for a product should have same stock anyway
+      byProduct.set(item.product, item.balanceStock);
+    });
+
+    return Array.from(byProduct.entries())
+      .map(([product, availableStock]) => ({ product, availableStock }))
+      .sort((a, b) => a.product.localeCompare(b.product));
+  }, [activeBranch, getFilteredData]);
+
+  // History data for modal: fetched separately via API for the selected product
+  type ProductHistoryItem = {
+    date: string;
+    purchaseQty: number;
+    saleQty: number;
+  };
+
+  const [productHistory, setProductHistory] = useState<ProductHistoryItem[]>([]);
+
+  // Fetch base history for selected product & month when modal opens
+  useEffect(() => {
+    if (!selectedProductForModal) {
+      setProductHistory([]);
+      return;
+    }
+
+    const fetchHistory = async () => {
+      try {
+        const params = new URLSearchParams({
+          productName: selectedProductForModal,
+          branchId: activeBranch,
+        });
+        if (from) params.set("from", from.toISOString());
+        if (to) params.set("to", to.toISOString());
+
+        const res = await fetch(`/api/stocks/product-history?${params.toString()}`);
+        if (!res.ok) {
+          setProductHistory([]);
+          return;
+        }
+        const json = await res.json();
+        setProductHistory(json.history || []);
+      } catch {
+        setProductHistory([]);
+      }
+    };
+
+    fetchHistory();
+  }, [selectedProductForModal, activeBranch, from, to]);
+
+  // Apply optional custom date range inside the modal
+  const historyForSelectedProduct = useMemo(() => {
+    let base = [...productHistory];
+
+    if (modalDateRange?.from && modalDateRange?.to) {
+      const start = new Date(modalDateRange.from);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(modalDateRange.to);
+      end.setHours(23, 59, 59, 999);
+
+      base = base.filter((item) => {
+        const d = new Date(item.date);
+        return d >= start && d <= end;
+      });
+    }
+
+    return base.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }, [productHistory, modalDateRange]);
+
+  const handleExportHistoryPDF = () => {
+    if (!selectedProductForModal || historyForSelectedProduct.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    doc.setFontSize(14);
+
+    const monthPart = selectedMonthLabel || "All Dates";
+    doc.text(
+      `Stock History - ${selectedProductForModal} (${monthPart})`,
+      40,
+      40
+    );
+
+    const tableBody = historyForSelectedProduct.map((item) => [
+      format(new Date(item.date), "dd/MM/yyyy"),
+      item.purchaseQty.toFixed(2),
+      item.saleQty.toFixed(2),
+    ]);
+
+    autoTable(doc, {
+      startY: 70,
+      head: [["Date", "Purchase Qty", "Sale Qty"]],
+      body: tableBody,
+      theme: "grid",
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [253, 224, 71], textColor: 0 },
+    });
+
+    const safeProduct = selectedProductForModal.replace(/\s+/g, "-");
+    const safeMonth = monthPart.replace(/\s+/g, "-");
+    doc.save(`Stock-History-${safeProduct}-${safeMonth}.pdf`);
+  };
+
+  // Month change handler: updates URL with from/to for the selected month
+  const handleMonthChange = (value: string) => {
+    setSelectedMonth(value);
+    if (!value) return;
+
+    const [yearStr, monthStr] = value.split("-");
+    const year = Number(yearStr);
+    const monthIndex = Number(monthStr) - 1; // 0-based
+
+    if (Number.isNaN(year) || Number.isNaN(monthIndex)) return;
+
+    const fromDate = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+    const toDate = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("filter", "custom");
+    url.searchParams.set("from", fromDate.toISOString());
+    url.searchParams.set("to", toDate.toISOString());
+    url.searchParams.set("page", "1");
+    window.location.href = url.toString();
+  };
 
 
   // Handle product filter change
@@ -153,9 +327,27 @@ export function StockReportsWithBranchTabs({
             <h1 className="text-2xl font-bold tracking-tight">Stock Reports</h1>
             <p className="text-muted-foreground">Stock reports by branch</p>
           </div>
-          <div className="flex gap-3">
-            <FilterSelect defaultValue={filter} />
-            <CustomDateFilter />
+          <div className="flex gap-3 items-end">
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-muted-foreground">
+                Month
+              </span>
+              <Select
+                value={selectedMonth}
+                onValueChange={handleMonthChange}
+              >
+                <SelectTrigger className="w-[220px] bg-white">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -225,36 +417,48 @@ export function StockReportsWithBranchTabs({
 
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableCaption>A summary of stock movements.</TableCaption>
+                      <TableCaption>Current stock by product.</TableCaption>
                       <TableHeader className="bg-blue-950">
                         <TableRow>
                           <TableHead className="text-white">Product</TableHead>
-                          <TableHead className="text-white">Date</TableHead>
-                          <TableHead className="text-white text-right">Purchase Qty</TableHead>
-                          <TableHead className="text-white text-right">Sale Qty</TableHead>
-                          <TableHead className="text-white text-right">Balance Stock</TableHead>
+                          <TableHead className="text-white text-right">
+                            Available Stock
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredData.length === 0 ? (
+                        {aggregatedByProduct.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                            <TableCell
+                              colSpan={2}
+                              className="text-center text-muted-foreground"
+                            >
                               No stock records found for this branch
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredData.map((item, index) => (
-                            <TableRow key={`${item.product}-${item.date}-${index}`}>
+                          aggregatedByProduct.map((item) => (
+                            <TableRow
+                              key={item.product}
+                              className="cursor-pointer hover:bg-muted"
+                              onClick={() =>
+                                setSelectedProductForModal(item.product)
+                              }
+                            >
                               <TableCell className="font-medium">
-                                {item.product}
+                                <button
+                                  type="button"
+                                  className="text-blue-600 hover:underline cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedProductForModal(item.product);
+                                  }}
+                                >
+                                  {item.product}
+                                </button>
                               </TableCell>
-                              <TableCell>
-                                {formatDate(item.date)}
-                              </TableCell>
-                              <TableCell className="text-right">{item.purchaseQty.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">{item.saleQty.toFixed(2)}</TableCell>
                               <TableCell className="text-right font-medium">
-                                {item.balanceStock.toFixed(2)}
+                                {item.availableStock.toFixed(2)}
                               </TableCell>
                             </TableRow>
                           ))
@@ -262,19 +466,150 @@ export function StockReportsWithBranchTabs({
                       </TableBody>
                     </Table>
                   </div>
-                  
-                  {/* Pagination Controls */}
-                  {branchPagination && branchPagination.totalCount > 0 && (
-                    <PaginationControls
-                      currentPage={branchPagination.currentPage}
-                      totalPages={branchPagination.totalPages}
-                      onPageChange={goToPage}
-                      totalItems={branchPagination.totalCount}
-                      itemsPerPage={branchPagination.limit}
-                    />
-                  )}
                 </CardContent>
               </Card>
+
+              {/* Product history modal: purchase & sale qty by date */}
+              <Dialog
+                open={!!selectedProductForModal}
+                onOpenChange={(open) =>
+                  setSelectedProductForModal(open ? selectedProductForModal : null)
+                }
+              >
+                <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>
+                      Stock History - {selectedProductForModal}
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  {/* Modal filters & export */}
+                  <div className="mb-3 flex gap-3 items-center justify-between">
+                    <Popover
+                      open={isModalPopoverOpen}
+                      onOpenChange={(open) => {
+                        setIsModalPopoverOpen(open);
+                        if (open) {
+                          setModalTempDateRange(modalDateRange);
+                        }
+                      }}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="flex items-center gap-2 bg-white"
+                        >
+                          <CalendarIcon className="h-4 w-4" />
+                          {modalDateRange?.from && modalDateRange?.to
+                            ? `${format(
+                                modalDateRange.from,
+                                "dd/MM/yyyy"
+                              )} - ${format(
+                                modalDateRange.to,
+                                "dd/MM/yyyy"
+                              )}`
+                            : "Pick date range"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="range"
+                          selected={modalTempDateRange || modalDateRange}
+                          onSelect={setModalTempDateRange}
+                          numberOfMonths={2}
+                        />
+                        <div className="p-3 border-t flex gap-2">
+                          {(modalTempDateRange?.from &&
+                            modalTempDateRange?.to) ||
+                          (modalDateRange?.from && modalDateRange?.to) ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => {
+                                  setModalTempDateRange(undefined);
+                                  setModalDateRange(undefined);
+                                  setIsModalPopoverOpen(false);
+                                }}
+                              >
+                                Clear
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => {
+                                  setModalDateRange(modalTempDateRange);
+                                  setIsModalPopoverOpen(false);
+                                }}
+                                disabled={
+                                  !modalTempDateRange?.from ||
+                                  !modalTempDateRange?.to
+                                }
+                              >
+                                Apply
+                              </Button>
+                            </>
+                          ) : null}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
+                    <Button
+                      onClick={handleExportHistoryPDF}
+                      disabled={
+                        !selectedProductForModal ||
+                        historyForSelectedProduct.length === 0
+                      }
+                      className="bg-black text-white flex items-center gap-2"
+                    >
+                      <IconFileExport className="h-4 w-4" />
+                      Export
+                    </Button>
+                  </div>
+
+                  <div className="overflow-x-auto max-h-[60vh]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead className="text-right">
+                            Purchase Qty
+                          </TableHead>
+                          <TableHead className="text-right">Sale Qty</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {historyForSelectedProduct.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={3}
+                              className="text-center text-muted-foreground"
+                            >
+                              No history for this product in the selected range.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          historyForSelectedProduct.map((item, index) => (
+                            <TableRow
+                              key={`${item.date}-${index}`}
+                            >
+                              <TableCell>{formatDate(item.date)}</TableCell>
+                              <TableCell className="text-right">
+                                {item.purchaseQty.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {item.saleQty.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
           ))}
         </Tabs>

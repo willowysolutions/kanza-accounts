@@ -8,9 +8,6 @@ import { format } from "date-fns";
 
 type StockReportItem = {
   product: string;
-  date: Date | string;
-  purchaseQty: number;
-  saleQty: number;
   balanceStock: number;
 };
 
@@ -51,19 +48,16 @@ export function StockReportExport({
     
     doc.text(title, 40, 40);
 
-    // Prepare table data
+    // Prepare table data: product + current available stock
     const tableBody = stockReport.map((item) => [
       item.product,
-      format(new Date(item.date), "dd/MM/yyyy"),
-      item.purchaseQty.toFixed(2),
-      item.saleQty.toFixed(2),
       item.balanceStock.toFixed(2),
     ]);
 
     // Generate PDF table
     autoTable(doc, {
       startY: 60,
-      head: [["Product", "Date", "Purchase Qty", "Sale Qty", "Balance Stock"]],
+      head: [["Product", "Available Stock"]],
       body: tableBody,
       theme: "grid",
       styles: { fontSize: 9, cellPadding: 3 },

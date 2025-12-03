@@ -68,15 +68,6 @@ export async function GET(req: Request) {
       (requestedBranchId ? { branchId: requestedBranchId } : {}) : 
       { branchId };
 
-    // Get pagination parameters
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '15');
-    const skip = (page - 1) * limit;
-    
-    // For custom date range, disable pagination and return all data
-    const isCustomDateRange = filter === 'custom' && (from || to);
-    const finalLimit = isCustomDateRange ? undefined : limit;
-    const finalSkip = isCustomDateRange ? undefined : skip;
 
     // Add date filtering
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -230,26 +221,20 @@ export async function GET(req: Request) {
       return a.product.localeCompare(b.product);
     });
 
-    // Get total count before pagination
+    // Get total count (no pagination – return all rows)
     const totalCount = stockReport.length;
 
-    // Apply pagination
-    const paginatedStockReport = isCustomDateRange 
-      ? stockReport 
-      : stockReport.slice(finalSkip, finalSkip !== undefined && finalLimit !== undefined ? finalSkip + finalLimit : undefined);
-
-    const totalPages = isCustomDateRange ? 1 : Math.ceil(totalCount / limit);
-
     return NextResponse.json({ 
-      data: paginatedStockReport,
+      data: stockReport,
       totalCount,
-      pagination: isCustomDateRange ? undefined : {
-        currentPage: page,
-        totalPages,
+      // Keep pagination shape for backwards compatibility, but it's effectively single-page
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
         totalCount,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
-        limit
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: totalCount,
       }
     }, { status: 200 });
   } catch (error) {
