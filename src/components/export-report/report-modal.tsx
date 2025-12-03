@@ -160,12 +160,7 @@ doc.rect(marginX, 30, pageWidth - marginX * 2, headerHeight, "F");
 // Title (centered within table width)
 doc.setFontSize(14);
 doc.setFont("helvetica", "bold");
-doc.text("IBP AUTO SERVICES", pageWidth / 2, 50, { align: "center" });
-
-// Subtitle
-doc.setFontSize(12);
-doc.setFont("helvetica", "normal");
-doc.text(report.branchName || "COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
+doc.text(report.branchName || "BRANCH NAME", pageWidth / 2, 65, { align: "center" });
 
 // Date (right aligned with table edge)
 doc.setFontSize(11);
@@ -359,7 +354,7 @@ if (report.oils.length > 0) {
 });
 
   // Create filename with branch name and date
-  const branchNameForFile = (report.branchName || "COCO-KONDOTTY").replace(/\s+/g, '-');
+  const branchNameForFile = (report.branchName || "BRANCH NAME").replace(/\s+/g, '-');
   const dateStr = date && formatDate(date);
   doc.save(`Daily-Report-${branchNameForFile}-${dateStr}.pdf`);
 };

@@ -149,14 +149,57 @@ export function CustomerHistoryModal({
     });
   }, [filter, dateRange, history]);
 
-  // Sort by date and calculate running balance starting from openingBalance
+  // Calculate opening balance based on date range (same logic as balance sheet)
+  const calculatedOpeningBalance = useMemo(() => {
+    if (!customer) return 0;
+    
+    // Determine the start date for calculation
+    let startDate: Date | undefined;
+    
+    if (dateRange?.from) {
+      // Use the date range start
+      startDate = new Date(dateRange.from);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (defaultFrom) {
+      // Use defaultFrom if provided
+      startDate = new Date(defaultFrom);
+      startDate.setHours(0, 0, 0, 0);
+    }
+    
+    // If no start date, use base opening balance
+    if (!startDate) {
+      return customer.openingBalance || 0;
+    }
+    
+    // Calculate credits and payments before the start date
+    // Use ALL history items (not filtered) to calculate opening balance
+    const creditsBeforeStart = history
+      .filter((item) => {
+        if (item.type !== "credit") return false;
+        const itemDate = new Date(item.date);
+        return itemDate < startDate!;
+      })
+      .reduce((sum, item) => sum + (item.amount || 0), 0);
+    
+    const paymentsBeforeStart = history
+      .filter((item) => {
+        if (item.type !== "payment") return false;
+        const itemDate = new Date(item.date);
+        return itemDate < startDate!;
+      })
+      .reduce((sum, item) => sum + (item.amount || 0), 0);
+    
+    // Opening balance = base opening + credits before start - payments before start
+    return (customer.openingBalance || 0) + creditsBeforeStart - paymentsBeforeStart;
+  }, [customer, history, dateRange, defaultFrom]);
+
+  // Sort by date and calculate running balance starting from calculated opening balance
   const historyWithBalance = useMemo(() => {
     const sorted = [...filteredHistory].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-    // Start with opening balance
-    const startingBalance = customer?.openingBalance || 0;
-    let runningBalance = startingBalance;
+    // Start with calculated opening balance
+    let runningBalance = calculatedOpeningBalance;
     return sorted.map((item) => {
       if (item.type === "credit") {
         // Credit increases the balance (customer owes more)
@@ -167,10 +210,13 @@ export function CustomerHistoryModal({
       }
       return { ...item, balance: runningBalance };
     });
-  }, [filteredHistory, customer]);
+  }, [filteredHistory, calculatedOpeningBalance]);
 
-  // Total should match the customer's outstandingPayments
-  const total = customer?.outstandingPayments || 0;
+  // Total should be the final balance after all transactions in the filtered period
+  // This matches the logic: month 1st pending = next month opening balance
+  const total = historyWithBalance.length > 0 
+    ? historyWithBalance[historyWithBalance.length - 1].balance 
+    : calculatedOpeningBalance;
 
   const customerName = customer?.name || history[0]?.customer;
 
@@ -181,19 +227,21 @@ export function CustomerHistoryModal({
     doc.setFontSize(14);
     doc.text(`Customer Statement - ${customerName || "Unknown"}`, 40, 40);
 
-    const openingBalance = customer?.openingBalance || 0;
     autoTable(doc, {
       startY: 70,
       head: [["Date", "Opening Balance", "Fuel Type", "Quantity", "Debit", "Credit", "Balance"]],
-      body: historyWithBalance.map((h) => [
-        new Date(h.date).toLocaleDateString(),
-        `${openingBalance.toLocaleString()}`,
-        h.fuelType || "-",
-        h.quantity || "-",
-        h.type === "credit" ? `${h.amount}` : "-",
-        h.type === "payment" ? `${h.amount}` : "-",
-        `${h.balance.toLocaleString()}`,
-      ]),
+      body: historyWithBalance.map((h) => {
+        // Show the same calculated opening balance for ALL transactions in the selected period
+        return [
+          new Date(h.date).toLocaleDateString(),
+          `${calculatedOpeningBalance.toLocaleString()}`,
+          h.fuelType || "-",
+          h.quantity || "-",
+          h.type === "credit" ? `${h.amount.toLocaleString()}` : "-",
+          h.type === "payment" ? `${h.amount.toLocaleString()}` : "-",
+          `${h.balance.toLocaleString()}`,
+        ];
+      }),
       theme: "grid",
       styles: { fontSize: 10, cellPadding: 3 },
       headStyles: { fillColor: [253, 224, 71], textColor: 0 },
@@ -315,7 +363,7 @@ export function CustomerHistoryModal({
                 </TableRow>
               )}
               {historyWithBalance.map((item) => {
-                const openingBalance = customer?.openingBalance || 0;
+                // Show the same calculated opening balance for ALL transactions in the selected period
                 return (
                   <TableRow key={item.id}>
                     <TableCell>
@@ -324,13 +372,13 @@ export function CustomerHistoryModal({
                     <TableCell>{item.fuelType ?? "-"}</TableCell>
                     <TableCell>{item.quantity ?? "-"}</TableCell>
                     <TableCell>
-                      ₹{openingBalance.toLocaleString()}
+                      ₹{calculatedOpeningBalance.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right text-red-600">
-                      {item.type === "credit" ? `₹${item.amount}` : "-"}
+                      {item.type === "credit" ? `₹${item.amount.toLocaleString()}` : "-"}
                     </TableCell>
                     <TableCell className="text-right text-green-600">
-                      {item.type === "payment" ? `₹${item.amount}` : "-"}
+                      {item.type === "payment" ? `₹${item.amount.toLocaleString()}` : "-"}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       ₹{item.balance.toLocaleString()}

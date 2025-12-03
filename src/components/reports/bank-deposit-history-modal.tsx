@@ -32,6 +32,7 @@ type BankDepositHistoryItem = {
   amount: number;
   bank?: { bankName?: string; name?: string } | null;
   branch?: { name: string } | null;
+  description?: string;
 };
 
 export function BankDepositHistoryModal({
@@ -244,6 +245,7 @@ export function BankDepositHistoryModal({
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead className="text-right">Amount (₹)</TableHead>
               </TableRow>
             </TableHeader>
@@ -272,6 +274,9 @@ export function BankDepositHistoryModal({
                     <TableCell>
                       {format(new Date(item.date), "dd/MM/yyyy")}
                     </TableCell>
+                    <TableCell>
+                      {item.description || "-"}
+                    </TableCell>
                     <TableCell className="text-right font-medium">
                       ₹{(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </TableCell>
@@ -285,6 +290,7 @@ export function BankDepositHistoryModal({
                 <TableCell className="text-right font-bold">
                   Total
                 </TableCell>
+                <TableCell/>
                 <TableCell className="text-right font-bold">
                   ₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </TableCell>

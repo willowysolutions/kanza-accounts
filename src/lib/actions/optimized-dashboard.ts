@@ -144,6 +144,74 @@ export async function getOptimizedDashboardData(branchId?: string) {
       }
     });
 
+    // Calculate current month's opening balance for each customer
+    // Current month start = first day of current month 00:00:00
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+
+    // Get all customer IDs
+    const customerIds = customers.map(c => c.id);
+
+    // Fetch all credits before current month start
+    const creditsBeforeMonth = await prisma.credit.findMany({
+      where: {
+        customerId: { in: customerIds },
+        date: { lt: currentMonthStart }
+      },
+      select: {
+        customerId: true,
+        amount: true
+      }
+    });
+
+    // Fetch all payments before current month start
+    const paymentsBeforeMonth = await prisma.customerPayment.findMany({
+      where: {
+        customerId: { in: customerIds },
+        paidOn: { lt: currentMonthStart }
+      },
+      select: {
+        customerId: true,
+        amount: true
+      }
+    });
+
+    // Group credits and payments by customer
+    const creditsByCustomer = new Map<string, number>();
+    creditsBeforeMonth.forEach(credit => {
+      if (credit.customerId) {
+        const current = creditsByCustomer.get(credit.customerId) || 0;
+        creditsByCustomer.set(credit.customerId, current + (credit.amount || 0));
+      }
+    });
+
+    const paymentsByCustomer = new Map<string, number>();
+    paymentsBeforeMonth.forEach(payment => {
+      if (payment.customerId) {
+        const current = paymentsByCustomer.get(payment.customerId) || 0;
+        paymentsByCustomer.set(payment.customerId, current + (payment.amount || 0));
+      }
+    });
+
+    // Calculate opening balance for current month for each customer
+    const customersWithCalculatedOpening = customers.map(customer => {
+      const creditsBefore = creditsByCustomer.get(customer.id) || 0;
+      const paymentsBefore = paymentsByCustomer.get(customer.id) || 0;
+      const calculatedOpeningBalance = (customer.openingBalance || 0) + creditsBefore - paymentsBefore;
+      
+      return {
+        ...customer,
+        calculatedOpeningBalance // Add calculated opening balance for current month
+      };
+    });
+
     return {
       todaysSales: todaysSales._sum.rate || 0,
       todaysRate,
@@ -155,7 +223,7 @@ export async function getOptimizedDashboardData(branchId?: string) {
       recentSales,
       lastMeterReading: lastMeterReading?.date,
       allSales,
-      customers,
+      customers: customersWithCalculatedOpening,
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);

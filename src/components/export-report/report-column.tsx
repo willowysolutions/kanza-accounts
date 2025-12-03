@@ -307,13 +307,8 @@ const SalesActions = ({ sales, userRole, userBranchId }: { sales: Sales; userRol
   // Title (centered within table width)
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text("IBP AUTO SERVICES", pageWidth / 2, 50, { align: "center" });
-  
-  // Subtitle
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.text(reportData.branchName || "COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
-  
+  doc.text(reportData.branchName || "BRANCH NAME", pageWidth / 2, 65, { align: "center" });  
+
   // Date (right aligned with table edge)
   doc.setFontSize(11);
   doc.text(`${formatDate(sales.date)}`, pageWidth - marginX, 50, {
@@ -517,7 +512,7 @@ const SalesActions = ({ sales, userRole, userBranchId }: { sales: Sales; userRol
   });
   
     // Create filename with branch name and date
-    const branchNameForFile = (reportData.branchName || "COCO-KONDOTTY").replace(/\s+/g, '-');
+    const branchNameForFile = (reportData.branchName || "BRANCH NAME").replace(/\s+/g, '-');
     const dateStr = formatDate(sales.date);
     doc.save(`Daily-Report-${branchNameForFile}-${dateStr}.pdf`);
     } catch (error) {

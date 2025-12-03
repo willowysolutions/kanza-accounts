@@ -54,12 +54,7 @@ export function DownloadReportButton({ date, branchId }: DownloadReportButtonPro
       // Title (centered within table width)
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("IBP AUTO SERVICES", pageWidth / 2, 50, { align: "center" });
-
-      // Subtitle
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text(reportData.branchName || "COCO KONDOTTY", pageWidth / 2, 65, { align: "center" });
+      doc.text(reportData.branchName || "BRANCH NAME", pageWidth / 2, 65, { align: "center" });
 
       // Date (right aligned with table edge) - Convert UTC date to IST
       doc.setFontSize(11);
@@ -215,6 +210,9 @@ export function DownloadReportButton({ date, branchId }: DownloadReportButtonPro
       const receiptRows: TableRowData[] = [
         [{ content: "SALE", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, reportData.totals.totalSale],
         [{ content: "BALANCE RECEIPT", colSpan: 2 , styles: { halign: "center", underline: true, fontStyle: "bold" }}, reportData.totals.totalBalanceReceipt],
+        // Customer Payments
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...reportData.customerPayments.map((cp: any) => [{ content: cp.customer.name, colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, cp.amount] as TableRowData),
         [{ content: "", colSpan: 2 },{content: reportData.totals.salesAndBalaceReceipt, styles: { fillColor: [253, 224, 71]}}],
         [{ content: "EXPENSES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, reportData.totals.expenseSum.toFixed(2)],
         [{ content: "BANK DEPOSITES", colSpan: 2, styles: { halign: "center", underline: true, fontStyle: "bold" } }, ""],
@@ -281,7 +279,7 @@ export function DownloadReportButton({ date, branchId }: DownloadReportButtonPro
       });
 
       // Create filename with branch name and date
-      const branchNameForFile = (reportData.branchName || "COCO-KONDOTTY").replace(/\s+/g, '-');
+      const branchNameForFile = (reportData.branchName || "BRANCH NAME").replace(/\s+/g, '-');
       const dateStr = formatDate(date);
       doc.save(`Daily-Report-${branchNameForFile}-${dateStr}.pdf`);
     } catch (error) {

@@ -137,7 +137,7 @@ function CustomerRow({ customer }: { customer: Customer }) {
       <td className="p-2">
         <CustomerNameButton customer={customer} />
       </td>
-      <td className="p-2">₹{customer.openingBalance?.toFixed(2) || '0.00'}</td>
+      <td className="p-2">₹{((customer as { calculatedOpeningBalance?: number }).calculatedOpeningBalance ?? customer.openingBalance)?.toFixed(2) || '0.00'}</td>
       <td className={`p-2 ${(() => {
         const limit = (customer as { limit?: number }).limit;
         return limit && customer.outstandingPayments > limit ? 'text-red-600 font-semibold' : '';

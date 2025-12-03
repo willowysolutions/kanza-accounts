@@ -476,14 +476,12 @@ export function BalanceSheetReport({
   // Calculate payment methods data from sales
   const paymentMethodsData = useMemo(() => {
     const methodTotals: { [key: string]: number } = {
-      'Cash': 0,
       'ATM': 0,
       'Paytm': 0,
       'Fleet': 0,
     };
     
     filteredData.sales.forEach((sale) => {
-      methodTotals['Cash'] += sale.cashPayment || 0;
       methodTotals['ATM'] += sale.atmPayment || 0;
       methodTotals['Paytm'] += sale.paytmPayment || 0;
       methodTotals['Fleet'] += sale.fleetPayment || 0;

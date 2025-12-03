@@ -42,6 +42,16 @@ export const customerColumns = (userRole?: string, userBranchId?: string): Colum
   {
     accessorKey: "openingBalance",
     header: "Opening",
+    cell: ({ row }) => {
+      const customer = row.original;
+      // Use calculatedOpeningBalance if available (for current month), otherwise use base openingBalance
+      const openingBalance = (customer as { calculatedOpeningBalance?: number }).calculatedOpeningBalance ?? customer.openingBalance;
+      return (
+        <div className="px-3">
+          {openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "outstandingPayments",
@@ -54,7 +64,7 @@ export const customerColumns = (userRole?: string, userBranchId?: string): Colum
 
       return (
         <div className={`px-3 ${exceedsLimit ? 'text-red-600 font-semibold' : ''}`}>
-          {pendingAmount}
+          {pendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
         </div>
       );
     },
