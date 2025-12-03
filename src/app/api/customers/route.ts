@@ -58,17 +58,12 @@ export async function GET(req: NextRequest) {
     });
 
     // Calculate current month's opening balance for each customer
-    // Current month start = first day of current month 00:00:00
-    const now = new Date();
-    const currentMonthStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-      0,
-      0,
-      0,
-      0
-    );
+    // Use IST-aware date calculation (same logic as balance sheet report)
+    // Current month start = first day of current month 00:00:00 in IST
+    const { getCurrentDateIST, getStartOfDayIST } = await import("@/lib/date-utils");
+    const istNow = getCurrentDateIST();
+    const monthStartDate = new Date(istNow.getFullYear(), istNow.getMonth(), 1);
+    const currentMonthStart = getStartOfDayIST(monthStartDate);
 
     // Get all customer IDs
     const customerIds = customers.map(c => c.id);

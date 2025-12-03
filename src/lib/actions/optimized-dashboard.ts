@@ -145,16 +145,11 @@ export async function getOptimizedDashboardData(branchId?: string) {
     });
 
     // Calculate current month's opening balance for each customer
-    // Current month start = first day of current month 00:00:00
-    const currentMonthStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1,
-      0,
-      0,
-      0,
-      0
-    );
+    // Use IST-aware date calculation (same logic as balance sheet report)
+    // Current month start = first day of current month 00:00:00 in IST
+    const istToday = getCurrentDateIST();
+    const monthStartDate = new Date(istToday.getFullYear(), istToday.getMonth(), 1);
+    const currentMonthStart = getStartOfDayIST(monthStartDate);
 
     // Get all customer IDs
     const customerIds = customers.map(c => c.id);
