@@ -145,37 +145,64 @@ export async function getOptimizedDashboardData(branchId?: string) {
     });
 
     // Calculate current month's opening balance for each customer
-    // Use IST-aware date calculation (same logic as balance sheet report)
-    // Current month start = first day of current month 00:00:00 in IST
+    // Use same logic as balance sheet report: fetch all data, then filter client-side
+    // This ensures IST date format is handled correctly (Dec 1 IST = Nov 30 18:30 UTC in DB)
     const istToday = getCurrentDateIST();
-    const monthStartDate = new Date(istToday.getFullYear(), istToday.getMonth(), 1);
-    const currentMonthStart = getStartOfDayIST(monthStartDate);
+    const monthStartDate = new Date(
+      istToday.getFullYear(),
+      istToday.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0
+    );
 
     // Get all customer IDs
     const customerIds = customers.map(c => c.id);
 
-    // Fetch all credits before current month start
-    const creditsBeforeMonth = await prisma.credit.findMany({
-      where: {
-        customerId: { in: customerIds },
-        date: { lt: currentMonthStart }
-      },
-      select: {
-        customerId: true,
-        amount: true
-      }
+    // Fetch all credits and payments (no date filter - we'll filter client-side like balance sheet)
+    // Fetch last 12 months to ensure we have enough data
+    const twelveMonthsAgo = new Date(istToday);
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    
+    const [allCredits, allPayments] = await Promise.all([
+      prisma.credit.findMany({
+        where: {
+          customerId: { in: customerIds },
+          date: { gte: twelveMonthsAgo }
+        },
+        select: {
+          customerId: true,
+          amount: true,
+          date: true
+        }
+      }),
+      prisma.customerPayment.findMany({
+        where: {
+          customerId: { in: customerIds },
+          paidOn: { gte: twelveMonthsAgo }
+        },
+        select: {
+          customerId: true,
+          amount: true,
+          paidOn: true
+        }
+      })
+    ]);
+
+    // Filter credits and payments before month start (client-side, same as balance sheet)
+    // This handles IST date format correctly
+    const creditsBeforeMonth = allCredits.filter(credit => {
+      if (!credit.customerId) return false;
+      const creditDate = new Date(credit.date);
+      return creditDate < monthStartDate;
     });
 
-    // Fetch all payments before current month start
-    const paymentsBeforeMonth = await prisma.customerPayment.findMany({
-      where: {
-        customerId: { in: customerIds },
-        paidOn: { lt: currentMonthStart }
-      },
-      select: {
-        customerId: true,
-        amount: true
-      }
+    const paymentsBeforeMonth = allPayments.filter(payment => {
+      if (!payment.customerId) return false;
+      const paymentDate = new Date(payment.paidOn);
+      return paymentDate < monthStartDate;
     });
 
     // Group credits and payments by customer
