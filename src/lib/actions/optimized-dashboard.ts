@@ -157,6 +157,9 @@ export async function getOptimizedDashboardData(branchId?: string) {
       0,
       0
     );
+    const monthStartIstString = monthStartDate.toLocaleDateString("en-CA", {
+      timeZone: "Asia/Kolkata",
+    });
 
     // Get all customer IDs
     const customerIds = customers.map(c => c.id);
@@ -192,17 +195,23 @@ export async function getOptimizedDashboardData(branchId?: string) {
     ]);
 
     // Filter credits and payments before month start (client-side, same as balance sheet)
-    // This handles IST date format correctly
-    const creditsBeforeMonth = allCredits.filter(credit => {
+    // This handles IST date format correctly by comparing IST calendar dates
+    const creditsBeforeMonth = allCredits.filter((credit) => {
       if (!credit.customerId) return false;
-      const creditDate = new Date(credit.date);
-      return creditDate < monthStartDate;
+      const creditIstDateString = new Date(credit.date).toLocaleDateString(
+        "en-CA",
+        { timeZone: "Asia/Kolkata" }
+      );
+      return creditIstDateString < monthStartIstString;
     });
 
-    const paymentsBeforeMonth = allPayments.filter(payment => {
+    const paymentsBeforeMonth = allPayments.filter((payment) => {
       if (!payment.customerId) return false;
-      const paymentDate = new Date(payment.paidOn);
-      return paymentDate < monthStartDate;
+      const paymentIstDateString = new Date(payment.paidOn).toLocaleDateString(
+        "en-CA",
+        { timeZone: "Asia/Kolkata" }
+      );
+      return paymentIstDateString < monthStartIstString;
     });
 
     // Group credits and payments by customer
