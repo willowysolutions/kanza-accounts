@@ -27,31 +27,37 @@ export default async function CustomerReportPage() {
   // Forward cookies
   const cookie = cookies().toString();
   
-  // Fetch customers and branches in parallel
-  const [customersRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/customers`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
+  // Fetch branches first
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
   
-  const { data: customers = [] } = await customersRes.json();
   const { data: allBranches = [] } = await branchesRes.json();
 
   // Filter branches based on user role
   const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
-  // Group customers by visible branches only
-  const customersByBranch = visibleBranches.map((branch: { id: string; name: string }) => ({
-    branchId: branch.id,
-    branchName: branch.name,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    customers: (customers || []).filter((customer: any) => customer.branchId === branch.id)
-  }));
+  // Fetch all customers per branch (no pagination limit)
+  const customersByBranch = await Promise.all(
+    visibleBranches.map(async (branch: { id: string; name: string }) => {
+      const customersRes = await fetch(
+        `${proto}://${host}/api/customers?branchId=${branch.id}&limit=10000`,
+        {
+          cache: "no-store",
+          headers: { cookie },
+        }
+      );
+      
+      const { data: customers = [] } = await customersRes.json();
+      
+      return {
+        branchId: branch.id,
+        branchName: branch.name,
+        customers: customers || []
+      };
+    })
+  );
 
   return (
     <div className="flex flex-1 flex-col">

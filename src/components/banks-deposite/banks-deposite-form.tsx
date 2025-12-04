@@ -34,6 +34,7 @@ import { useRouter } from "next/navigation";
 import { BankDepositeFormProps } from "@/types/bank-deposite";
 import { bankDepositeSchema } from "@/schemas/bank-deposite-schema";
 import { BranchSelector } from "@/components/common/branch-selector";
+import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
 
 export const BankDepositeFormDialog = ({
   bankDeposite,
@@ -48,16 +49,29 @@ export const BankDepositeFormDialog = ({
   const [selectedBranchId, setSelectedBranchId] = useState<string>(bankDeposite?.branchId || branchId || userBranchId || "");
   const router = useRouter();
 
+  // Get next allowed date for branch managers
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: !!bankDeposite,
+  });
 
   const form = useForm<z.infer<typeof bankDepositeSchema>>({
     resolver: zodResolver(bankDepositeSchema),
     defaultValues: {
       bankId: bankDeposite?.bankId || "",
-      date: bankDeposite?.date ?? new Date(),
+      date: bankDeposite?.date ? new Date(bankDeposite.date) : (nextAllowedDate || new Date()),
       amount: bankDeposite?.amount || undefined,
       description: bankDeposite?.description || "",
     },
   });
+
+  // Update date when nextAllowedDate is available for branch managers
+  useEffect(() => {
+    if (isDateRestricted && nextAllowedDate && !bankDeposite) {
+      form.setValue("date", nextAllowedDate);
+    }
+  }, [isDateRestricted, nextAllowedDate, bankDeposite, form]);
 
   const handleSubmit = async (
     values: z.infer<typeof bankDepositeSchema>,
@@ -187,25 +201,41 @@ export const BankDepositeFormDialog = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button variant="outline" className="w-full text-left">
-                        {field.value
-                          ? new Date(field.value).toLocaleDateString()
-                          : "Pick date"}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Calendar
-                      mode="single"
-                      selected={new Date(field.value)}
-                      onSelect={field.onChange}
-                      captionLayout="dropdown"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  {isDateRestricted ? (
+                    // Disabled date field for branch managers
+                    <Button 
+                      variant="outline" 
+                      disabled
+                      className="w-full text-left bg-muted cursor-not-allowed"
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick date"}
+                    </Button>
+                  ) : (
+                    // Editable date field for admins
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className="w-full text-left">
+                            {field.value
+                              ? new Date(field.value).toLocaleDateString()
+                              : "Pick date"}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={new Date(field.value)}
+                          onSelect={field.onChange}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

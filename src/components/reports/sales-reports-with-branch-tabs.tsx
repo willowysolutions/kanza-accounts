@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -15,11 +15,11 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { FilterSelect } from "@/components/filters/filter-select";
-import { CustomDateFilter } from "@/components/filters/custom-date-filter";
 import { SalesReportExport } from "@/components/reports/sales-report-export";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { SalesDateDetailSheet } from "@/components/reports/sales-date-detail-sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
 
 type SalesReportsWithBranchTabsProps = {
   branches: { id: string; name: string }[];
@@ -51,6 +51,65 @@ export function SalesReportsWithBranchTabs({
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Month filter options (last 12 months up to current)
+  const monthOptions = useMemo(() => {
+    const options: { value: string; label: string }[] = [];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = format(d, "MMMM yyyy");
+      options.push({ value, label });
+    }
+
+    return options;
+  }, []);
+
+  // Determine initial month (from URL range if present, otherwise current month)
+  const initialMonthBase = useMemo(() => {
+    if (from) return from;
+    return new Date();
+  }, [from]);
+
+  const initialMonthString = useMemo(
+    () =>
+      `${initialMonthBase.getFullYear()}-${String(
+        initialMonthBase.getMonth() + 1
+      ).padStart(2, "0")}`,
+    [initialMonthBase]
+  );
+
+  const [selectedMonth, setSelectedMonth] = useState(initialMonthString);
+
+  const selectedMonthLabel = useMemo(
+    () => monthOptions.find((m) => m.value === selectedMonth)?.label ?? "",
+    [monthOptions, selectedMonth]
+  );
+
+  // Month change handler: updates URL with from/to for the selected month
+  const handleMonthChange = (value: string) => {
+    setSelectedMonth(value);
+    if (!value) return;
+
+    const [yearStr, monthStr] = value.split("-");
+    const year = Number(yearStr);
+    const monthIndex = Number(monthStr) - 1; // 0-based
+
+    if (Number.isNaN(year) || Number.isNaN(monthIndex)) return;
+
+    const fromDate = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+    const toDate = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("filter", "custom");
+    url.searchParams.set("from", fromDate.toISOString());
+    url.searchParams.set("to", toDate.toISOString());
+    url.searchParams.set("page", "1");
+    window.location.href = url.toString();
+  };
   
   // Get current branch data
   const currentBranchData = salesByBranch.find(branch => branch.branchId === activeBranch);
@@ -71,9 +130,27 @@ export function SalesReportsWithBranchTabs({
             <h1 className="text-2xl font-bold tracking-tight">Sales Reports</h1>
             <p className="text-muted-foreground">Sales reports by branch</p>
           </div>
-          <div className="flex gap-3">
-            <FilterSelect defaultValue={filter} />
-            <CustomDateFilter />
+          <div className="flex gap-3 items-end">
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-muted-foreground">
+                Month
+              </span>
+              <Select
+                value={selectedMonth}
+                onValueChange={handleMonthChange}
+              >
+                <SelectTrigger className="w-[220px] bg-white">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -91,7 +168,7 @@ export function SalesReportsWithBranchTabs({
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">{branchName} Sales Report</h2>
                 <p className="text-sm text-muted-foreground">
-                  {sales.length} sale{sales.length !== 1 ? 's' : ''} in this branch ({filter})
+                  {sales.length} sale{sales.length !== 1 ? 's' : ''} in this branch ({selectedMonthLabel || 'Current Month'})
                 </p>
               </div>
               
@@ -100,7 +177,7 @@ export function SalesReportsWithBranchTabs({
                   <div>
                     <CardTitle>Sales Report</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Summary of all sales transactions ({filter})
+                      Summary of all sales transactions ({selectedMonthLabel || 'Current Month'})
                     </p>
                   </div>
                   <SalesReportExport sales={sales} filter={filter} from={from} to={to} />

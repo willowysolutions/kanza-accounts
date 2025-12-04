@@ -59,7 +59,7 @@ export async function GET(req: Request) {
     
     // Get pagination parameters with reasonable limits
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '15'), 100); // Max 100 records
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100); // Max 100 records
     const skip = (page - 1) * limit;
     
     // For custom date range, disable pagination but limit to prevent timeouts

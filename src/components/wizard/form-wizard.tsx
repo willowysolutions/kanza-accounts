@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useNextAllowedDate } from '@/hooks/use-next-allowed-date';
 
 // Wizard Step Types
 export interface WizardStep {
@@ -161,15 +162,36 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     return initialBranchId || '';
   });
   
-  // Common date for all steps - initialized to yesterday and persists across navigation
+  // Get next allowed date for branch managers
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: false,
+  });
+
+  // Common date for all steps - initialized based on user role
   const [commonDate, setCommonDate] = useState<Date>(() => {
+    // For branch managers, use next allowed date if available
+    if (userRole?.toLowerCase() === 'branch' && nextAllowedDate) {
+      const date = new Date(nextAllowedDate);
+      date.setUTCHours(18, 30, 0, 0);
+      return date;
+    }
+    // For admins, use yesterday
     const now = new Date();
-    // Get yesterday's date explicitly
     const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    // Set to 18:30:00.000 UTC (6:30 PM UTC)
     yesterday.setUTCHours(18, 30, 0, 0);
     return yesterday;
   });
+
+  // Update commonDate when nextAllowedDate is available for branch managers
+  useEffect(() => {
+    if (isDateRestricted && nextAllowedDate) {
+      const date = new Date(nextAllowedDate);
+      date.setUTCHours(18, 30, 0, 0);
+      setCommonDate(date);
+    }
+  }, [isDateRestricted, nextAllowedDate]);
   
   // Persistent data across all steps
   const [addedExpenses, setAddedExpenses] = useState<AddedExpense[]>([]);
@@ -295,39 +317,62 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
 
 // Common Date Picker Component
 const CommonDatePicker: React.FC = () => {
-  const { commonDate, setCommonDate } = useWizard();
+  const { commonDate, setCommonDate, selectedBranchId, userRole } = useWizard();
+  
+  // Get next allowed date for branch managers
+  const { isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: false,
+  });
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
       <span className="text-sm font-medium text-muted-foreground whitespace-nowrap flex items-center h-9">Select Date:</span>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "w-full sm:w-[240px] h-9 justify-start text-left font-normal",
-              !commonDate && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {commonDate ? format(commonDate, "PPP") : <span>Pick a date</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={commonDate}
-            onSelect={(date) => {
-              if (date) {
-                // Set to 18:30:00.000 UTC (6:30 PM UTC)
-                date.setUTCHours(18, 30, 0, 0);
-                setCommonDate(date);
-              }
-            }}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+      {isDateRestricted ? (
+        // Disabled date field for branch managers
+        <Button
+          variant="outline"
+          disabled
+          className={cn(
+            "w-full sm:w-[240px] h-9 justify-start text-left font-normal bg-muted cursor-not-allowed",
+            !commonDate && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {commonDate ? format(commonDate, "PPP") : <span>Pick a date</span>}
+        </Button>
+      ) : (
+        // Editable date field for admins
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full sm:w-[240px] h-9 justify-start text-left font-normal",
+                !commonDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {commonDate ? format(commonDate, "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={commonDate}
+              onSelect={(date) => {
+                if (date) {
+                  // Set to 18:30:00.000 UTC (6:30 PM UTC)
+                  date.setUTCHours(18, 30, 0, 0);
+                  setCommonDate(date);
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 };

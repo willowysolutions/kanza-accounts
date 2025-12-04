@@ -11,9 +11,24 @@ export default async function SalesReportPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filter = typeof params.filter === "string" ? params.filter : "all";
-  const from = params.from ? new Date(params.from as string) : undefined;
-  const to = params.to ? new Date(params.to as string) : undefined;
+  
+  // Auto-select current month if no date range is provided
+  let from: Date | undefined;
+  let to: Date | undefined;
+  let filter: string;
+  
+  if (params.from && params.to) {
+    from = new Date(params.from as string);
+    to = new Date(params.to as string);
+    filter = "custom";
+  } else {
+    // Default to current month
+    const now = new Date();
+    from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    filter = "custom";
+  }
+  
   const page = typeof params.page === "string" ? parseInt(params.page) : 1;
 
   const hdrs = await headers();
@@ -37,31 +52,47 @@ export default async function SalesReportPage({
   // Forward cookies
   const cookie = cookies().toString();
   
-  // Fetch sales and branches in parallel
-  const [salesRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/sales?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&page=${page}&limit=15`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
+  // Fetch branches first
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
   
-  const { sales = [], pagination } = await salesRes.json();
   const { data: allBranches = [] } = await branchesRes.json();
 
   // Filter branches based on user role
   const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
-  // Group sales by visible branches only
-  const salesByBranch = visibleBranches.map((branch: { id: string; name: string }) => ({
-    branchId: branch.id,
-    branchName: branch.name,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sales: (sales || []).filter((sale: any) => sale.branchId === branch.id)
-  }));
+  // Fetch 20 sales per branch
+  const salesByBranchData = await Promise.all(
+    visibleBranches.map(async (branch: { id: string; name: string }) => {
+      const salesRes = await fetch(
+        `${proto}://${host}/api/sales?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&page=${page}&limit=20&branchId=${branch.id}`,
+        {
+          cache: "no-store",
+          headers: { cookie },
+        }
+      );
+      
+      const { sales = [], pagination: branchPagination } = await salesRes.json();
+      
+      return {
+        branchId: branch.id,
+        branchName: branch.name,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sales: sales || [],
+        pagination: branchPagination
+      };
+    })
+  );
+
+  // Extract sales and pagination (use first branch's pagination for shared pagination controls)
+  const salesByBranch = salesByBranchData.map(({ pagination, ...rest }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = pagination; // Extract pagination but don't use it in the map
+    return rest;
+  });
+  const pagination = salesByBranchData[0]?.pagination;
 
   return (
     <div className="flex flex-1 flex-col">

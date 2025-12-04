@@ -12,9 +12,24 @@ export default async function PurchaseReportPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filter = typeof params.filter === "string" ? params.filter : "all";
-  const from = params.from ? new Date(params.from as string) : undefined;
-  const to = params.to ? new Date(params.to as string) : undefined;
+  
+  // Auto-select current month if no date range is provided
+  let from: Date | undefined;
+  let to: Date | undefined;
+  let filter: string;
+  
+  if (params.from && params.to) {
+    from = new Date(params.from as string);
+    to = new Date(params.to as string);
+    filter = "custom";
+  } else {
+    // Default to current month
+    const now = new Date();
+    from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    filter = "custom";
+  }
+  
   const page = typeof params.page === "string" ? parseInt(params.page) : 1;
 
   const hdrs = await headers();

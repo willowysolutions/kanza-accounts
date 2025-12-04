@@ -35,6 +35,7 @@ import { Calendar } from "../ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "@/lib/utils";
 import { BranchSelector } from "@/components/common/branch-selector";
+import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
 
 export const ExpenseFormDialog = ({
   expense,
@@ -49,18 +50,32 @@ export const ExpenseFormDialog = ({
   const [selectedBranchId, setSelectedBranchId] = useState<string>(expense?.branchId || userBranchId || "");
   const router = useRouter();
 
+  // Get next allowed date for branch managers
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: !!expense,
+  });
+
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
       description: expense?.description ?? "",
       amount: expense?.amount ?? undefined,
-      date: expense?.date ? new Date(expense.date) : new Date(),
+      date: expense?.date ? new Date(expense.date) : (nextAllowedDate || new Date()),
       expenseCategoryId: expense?.expenseCategoryId || "",
       bankId:expense?.bankId || undefined,
       reason: (expense as { reason?: string })?.reason || "",
     },
   });
+
+  // Update date when nextAllowedDate is available for branch managers
+  useEffect(() => {
+    if (isDateRestricted && nextAllowedDate && !expense) {
+      form.setValue("date", nextAllowedDate);
+    }
+  }, [isDateRestricted, nextAllowedDate, expense, form]);
 
   // Watch fields
   const selectedCategoryId = form.watch("expenseCategoryId");
@@ -187,31 +202,50 @@ export const ExpenseFormDialog = ({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value
-                        ? new Date(field.value).toLocaleDateString()
-                        : "Pick a date"}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent>
-                  <Calendar
-                    mode="single"
-                    selected={field.value ? new Date(field.value) : undefined}
-                    onSelect={field.onChange}
-                    captionLayout="dropdown"
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                {isDateRestricted ? (
+                  // Disabled date field for branch managers
+                  <Button
+                    variant={"outline"}
+                    disabled
+                    className={cn(
+                      "w-full pl-3 text-left font-normal bg-muted cursor-not-allowed",
+                      !field.value && "text-muted-foreground"
+                    )}
+                  >
+                    {field.value
+                      ? new Date(field.value).toLocaleDateString()
+                      : "Pick a date"}
+                  </Button>
+                ) : (
+                  // Editable date field for admins
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? new Date(field.value).toLocaleDateString()
+                            : "Pick a date"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent>
+                      <Calendar
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={field.onChange}
+                        captionLayout="dropdown"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

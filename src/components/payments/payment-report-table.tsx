@@ -103,8 +103,8 @@ export default function PaymentTable({
                   <TableCell>{p.paidAmount}</TableCell>
                   <TableCell>
                     {type === "customer"
-                      ? p.customer?.outstandingPayments ?? 0
-                      : p.supplier?.outstandingPayments ?? 0}
+                      ? p.customer?.outstandingPayments?.toFixed(2) ?? 0
+                      : p.supplier?.outstandingPayments?.toFixed(2) ?? 0}
                   </TableCell>
                   <TableCell>{p.paymentMethod}</TableCell>
                   <TableCell>{p.description ?? "-"}</TableCell>

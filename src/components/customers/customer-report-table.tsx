@@ -21,8 +21,6 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerReportExport } from "@/components/reports/customer-report-export";
 import { CustomerHistoryModal } from "@/components/customers/customer-history-modal";
-import { PaginationControls } from "@/components/ui/pagination-controls";
-import { usePagination } from "@/hooks/use-pagination";
 
 type Customer = {
   id: string;
@@ -45,16 +43,6 @@ export default function CustomerReportTable({
   const filteredCustomers = customers.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
-
-  // Use pagination hook
-  const {
-    currentPage,
-    totalPages,
-    paginatedData: paginatedCustomers,
-    goToPage,
-    totalItems,
-    itemsPerPage,
-  } = usePagination({ data: filteredCustomers, itemsPerPage: 15 });
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -88,8 +76,8 @@ export default function CustomerReportTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCustomers.length > 0 ? (
-                paginatedCustomers.map((customer) => (
+              {filteredCustomers.length > 0 ? (
+                filteredCustomers.map((customer) => (
                   <CustomerRow key={customer.id} customer={customer} />
                 ))
               ) : (
@@ -118,17 +106,6 @@ export default function CustomerReportTable({
               </TableRow>
             </TableFooter>
           </Table>
-          
-          {/* Pagination Controls */}
-          {totalItems > 0 && (
-            <PaginationControls
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-            />
-          )}
         </CardContent>
       </Card>
     </div>

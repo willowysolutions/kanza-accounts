@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const salesSchema = z.object({
   date: z.coerce.date(),
-  cashPayment: z.coerce.number().min(0),
+  cashPayment: z.coerce.number(),
   atmPayment: z.union([z.coerce.number().min(0), z.null(), z.literal("")]).optional(),
   paytmPayment: z.union([z.coerce.number().min(0), z.null(), z.literal("")]).optional(),
   fleetPayment: z.union([z.coerce.number().min(0), z.null(), z.literal("")]).optional(),

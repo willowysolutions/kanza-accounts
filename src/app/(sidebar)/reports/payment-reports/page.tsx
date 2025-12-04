@@ -11,9 +11,24 @@ export default async function PaymentHistoryPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filter = typeof params.filter === "string" ? params.filter : "all";
-  const from = params.from ? new Date(params.from as string) : undefined;
-  const to = params.to ? new Date(params.to as string) : undefined;
+  
+  // Auto-select current month if no date range is provided
+  let from: Date | undefined;
+  let to: Date | undefined;
+  let filter: string;
+  
+  if (params.from && params.to) {
+    from = new Date(params.from as string);
+    to = new Date(params.to as string);
+    filter = "custom";
+  } else {
+    // Default to current month
+    const now = new Date();
+    from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    filter = "custom";
+  }
+  
   const page = typeof params.page === "string" ? parseInt(params.page) : 1;
 
   const hdrs = await headers();
@@ -37,49 +52,56 @@ export default async function PaymentHistoryPage({
   // Forward cookies
   const cookie = cookies().toString();
   
-  // Fetch payment history and branches in parallel
-  const [paymentHistoryRes, branchesRes] = await Promise.all([
-    fetch(`${proto}://${host}/api/payments/history?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&page=${page}&limit=15`, {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
+  // Fetch branches first
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
   
-  const { paymentHistory = [], pagination } = await paymentHistoryRes.json();
   const { data: allBranches = [] } = await branchesRes.json();
 
   // Filter branches based on user role
   const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
-  // Group payments by visible branches only
-  const paymentsByBranch = visibleBranches.map((branch: { id: string; name: string }) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const branchPayments = (paymentHistory || []).filter((p: any) => 
-      p.branchId === branch.id || 
-      p.customer?.branchId === branch.id || 
-      p.supplier?.branchId === branch.id
-    );
-    
-    // Remove duplicates by using a Set of payment IDs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const uniquePayments = branchPayments.filter((payment: any, index: number, self: any[]) => 
+  // Fetch 20 payments per branch
+  const paymentsByBranchData = await Promise.all(
+    visibleBranches.map(async (branch: { id: string; name: string }) => {
+      const paymentHistoryRes = await fetch(
+        `${proto}://${host}/api/payments/history?filter=${filter}&from=${from?.toISOString()}&to=${to?.toISOString()}&page=${page}&limit=20&branchId=${branch.id}`,
+        {
+          cache: "no-store",
+          headers: { cookie },
+        }
+      );
+      
+      const { paymentHistory = [], pagination: branchPagination } = await paymentHistoryRes.json();
+      
+      // Remove duplicates by using a Set of payment IDs
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      index === self.findIndex((p: any) => p.id === payment.id)
-    );
-    
-    return {
-      branchId: branch.id,
-      branchName: branch.name,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      customerPayments: uniquePayments.filter((p: any) => p.customerId && !p.supplierId),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supplierPayments: uniquePayments.filter((p: any) => p.supplierId && !p.customerId)
-    };
+      const uniquePayments = paymentHistory.filter((payment: any, index: number, self: any[]) => 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        index === self.findIndex((p: any) => p.id === payment.id)
+      );
+      
+      return {
+        branchId: branch.id,
+        branchName: branch.name,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        customerPayments: uniquePayments.filter((p: any) => p.customerId && !p.supplierId),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        supplierPayments: uniquePayments.filter((p: any) => p.supplierId && !p.customerId),
+        pagination: branchPagination
+      };
+    })
+  );
+
+  // Extract payments and pagination (use first branch's pagination for shared pagination controls)
+  const paymentsByBranch = paymentsByBranchData.map(({ pagination, ...rest }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = pagination; // Extract pagination but don't use it in the map
+    return rest;
   });
+  const pagination = paymentsByBranchData[0]?.pagination;
 
   return (
     <div className="flex flex-1 flex-col">

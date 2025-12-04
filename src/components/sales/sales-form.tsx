@@ -32,6 +32,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useEffect, useState } from "react";
 import { parseProducts } from "@/lib/product-utils";
 import { BranchSelector } from "@/components/common/branch-selector";
+import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
 
 
 export function SalesFormModal({
@@ -63,6 +64,13 @@ export function SalesFormModal({
 
   const router = useRouter();
 
+  // Get next allowed date for branch managers
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: !!sales,
+  });
+
 // Helper to ensure products object has all numeric values
 const ensureNumericProducts = (products: Record<string, unknown> | undefined): Record<string, number> => {
   if (!products) return {};
@@ -77,7 +85,7 @@ const ensureNumericProducts = (products: Record<string, unknown> | undefined): R
 const form = useForm<SalesFormValues>({
   resolver: zodResolver(salesSchema),
   defaultValues: {
-    date: sales?.date ? new Date(sales.date) : new Date(),
+    date: sales?.date ? new Date(sales.date) : (nextAllowedDate || new Date()),
     rate: sales?.rate ?? undefined,
     products: ensureNumericProducts(parseProducts(sales?.products)),
     xgDieselTotal: sales?.xgDieselTotal ?? undefined,
@@ -90,6 +98,13 @@ const form = useForm<SalesFormValues>({
     fleetPayment: sales?.fleetPayment || undefined,
   },
 });
+
+// Update date when nextAllowedDate is available for branch managers
+useEffect(() => {
+  if (isDateRestricted && nextAllowedDate && !sales) {
+    form.setValue("date", nextAllowedDate);
+  }
+}, [isDateRestricted, nextAllowedDate, sales, form]);
 
 // Initialize isDataReady based on whether we're editing existing sales
 useEffect(() => {
@@ -644,25 +659,39 @@ useEffect(() => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button variant="outline" className="w-full text-left">
-                        {field.value
-                          ? new Date(field.value).toLocaleDateString()
-                          : "Pick date"}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Calendar
-                      mode="single"
-                      selected={new Date(field.value)}
-                      onSelect={field.onChange}
-                      captionLayout="dropdown"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  {isDateRestricted ? (
+                    // Disabled date field for branch managers
+                    <Button 
+                      variant="outline" 
+                      disabled
+                      className="w-full text-left bg-muted cursor-not-allowed"
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick date"}
+                    </Button>
+                  ) : (
+                    // Editable date field for admins
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full text-left">
+                          {field.value
+                            ? new Date(field.value).toLocaleDateString()
+                            : "Pick date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={new Date(field.value)}
+                          onSelect={field.onChange}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

@@ -25,7 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Select,
@@ -39,6 +39,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { customerPaymentSchema } from "@/schemas/payment-schema";
 import { PaymentFormData } from "@/types/payment";
 import { BranchSelector } from "@/components/common/branch-selector";
+import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
 
 
 export function PaymentFormDialog({
@@ -60,17 +61,40 @@ export function PaymentFormDialog({
   const [selectedBranchId, setSelectedBranchId] = useState<string>(payments?.branchId || userBranchId || "");
   const router = useRouter();
 
+  // Determine if this is editing an existing persisted payment
+  const isExistingPayment = !!payments?.id;
+
+  // Get next allowed date for branch managers
+  // - Restricted for branch users when creating a new payment (non-wizard)
+  // - Not restricted in wizard mode (onPaymentAdded) or when editing existing payment
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: isExistingPayment || !!onPaymentAdded,
+  });
+
   const form = useForm<z.infer<typeof customerPaymentSchema>>({
     resolver: zodResolver(customerPaymentSchema),
     defaultValues: {
       customerId: payments?.customerId || "",
       amount: payments?.amount || undefined,
       paymentMethod: payments?.paymentMethod || "",
-      paidOn: payments?.paidOn || new Date(),
+      // Only use payments.paidOn if it's an existing persisted payment (has id)
+      // Otherwise, use nextAllowedDate for branch managers, or new Date() for admins
+      paidOn: isExistingPayment && payments?.paidOn 
+        ? new Date(payments.paidOn) 
+        : (nextAllowedDate || new Date()),
       branchId: payments?.branchId || userBranchId || "",
       description: payments?.description || "",
     },
   });
+
+  // Update date when nextAllowedDate is available for branch managers (only when not in wizard mode)
+  useEffect(() => {
+    if (isDateRestricted && nextAllowedDate && !isExistingPayment && !onPaymentAdded && open) {
+      form.setValue("paidOn", nextAllowedDate);
+    }
+  }, [isDateRestricted, nextAllowedDate, isExistingPayment, onPaymentAdded, form, open]);
 
   // 🔑 watch entered amount
   const enteredAmount = form.watch("amount") ?? 0;
@@ -171,8 +195,82 @@ export function PaymentFormDialog({
         />
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Amount */}
+                    {/* Date */}
+                    <FormField
+            control={form.control}
+            name="paidOn"
+            render={({ field }) => (
+              <FormItem >
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                  {onPaymentAdded || isDateRestricted ? (
+                    // Disabled date field for wizard mode or branch managers
+                    <Button 
+                      variant="outline" 
+                      disabled
+                      className="w-full text-left bg-muted cursor-not-allowed"
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick date"}
+                    </Button>
+                  ) : (
+                    // Editable date field for admins in normal mode
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full text-left">
+                          {field.value
+                            ? new Date(field.value).toLocaleDateString()
+                            : "Pick date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={new Date(field.value)}
+                          onSelect={field.onChange}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Payment Method */}
           <FormField
+            control={form.control}
+            name="paymentMethod"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Method</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Method" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank">Bank</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+        </div>
+
+                  {/* Amount */}
+                  <FormField
             control={form.control}
             name="amount"
             render={({ field }) => (
@@ -206,64 +304,6 @@ export function PaymentFormDialog({
             )}
           />
 
-          {/* Payment Method */}
-          <FormField
-            control={form.control}
-            name="paymentMethod"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Method</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Method" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="bank">Bank</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
-                    <SelectItem value="upi">UPI</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Date */}
-          <FormField
-            control={form.control}
-            name="paidOn"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button variant="outline" className="w-full text-left">
-                        {field.value
-                          ? new Date(field.value).toLocaleDateString()
-                          : "Pick date"}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Calendar
-                      mode="single"
-                      selected={new Date(field.value)}
-                      onSelect={field.onChange}
-                      captionLayout="dropdown"
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
 
         {/* Optional Description */}
         <FormField

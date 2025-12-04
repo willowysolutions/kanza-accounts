@@ -40,6 +40,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { BranchSelector } from "@/components/common/branch-selector";
+import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
 
 
 export function CreditFormDialog({
@@ -66,6 +67,13 @@ export function CreditFormDialog({
   const [customerSearch, setCustomerSearch] = useState("");
   const router = useRouter();
 
+  // Get next allowed date for branch managers
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: !!credits,
+  });
+
   const form = useForm<z.infer<typeof creditSchema>>({
     resolver: zodResolver(creditSchema),
     defaultValues: {
@@ -73,10 +81,17 @@ export function CreditFormDialog({
       fuelType:credits?.fuelType || "",
       quantity:credits?.quantity || undefined,
       amount: credits?.amount || undefined,
-      date: credits?.date || new Date(),
+      date: credits?.date ? new Date(credits.date) : (nextAllowedDate || new Date()),
       reason: (credits as { reason?: string })?.reason || "",
     },
   });
+
+  // Update date when nextAllowedDate is available for branch managers
+  useEffect(() => {
+    if (isDateRestricted && nextAllowedDate && !credits) {
+      form.setValue("date", nextAllowedDate);
+    }
+  }, [isDateRestricted, nextAllowedDate, credits, form]);
 
   // 🔑 Watch fields
   const selectedCustomerId = form.watch("customerId");
@@ -414,25 +429,41 @@ export function CreditFormDialog({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button variant="outline" className="w-full text-left">
-                        {field.value
-                          ? new Date(field.value).toLocaleDateString()
-                          : "Pick date"}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Calendar
-                      mode="single"
-                      selected={new Date(field.value)}
-                      onSelect={field.onChange}
-                      captionLayout="dropdown"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  {isDateRestricted ? (
+                    // Disabled date field for branch managers
+                    <Button 
+                      variant="outline" 
+                      disabled
+                      className="w-full text-left bg-muted cursor-not-allowed"
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick date"}
+                    </Button>
+                  ) : (
+                    // Editable date field for admins
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className="w-full text-left">
+                            {field.value
+                              ? new Date(field.value).toLocaleDateString()
+                              : "Pick date"}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={new Date(field.value)}
+                          onSelect={field.onChange}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

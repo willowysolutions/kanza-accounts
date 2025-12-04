@@ -34,6 +34,7 @@ import { MeterReading } from '@/types/meter-reading';
 import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { BranchSelector } from '@/components/common/branch-selector';
+import { useNextAllowedDate } from '@/hooks/use-next-allowed-date';
 
 
 type MachineWithNozzles = {
@@ -77,13 +78,6 @@ export function MeterReadingFormSheet({
   const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
   const [stockLevels, setStockLevels] = useState<Record<string, number>>({}); // fuelType -> stock quantity
 
-  // Update selectedBranchId when branchId prop changes
-  useEffect(() => {
-    if (branchId) {
-      setSelectedBranchId(branchId);
-    }
-  }, [branchId]);
-
   const form = useForm<BulkForm>({
     resolver: zodResolver(bulkSchema),
     defaultValues: {
@@ -91,6 +85,38 @@ export function MeterReadingFormSheet({
       rows: [],
     },
   });
+
+  // Update selectedBranchId when branchId prop changes
+  useEffect(() => {
+    if (branchId) {
+      setSelectedBranchId(branchId);
+    }
+  }, [branchId]);
+
+  // Get next allowed date for branch managers (same hook as other forms)
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: !!meterReading,
+  });
+
+  // Auto-select nextAllowedDate once for branch users, without double-adding days
+  useEffect(() => {
+    if (!isDateRestricted) return;
+    if (!nextAllowedDate) return;
+    if (meterReading) return;
+
+    const currentVal = form.getValues("date");
+    const currentDate = currentVal ? new Date(currentVal) : undefined;
+
+    const today = new Date();
+    const userHasNotChangedDate =
+      !currentDate || currentDate.toDateString() === today.toDateString();
+
+    if (userHasNotChangedDate) {
+      form.setValue("date", nextAllowedDate, { shouldDirty: false });
+    }
+  }, [isDateRestricted, nextAllowedDate, meterReading, form, selectedBranchId]);
 
   const nozzleMap = useMemo(() => {
     const m = new Map<string, { fuelType: string }>();
@@ -206,11 +232,14 @@ useEffect(() => {
             totalAmount: undefined,
           };
         })
-      );      
+      );
 
-      form.reset({ 
-        date: new Date(), 
-        rows 
+      // Preserve whatever date is currently in the form (which may have been
+      // set from nextAllowedDate for branch users) and only reset the rows.
+      const currentDate = form.getValues("date");
+      form.reset({
+        date: currentDate || new Date(),
+        rows,
       });
     } catch (e) {
       console.error(e);
@@ -438,25 +467,41 @@ return (
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" className="w-full text-left font-normal">
-                            {field.value
-                              ? new Date(field.value).toLocaleDateString()
-                              : "Pick date"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent align="start" className="p-0">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(val) => field.onChange(val ?? new Date())}
-                          captionLayout="dropdown"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      {isDateRestricted ? (
+                        // Disabled date field for branch managers
+                        <Button
+                          variant="outline"
+                          disabled
+                          className="w-full text-left font-normal bg-muted cursor-not-allowed"
+                        >
+                          {field.value
+                            ? new Date(field.value).toLocaleDateString()
+                            : "Pick date"}
+                        </Button>
+                      ) : (
+                        // Editable date field for admins
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button variant="outline" className="w-full text-left font-normal">
+                                {field.value
+                                  ? new Date(field.value).toLocaleDateString()
+                                  : "Pick date"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="p-0">
+                            <Calendar
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(val) => field.onChange(val ?? new Date())}
+                              captionLayout="dropdown"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

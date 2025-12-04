@@ -38,45 +38,53 @@ export default async function CreditReportPage({
   // Forward cookies
   const cookie = cookies().toString();
   
-  // Build API URL with only defined parameters
-  const apiUrl = new URL(`${proto}://${host}/api/credits`);
-  apiUrl.searchParams.set('filter', 'all'); // Force 'all' filter to get all credits
-  apiUrl.searchParams.set('page', page.toString());
-  apiUrl.searchParams.set('limit', '50');
-  // Temporarily remove date filtering to test
-  // if (from) apiUrl.searchParams.set('from', from.toISOString());
-  // if (to) apiUrl.searchParams.set('to', to.toISOString());
-
-  // Fetch credits and branches in parallel
-  const [creditsRes, branchesRes] = await Promise.all([
-    fetch(apiUrl.toString(), {
-      cache: "no-store",
-      headers: { cookie },
-    }),
-    fetch(`${proto}://${host}/api/branch`, {
-      cache: "no-store",
-      headers: { cookie },
-    })
-  ]);
+  // Fetch branches first
+  const branchesRes = await fetch(`${proto}://${host}/api/branch`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
   
-  const { data: credits = [], pagination } = await creditsRes.json();
   const { data: allBranches = [] } = await branchesRes.json();
-
 
   // Filter branches based on user role
   const visibleBranches = isAdmin ? allBranches : allBranches.filter((b: { id: string; name: string }) => b.id === (userBranchId ?? ''));
 
-  // Group credits by visible branches only
-  const creditsByBranch = visibleBranches.map((branch: { id: string; name: string }) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const branchCredits = (credits || []).filter((c: any) => c.branchId === branch.id);
-    
-    return {
-      branchId: branch.id,
-      branchName: branch.name,
-      credits: branchCredits
-    };
+  // Fetch 20 credits per branch
+  const creditsByBranchData = await Promise.all(
+    visibleBranches.map(async (branch: { id: string; name: string }) => {
+      const apiUrl = new URL(`${proto}://${host}/api/credits`);
+      apiUrl.searchParams.set('filter', 'all'); // Force 'all' filter to get all credits
+      apiUrl.searchParams.set('page', page.toString());
+      apiUrl.searchParams.set('limit', '20');
+      apiUrl.searchParams.set('branchId', branch.id);
+      // Temporarily remove date filtering to test
+      // if (from) apiUrl.searchParams.set('from', from.toISOString());
+      // if (to) apiUrl.searchParams.set('to', to.toISOString());
+
+      const creditsRes = await fetch(apiUrl.toString(), {
+        cache: "no-store",
+        headers: { cookie },
+      });
+      
+      const { data: credits = [], pagination: branchPagination } = await creditsRes.json();
+      
+      return {
+        branchId: branch.id,
+        branchName: branch.name,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        credits: credits || [],
+        pagination: branchPagination
+      };
+    })
+  );
+
+  // Extract credits and pagination (use first branch's pagination for shared pagination controls)
+  const creditsByBranch = creditsByBranchData.map(({ pagination, ...rest }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = pagination; // Extract pagination but don't use it in the map
+    return rest;
   });
+  const pagination = creditsByBranchData[0]?.pagination;
 
   return (
     <div className="flex flex-1 flex-col">
