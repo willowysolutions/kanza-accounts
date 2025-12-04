@@ -7,6 +7,7 @@ import {
   TableBody,
   TableCaption,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -255,14 +256,20 @@ export function StockReportsWithBranchTabs({
       item.saleQty.toFixed(2),
     ]);
 
+    const totalPurchaseQty = historyForSelectedProduct.reduce((acc, item) => acc + item.purchaseQty, 0);
+    const totalSaleQty = historyForSelectedProduct.reduce((acc, item) => acc + item.saleQty, 0);
+
     autoTable(doc, {
       startY: 70,
       head: [["Date", "Purchase Qty", "Sale Qty"]],
       body: tableBody,
+      foot: [["Total:", totalPurchaseQty.toFixed(2), totalSaleQty.toFixed(2)]],
       theme: "grid",
       styles: { fontSize: 10, cellPadding: 3 },
       headStyles: { fillColor: [253, 224, 71], textColor: 0 },
+      footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: "bold" },
     });
+    
 
     const safeProduct = selectedProductForModal.replace(/\s+/g, "-");
     const safeMonth = monthPart.replace(/\s+/g, "-");
@@ -606,6 +613,24 @@ export function StockReportsWithBranchTabs({
                           ))
                         )}
                       </TableBody>
+                      <TableFooter>
+                        <TableRow>
+                          <TableCell className="text-left">
+                            Total: 
+                          </TableCell>
+                          
+                          <TableCell  className="text-right">
+                            {historyForSelectedProduct.reduce((acc, item) => acc + item.purchaseQty, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {historyForSelectedProduct.reduce((acc, item) => acc + item.saleQty, 0).toFixed(2)}
+                          </TableCell>
+
+                        </TableRow>
+                        <TableRow>
+                        </TableRow>
+                      </TableFooter>
+                      
                     </Table>
                   </div>
                 </DialogContent>
