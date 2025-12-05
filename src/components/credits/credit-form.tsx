@@ -430,39 +430,25 @@ export function CreditFormDialog({
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  {isDateRestricted ? (
-                    // Disabled date field for branch managers
-                    <Button 
-                      variant="outline" 
-                      disabled
-                      className="w-full text-left bg-muted cursor-not-allowed"
-                    >
-                      {field.value
-                        ? new Date(field.value).toLocaleDateString()
-                        : "Pick date"}
-                    </Button>
-                  ) : (
-                    // Editable date field for admins
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" className="w-full text-left">
-                            {field.value
-                              ? new Date(field.value).toLocaleDateString()
-                              : "Pick date"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <Calendar
-                          mode="single"
-                          selected={new Date(field.value)}
-                          onSelect={field.onChange}
-                          captionLayout="dropdown"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant="outline" className="w-full text-left">
+                          {field.value
+                            ? new Date(field.value).toLocaleDateString()
+                            : "Pick date"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent>
+                      <Calendar
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={field.onChange}
+                        captionLayout="dropdown"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -203,48 +203,31 @@ export const ExpenseFormDialog = ({
             <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
               <FormControl>
-                {isDateRestricted ? (
-                  // Disabled date field for branch managers
-                  <Button
-                    variant={"outline"}
-                    disabled
-                    className={cn(
-                      "w-full pl-3 text-left font-normal bg-muted cursor-not-allowed",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
-                    {field.value
-                      ? new Date(field.value).toLocaleDateString()
-                      : "Pick a date"}
-                  </Button>
-                ) : (
-                  // Editable date field for admins
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? new Date(field.value).toLocaleDateString()
-                            : "Pick a date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={field.onChange}
-                        captionLayout="dropdown"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value
+                          ? new Date(field.value).toLocaleDateString()
+                          : "Pick a date"}
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Calendar
+                      mode="single"
+                      selected={field.value ? new Date(field.value) : undefined}
+                      onSelect={field.onChange}
+                      captionLayout="dropdown"
+                    />
+                  </PopoverContent>
+                </Popover>
               </FormControl>
               <FormMessage />
             </FormItem>
