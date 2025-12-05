@@ -79,7 +79,6 @@ export default async function SalesReportPage({
       return {
         branchId: branch.id,
         branchName: branch.name,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sales: sales || [],
         pagination: branchPagination
       };

@@ -71,7 +71,6 @@ export default async function CreditReportPage({
       return {
         branchId: branch.id,
         branchName: branch.name,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         credits: credits || [],
         pagination: branchPagination
       };

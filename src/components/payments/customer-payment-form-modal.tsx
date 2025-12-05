@@ -79,10 +79,13 @@ export function PaymentFormDialog({
       customerId: payments?.customerId || "",
       amount: payments?.amount || undefined,
       paymentMethod: payments?.paymentMethod || "",
-      // Only use payments.paidOn if it's an existing persisted payment (has id)
+      // In wizard mode (onPaymentAdded), use payments.paidOn (which is commonDate from wizard)
+      // For existing payments (has id), use payments.paidOn
       // Otherwise, use nextAllowedDate for branch managers, or new Date() for admins
-      paidOn: isExistingPayment && payments?.paidOn 
-        ? new Date(payments.paidOn) 
+      paidOn: (onPaymentAdded && payments?.paidOn)
+        ? new Date(payments.paidOn)
+        : (isExistingPayment && payments?.paidOn)
+        ? new Date(payments.paidOn)
         : (nextAllowedDate || new Date()),
       branchId: payments?.branchId || userBranchId || "",
       description: payments?.description || "",
@@ -95,6 +98,13 @@ export function PaymentFormDialog({
       form.setValue("paidOn", nextAllowedDate);
     }
   }, [isDateRestricted, nextAllowedDate, isExistingPayment, onPaymentAdded, form, open]);
+
+  // In wizard mode, use the commonDate from wizard (payments.paidOn)
+  useEffect(() => {
+    if (onPaymentAdded && payments?.paidOn && open) {
+      form.setValue("paidOn", new Date(payments.paidOn));
+    }
+  }, [onPaymentAdded, payments?.paidOn, form, open]);
 
   // 🔑 watch entered amount
   const enteredAmount = form.watch("amount") ?? 0;

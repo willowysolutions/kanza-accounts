@@ -39,6 +39,8 @@ import { useRouter } from "next/navigation";
 import { oilSchema } from "@/schemas/oil-schema";
 import { useEffect, useState } from "react";
 import { BranchSelector } from "@/components/common/branch-selector";
+import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
+import { cn } from "@/lib/utils";
 
 
 type OilFormValues = z.infer<typeof oilSchema>;
@@ -50,6 +52,7 @@ export function OilFormModal({
   branchId,
   userRole,
   userBranchId,
+  wizardDate,
 }: {
   oil?: Oil;
   open?: boolean;
@@ -57,6 +60,7 @@ export function OilFormModal({
   branchId?: string;
   userRole?: string;
   userBranchId?: string;
+  wizardDate?: Date;
 }) {
     const [productOption, setProductOptions] = useState<{ 
       productName: string;
@@ -70,15 +74,31 @@ export function OilFormModal({
 
   const router = useRouter();
 
+  // Get next allowed date for branch managers
+  // - Restricted for branch users when creating a new oil entry (non-wizard)
+  // - Not restricted in wizard mode (wizardDate) or when editing existing oil entry
+  const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
+    userRole,
+    branchId: selectedBranchId,
+    isEditMode: !!oil || !!wizardDate,
+  });
+
   const form = useForm<OilFormValues>({
     resolver: zodResolver(oilSchema),
     defaultValues: {
-      date: oil?.date || new Date(),
+      date: oil?.date ? new Date(oil.date) : (nextAllowedDate || new Date()),
       productType: oil?.productType || "",
       quantity: oil?.quantity || undefined,
       price: oil?.price || undefined,
     },
   });
+
+  // Update date when nextAllowedDate is available for branch managers
+  useEffect(() => {
+    if (isDateRestricted && nextAllowedDate && !oil) {
+      form.setValue("date", nextAllowedDate);
+    }
+  }, [isDateRestricted, nextAllowedDate, oil, form]);
 
     const quantity = useWatch({ control: form.control, name: "quantity" });
     const oilType = useWatch({ control: form.control, name: "productType" });
@@ -238,25 +258,44 @@ export function OilFormModal({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button variant="outline" className="w-full text-left">
-                        {field.value
-                          ? new Date(field.value).toLocaleDateString()
-                          : "Pick date"}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(val) => field.onChange(val ?? new Date())}
-                      captionLayout="dropdown"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  {isDateRestricted ? (
+                    // Disabled date field for branch managers
+                    <Button
+                      variant="outline"
+                      disabled
+                      className={cn(
+                        "w-full text-left font-normal bg-muted cursor-not-allowed",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick date"}
+                    </Button>
+                  ) : (
+                    // Editable date field for admins
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className="w-full text-left">
+                            {field.value
+                              ? new Date(field.value).toLocaleDateString()
+                              : "Pick date"}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(val) => field.onChange(val ?? new Date())}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
