@@ -267,7 +267,7 @@ export const SalesStep: React.FC = () => {
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Set debouncing state to true
+    // Set debounce state to true
     setIsDebouncing(true);
 
     // Set new timer
