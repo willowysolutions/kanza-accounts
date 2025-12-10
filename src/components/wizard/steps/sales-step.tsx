@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SalesFormValues, salesSchema } from '@/schemas/sales-schema';
@@ -33,6 +33,8 @@ export const SalesStep: React.FC = () => {
   const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<SalesFormValues>({
     resolver: zodResolver(salesSchema),
@@ -258,6 +260,39 @@ export const SalesStep: React.FC = () => {
   const paytmPayment = form.watch("paytmPayment");
   const fleetPayment = form.watch("fleetPayment");
 
+  // Debounce payment fields changes (1000ms) and update cashPayment only after delay
+  useEffect(() => {
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set debouncing state to true
+    setIsDebouncing(true);
+
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      // Calculate cashPayment after debounce delay
+      const currentRate = form.getValues("rate") || 0;
+      const totalPayments =
+        (Number(atmPayment) || 0) +
+        (Number(paytmPayment) || 0) +
+        (Number(fleetPayment) || 0);
+      const cashPayment = Number(currentRate) - totalPayments;
+      form.setValue("cashPayment", Number(cashPayment) || 0);
+      
+      setIsDebouncing(false);
+      debounceTimerRef.current = null;
+    }, 1000);
+
+    // Cleanup on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [atmPayment, paytmPayment, fleetPayment, form]);
+
   useEffect(() => {
     if (selectedDate && selectedBranchId) {
       setIsDataReady(false);
@@ -329,12 +364,6 @@ export const SalesStep: React.FC = () => {
           const total = fuelTotal + dynamicProductsTotal;
           const roundedTotal = Math.round(total);
 
-          const totalPayments =
-            (Number(atmPayment) || 0) +
-            (Number(paytmPayment) || 0) +
-            (Number(fleetPayment) || 0);
-          const cashPayment = roundedTotal - totalPayments;
-
           // Explicitly set all fuel totals, including 0 values - ensure all are numbers
           form.setValue("rate", Number(roundedTotal) || 0);
           form.setValue("hsdDieselTotal", Number(Math.round(hsdTotal)) || 0);
@@ -348,6 +377,16 @@ export const SalesStep: React.FC = () => {
             cleanedFuelTotals[key] = isNaN(num) ? 0 : num;
           });
           form.setValue("fuelTotals", cleanedFuelTotals);
+          
+          // cashPayment will be calculated by the debounce effect when payment fields change
+          // For initial load, calculate it here using form values
+          const currentRate = Number(roundedTotal) || 0;
+          const currentValues = form.getValues();
+          const totalPayments =
+            (Number(currentValues.atmPayment) || 0) +
+            (Number(currentValues.paytmPayment) || 0) +
+            (Number(currentValues.fleetPayment) || 0);
+          const cashPayment = currentRate - totalPayments;
           form.setValue("cashPayment", Number(cashPayment) || 0);
           
           // Ensure all fuel totals are explicitly set to 0 if they don't exist
@@ -377,7 +416,14 @@ export const SalesStep: React.FC = () => {
           setIsLoadingData(false);
         });
     }
-  }, [selectedDate, selectedBranchId, atmPayment, paytmPayment, fleetPayment, form, branchFuelProducts]);
+  }, [
+    selectedDate,
+    selectedBranchId,
+    form,
+    branchFuelProducts,
+    // Note: atmPayment, paytmPayment, fleetPayment are intentionally excluded
+    // to prevent recalculation on every keystroke. cashPayment is updated via debounce effect.
+  ]);
 
   // Set up the save handler only when initialized - but don't call it
   useEffect(() => {
@@ -672,9 +718,9 @@ export const SalesStep: React.FC = () => {
               type="button" 
               variant="outline"
               onClick={markCurrentStepCompleted}
-              disabled={isLoadingData || !isDataReady}
+              disabled={isLoadingData || !isDataReady || isDebouncing}
             >
-              {isLoadingData ? 'Loading...' : 'Complete'}
+              {isLoadingData ? 'Loading...' : isDebouncing ? 'Loading...' : 'Complete'}
             </Button>
           </div>
         </CardContent>

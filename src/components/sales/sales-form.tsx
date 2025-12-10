@@ -29,7 +29,7 @@ import { useRouter } from "next/navigation";
 import { Sales } from "@/types/sales";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { parseProducts } from "@/lib/product-utils";
 import { BranchSelector } from "@/components/common/branch-selector";
 import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
@@ -61,6 +61,8 @@ export function SalesFormModal({
   const [branchFuelProducts, setBranchFuelProducts] = useState<{ productName: string }[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const router = useRouter();
 
@@ -345,6 +347,39 @@ const atmPayment = form.watch("atmPayment");
 const paytmPayment = form.watch("paytmPayment");
 const fleetPayment = form.watch("fleetPayment");
 
+// Debounce payment fields changes (500ms) and update cashPayment only after delay
+useEffect(() => {
+  // Clear existing timer
+  if (debounceTimerRef.current) {
+    clearTimeout(debounceTimerRef.current);
+  }
+
+  // Set debouncing state to true
+  setIsDebouncing(true);
+
+  // Set new timer
+  debounceTimerRef.current = setTimeout(() => {
+    // Calculate cashPayment after debounce delay
+    const currentRate = form.getValues("rate") || 0;
+    const totalPayments =
+      (Number(atmPayment) || 0) +
+      (Number(paytmPayment) || 0) +
+      (Number(fleetPayment) || 0);
+    const cashPayment = Number(currentRate) - totalPayments;
+    form.setValue("cashPayment", Number(cashPayment) || 0);
+    
+    setIsDebouncing(false);
+    debounceTimerRef.current = null;
+  }, 1000);
+
+  // Cleanup on unmount
+  return () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+  };
+}, [atmPayment, paytmPayment, fleetPayment, form]);
+
 
 useEffect(() => {
   if (selectedDate && selectedBranchId) {
@@ -429,14 +464,6 @@ useEffect(() => {
         const total = fuelTotal + dynamicProductsTotal;
         const roundedTotal = Math.round(total);
 
-        // --- Payments ---
-        const totalPayments =
-          (Number(atmPayment) || 0) +
-          (Number(paytmPayment) || 0) +
-          (Number(fleetPayment) || 0);
-
-        const cashPayment = roundedTotal - totalPayments;
-
         // --- Auto-fill form fields ---
         // Explicitly set all fuel totals, including 0 values - ensure all are numbers
         form.setValue("rate", Number(roundedTotal) || 0);
@@ -451,6 +478,16 @@ useEffect(() => {
           cleanedFuelTotals[key] = isNaN(num) ? 0 : num;
         });
         form.setValue("fuelTotals", cleanedFuelTotals);
+        
+        // cashPayment will be calculated by the debounce effect when payment fields change
+        // For initial load, calculate it here using form values
+        const currentRate = Number(roundedTotal) || 0;
+        const currentValues = form.getValues();
+        const totalPayments =
+          (Number(currentValues.atmPayment) || 0) +
+          (Number(currentValues.paytmPayment) || 0) +
+          (Number(currentValues.fleetPayment) || 0);
+        const cashPayment = currentRate - totalPayments;
         form.setValue("cashPayment", Number(cashPayment) || 0);
         
         // Ensure all fuel totals are explicitly set to 0 if they don't exist
@@ -482,9 +519,6 @@ useEffect(() => {
 }, [
   selectedDate,
   selectedBranchId,
-  atmPayment,
-  paytmPayment,
-  fleetPayment,
   form,
   branchFuelProducts,
 ]);
@@ -930,19 +964,24 @@ useEffect(() => {
           <Button
             type="submit"
             size="lg"
-            disabled={form.formState.isSubmitting || isLoadingData || !isDataReady}
+            disabled={form.formState.isSubmitting || isLoadingData || !isDataReady || isDebouncing}
             onClick={(e) => {
               console.log("🟡 Save button clicked");
               console.log("🟡 isSubmitting:", form.formState.isSubmitting);
               console.log("🟡 isLoadingData:", isLoadingData);
               console.log("🟡 isDataReady:", isDataReady);
-              console.log("🟡 Button disabled:", form.formState.isSubmitting || isLoadingData || !isDataReady);
+              console.log("🟡 isDebouncing:", isDebouncing);
+              console.log("🟡 Button disabled:", form.formState.isSubmitting || isLoadingData || !isDataReady || isDebouncing);
               console.log("🟡 Current form values:", form.getValues());
               console.log("🟡 Form errors:", form.formState.errors);
               console.log("🟡 Selected branch ID:", selectedBranchId);
               if (!isDataReady) {
                 console.error("❌ Button is disabled because isDataReady is false");
                 toast.error("Please wait for data to load before saving");
+                e.preventDefault();
+              }
+              if (isDebouncing) {
+                console.error("❌ Button is disabled because payment fields are debouncing");
                 e.preventDefault();
               }
             }}
@@ -953,6 +992,11 @@ useEffect(() => {
                 Saving...
               </>
             ) : isLoadingData ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : isDebouncing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Loading...
