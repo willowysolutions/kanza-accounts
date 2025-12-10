@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import React from 'react';
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { WizardWithBranchTabs } from '@/components/wizard/wizard-with-branch-tabs';
@@ -26,7 +26,7 @@ export default async function WizardPage() {
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
   // Forward cookies
-  const cookie = cookies().toString();
+  const cookie = hdrs.get("cookie") ?? "";
   
   // Fetch branches
   const branchesRes = await fetch(`${proto}://${host}/api/branch`, {

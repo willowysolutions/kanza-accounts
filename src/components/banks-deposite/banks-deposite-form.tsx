@@ -60,7 +60,7 @@ export const BankDepositeFormDialog = ({
     resolver: zodResolver(bankDepositeSchema),
     defaultValues: {
       bankId: bankDeposite?.bankId || "",
-      date: bankDeposite?.date ? new Date(bankDeposite.date) : (nextAllowedDate || new Date()),
+      date: bankDeposite?.date ? new Date(bankDeposite.date) : new Date(),
       amount: bankDeposite?.amount || undefined,
       description: bankDeposite?.description || "",
     },
@@ -68,10 +68,12 @@ export const BankDepositeFormDialog = ({
 
   // Update date when nextAllowedDate is available for branch managers
   useEffect(() => {
-    if (isDateRestricted && nextAllowedDate && !bankDeposite) {
-      form.setValue("date", nextAllowedDate);
+    const isOpen = open ?? true;
+    if (isOpen && isDateRestricted && nextAllowedDate && !bankDeposite) {
+      const current = form.getValues();
+      form.reset({ ...current, date: nextAllowedDate });
     }
-  }, [isDateRestricted, nextAllowedDate, bankDeposite, form]);
+  }, [open, isDateRestricted, nextAllowedDate, bankDeposite, form]);
 
   const handleSubmit = async (
     values: z.infer<typeof bankDepositeSchema>,
@@ -202,25 +204,37 @@ export const BankDepositeFormDialog = ({
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className="w-full text-left">
-                          {field.value
-                            ? new Date(field.value).toLocaleDateString()
-                            : "Pick date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={field.onChange}
-                        captionLayout="dropdown"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  {isDateRestricted ? (
+                    <Button
+                      variant="outline"
+                      disabled
+                      className="w-full text-left bg-muted cursor-not-allowed"
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick date"}
+                    </Button>
+                  ) : (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className="w-full text-left">
+                            {field.value
+                              ? new Date(field.value).toLocaleDateString()
+                              : "Pick date"}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={field.onChange}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>

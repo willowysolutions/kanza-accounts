@@ -81,17 +81,19 @@ export function CreditFormDialog({
       fuelType:credits?.fuelType || "",
       quantity:credits?.quantity || undefined,
       amount: credits?.amount || undefined,
-      date: credits?.date ? new Date(credits.date) : (nextAllowedDate || new Date()),
+      date: credits?.date ? new Date(credits.date) : new Date(),
       reason: (credits as { reason?: string })?.reason || "",
     },
   });
 
   // Update date when nextAllowedDate is available for branch managers
   useEffect(() => {
-    if (isDateRestricted && nextAllowedDate && !credits) {
-      form.setValue("date", nextAllowedDate);
+    const isOpen = open ?? true;
+    if (isOpen && isDateRestricted && nextAllowedDate && !credits) {
+      const current = form.getValues();
+      form.reset({ ...current, date: nextAllowedDate });
     }
-  }, [isDateRestricted, nextAllowedDate, credits, form]);
+  }, [open, isDateRestricted, nextAllowedDate, credits, form]);
 
   // 🔑 Watch fields
   const selectedCustomerId = form.watch("customerId");
@@ -430,25 +432,37 @@ export function CreditFormDialog({
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className="w-full text-left">
-                          {field.value
-                            ? new Date(field.value).toLocaleDateString()
-                            : "Pick date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={field.onChange}
-                        captionLayout="dropdown"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  {isDateRestricted ? (
+                    <Button
+                      variant="outline"
+                      disabled
+                      className="w-full text-left bg-muted cursor-not-allowed"
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick date"}
+                    </Button>
+                  ) : (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className="w-full text-left">
+                            {field.value
+                              ? new Date(field.value).toLocaleDateString()
+                              : "Pick date"}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={field.onChange}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>
