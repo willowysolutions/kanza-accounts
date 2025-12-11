@@ -3,7 +3,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MeterReadingTable } from "../meter-reading/meter-reading-table";
 import { MeterReading } from "@/types/meter-reading";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MeterReadingFormSheet } from "../meter-reading/meter-reading-form";
 import { oilColumns } from "../oil/oil-column";
 import { OilTable } from "../oil/oil-table";
@@ -18,11 +18,11 @@ import { Plus } from "lucide-react";
 
 // Wrapper component to use the hook
 function ReportTableWithDynamicColumns({
-  data,
+  data: initialData,
   userRole,
   branchId,
-  pagination,
-  currentPage,
+  pagination: initialPagination,
+  currentPage: initialPage,
 }: {
   data: Sales[];
   userRole?: string;
@@ -37,14 +37,80 @@ function ReportTableWithDynamicColumns({
   };
   currentPage?: number;
 }) {
+  const [data, setData] = useState<Sales[]>(initialData || []);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState(initialPagination || {
+    currentPage: initialPage || 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 15
+  });
+
   const columns = useReportColumns(userRole, branchId);
+
+  // Fetch data from API with pagination
+  const fetchData = useCallback(async (page: number, branchIdParam?: string) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '15'
+      });
+      
+      if (branchIdParam) {
+        params.append('branchId', branchIdParam);
+      }
+
+      const response = await fetch(`/api/sales?${params.toString()}`);
+      const result = await response.json();
+      
+      if (response.ok) {
+        setData(result.sales || []);
+        setPagination(result.pagination || {
+          currentPage: page,
+          totalPages: 1,
+          totalCount: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: 15
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch data when branchId changes or on initial load
+  useEffect(() => {
+    if (branchId) {
+      fetchData(1, branchId);
+    } else if (initialData && initialData.length > 0) {
+      setData(initialData);
+      if (initialPagination) {
+        setPagination(initialPagination);
+      }
+    }
+  }, [branchId, fetchData, initialData, initialPagination]);
+
+  // Handle pagination
+  const handlePageChange = useCallback((newPage: number) => {
+    if (branchId) {
+      fetchData(newPage, branchId);
+    }
+  }, [branchId, fetchData]);
   
   return (
     <ReportTable 
       data={data} 
       columns={columns}
       pagination={pagination}
-      currentPage={currentPage}
+      currentPage={pagination.currentPage}
+      loading={loading}
+      onPageChange={handlePageChange}
     />
   );
 }

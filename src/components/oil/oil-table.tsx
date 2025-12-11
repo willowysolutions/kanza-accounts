@@ -37,6 +37,7 @@ export function OilTable<TValue>({ columns, data: initialData, branchId }: OilTa
   const [globalFilter, setGlobalFilter] = useState("");
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -77,14 +78,25 @@ export function OilTable<TValue>({ columns, data: initialData, branchId }: OilTa
     }
   }, [branchId]);
 
-  // Initial data load
+  // Initial data load and refetch on refresh
   useEffect(() => {
     if (initialData && initialData.length > 0) {
       setData(initialData);
     } else {
       fetchData(1);
     }
-  }, [initialData, fetchData]);
+  }, [initialData, fetchData, refreshKey]);
+
+  // Listen for custom refresh event
+  useEffect(() => {
+    const handleRefresh = () => {
+      setRefreshKey(prev => prev + 1);
+      fetchData(pagination.currentPage, globalFilter);
+    };
+    
+    window.addEventListener('oil-deleted', handleRefresh);
+    return () => window.removeEventListener('oil-deleted', handleRefresh);
+  }, [fetchData, pagination.currentPage, globalFilter]);
 
   // Handle search with debounce
   useEffect(() => {

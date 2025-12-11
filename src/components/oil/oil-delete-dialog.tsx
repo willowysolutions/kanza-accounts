@@ -26,16 +26,24 @@ export const OilDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`/api/oils/${oil?.id}`,{
+          const res = await fetch(`/api/oils/${oil?.id}`,{
               method:"DELETE"
             });
+          
+          if (!res.ok) {
+            throw new Error("Failed to delete oil");
+          }
+          
           toast.success(`Oils "${oil.productType}" deleted.`)
-          setOpen(!open)
+          setOpen(false);
+          
+          // Trigger refresh event for OilTable
+          window.dispatchEvent(new Event('oil-deleted'));
+          
           router.refresh()
       }catch(error){
           toast.error("Failed to delete oil.")
-          console.log(error,"Error on deleting oil");
-          
+          console.error(error,"Error on deleting oil");
       }
     }
   return (
