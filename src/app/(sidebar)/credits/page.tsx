@@ -51,7 +51,7 @@ const creditsByBranch = visibleBranches.map((branch: { id: string; name: string 
 
   return (
     <div className="flex flex-1 flex-col">
-      <CreditsWithBranchTabs branches={visibleBranches} creditsByBranch={creditsByBranch} isGm={isGm} userRole={session.user.role || undefined} />
+      <CreditsWithBranchTabs branches={visibleBranches} creditsByBranch={creditsByBranch} isGm={isGm} userRole={session.user.role || undefined} userBranchId={userBranchId} />
     </div>
   );
 }

@@ -18,9 +18,11 @@ const session = await auth.api.getSession({ headers: await headers() });
 if (!session) {
   redirect('/login');
 }
+
 const userRole = session.user?.role ?? undefined;
 const userBranchId = typeof session.user?.branch === 'string' ? session.user.branch : undefined;
-const isAdmin = userRole?.toLowerCase() === "admin";
+const isAdmin = (userRole?.toLowerCase() === "admin") || (userRole?.toLowerCase() === "gm");
+const isGm = (userRole?.toLowerCase() === "gm");
 
 // Fetch balance receipts and branches
 const [balanceReceiptsRes, branchesRes] = await Promise.all([
@@ -69,10 +71,12 @@ const balanceReceiptsByBranch = visibleBranches.map((branch: { id: string; name:
               <h1 className="text-2xl font-bold tracking-tight">Balance Receipt</h1>
               <p className="text-muted-foreground">Manage Balance Receipts by branch</p>
             </div>
-            <BalanceReceiptFormDialog 
-              userRole={userRole}
-              userBranchId={userBranchId}
-            />
+            {!isGm && (
+              <BalanceReceiptFormDialog 
+                userRole={userRole}
+                userBranchId={userBranchId}
+              />
+            )}
           </div>
 
           <Tabs defaultValue={defaultBranchId} className="w-full">

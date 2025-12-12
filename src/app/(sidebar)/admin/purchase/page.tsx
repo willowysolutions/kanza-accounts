@@ -26,9 +26,11 @@ export default async function PurchasePage() {
     redirect('/login');
   }
 
-  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
-  const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
-  
+  const userRole = session.user?.role ?? undefined;
+  const userBranchId = typeof session.user?.branch === 'string' ? session.user.branch : undefined;
+  const isAdmin = (userRole?.toLowerCase() === "admin") || (userRole?.toLowerCase() === "gm");
+  const isGm = (userRole?.toLowerCase() === "gm");
+      
   // Fetch purchase orders and branches (purchases will be fetched by table with pagination)
   const [orderRes, branchesRes] = await Promise.all([
     fetch(`${proto}://${host}/api/purchase-order`, {
@@ -77,7 +79,9 @@ export default async function PurchasePage() {
                 </p>
               </div>
 
-              <PurchaseSummaryCards branchId={branchId} />
+              {!isGm && (
+                <PurchaseSummaryCards branchId={branchId} />
+              )}
               
               <PurchaseManagement 
                 purchase={purchases} 

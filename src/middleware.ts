@@ -21,7 +21,8 @@ export async function middleware(request: NextRequest) {
   }
 
   if (request.nextUrl.pathname.startsWith("/admin")) {
-    if (user?.role !== "admin") {
+    const userRole = user?.role?.toLowerCase();
+    if (userRole !== "admin" && userRole !== "gm") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }

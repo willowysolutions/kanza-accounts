@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/utils";
 
 export const balanceReceiptColumn = (userRole?: string): ColumnDef<BalanceReceipt>[] => {
   const isAdmin = userRole?.toLowerCase() === "admin";
+  const isGm = userRole?.toLowerCase() === "gm";
 
   const columns: ColumnDef<BalanceReceipt>[] = [
     {
@@ -46,8 +47,8 @@ export const balanceReceiptColumn = (userRole?: string): ColumnDef<BalanceReceip
     },
   ];
 
-  // Only add Actions column for admin users
-  if (isAdmin) {
+  // Only add Actions column for admin users (not GM)
+  if (isAdmin && !isGm) {
     columns.push({
       id: "actions",
       header: "Actions",

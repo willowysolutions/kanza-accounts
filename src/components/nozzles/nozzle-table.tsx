@@ -30,11 +30,17 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NozzleTableProps } from "@/types/nozzle";
 import { Search } from "lucide-react";
+import { getNozzleColumns } from "./nozzle-column";
 
-export function NozzleTable<TValue>({ columns, data }: NozzleTableProps<TValue>) {
+export function NozzleTable<TValue>({ columns, data, userRole }: Omit<NozzleTableProps<TValue>, 'columns'> & { columns?: NozzleTableProps<TValue>['columns']; userRole?: string }) {
+  // If columns are provided, use them; otherwise generate based on userRole
+  const tableColumns = useMemo(() => {
+    if (columns) return columns;
+    return getNozzleColumns(userRole);
+  }, [columns, userRole]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
@@ -44,7 +50,7 @@ export function NozzleTable<TValue>({ columns, data }: NozzleTableProps<TValue>)
 
   const table = useReactTable({
     data,
-    columns,
+    columns: tableColumns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
@@ -123,7 +129,7 @@ export function NozzleTable<TValue>({ columns, data }: NozzleTableProps<TValue>)
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={tableColumns.length}
                     className="h-24 text-center"
                   >
                     No results.

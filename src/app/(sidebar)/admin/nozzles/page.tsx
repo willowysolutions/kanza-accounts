@@ -5,9 +5,10 @@ import { NozzleFormModal } from "@/components/nozzles/nozzle-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Fuel, FuelIcon } from "lucide-react";
-import { nozzleColumns } from "@/components/nozzles/nozzle-column";
 import { Nozzle } from "@/types/nozzle";
 import { cookies, headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function NozzlePage() {
   const hdrs = await headers();
@@ -16,6 +17,15 @@ export default async function NozzlePage() {
     hdrs.get("x-forwarded-proto") ??
     (process.env.NODE_ENV === "production" ? "https" : "http");
   const cookie = (await cookies()).toString();
+  
+  // Get session to check user role
+  const session = await auth.api.getSession({ headers: hdrs });
+  if (!session) {
+    redirect('/login');
+  }
+  
+  const userRole = session.user?.role ?? undefined;
+  const isGm = (userRole?.toLowerCase() === "gm");
   
   // Fetch nozzles and branches
   const [nozzlesRes, branchesRes] = await Promise.all([
@@ -48,7 +58,7 @@ export default async function NozzlePage() {
               <h1 className="text-2xl font-bold tracking-tight">Nozzle Management</h1>
               <p className="text-muted-foreground">Monitor and manage fuel dispensing nozzles by branch</p>
             </div>
-            <NozzleFormModal />
+            {!isGm && <NozzleFormModal />}
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">
@@ -119,7 +129,7 @@ export default async function NozzlePage() {
                     </Card>
                   </div>
 
-                  <NozzleTable data={nozzles} columns={nozzleColumns}/>
+                  <NozzleTable data={nozzles} userRole={userRole} />
                 </TabsContent>
               );
             })}

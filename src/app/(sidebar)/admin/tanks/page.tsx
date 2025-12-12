@@ -4,6 +4,8 @@ import { TankFormDialog } from "@/components/tank/tank-form";
 import { TankCard } from "@/components/tank/tank-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { headers, cookies } from "next/headers";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function TankPage() {
   const hdrs = await headers();
@@ -12,6 +14,15 @@ export default async function TankPage() {
     hdrs.get("x-forwarded-proto") ??
     (process.env.NODE_ENV === "production" ? "https" : "http");
   const cookie = (await cookies()).toString();
+  
+  // Get session to check user role
+  const session = await auth.api.getSession({ headers: hdrs });
+  if (!session) {
+    redirect('/login');
+  }
+  
+  const userRole = session.user?.role ?? undefined;
+  const isGm = (userRole?.toLowerCase() === "gm");
   
   // Fetch tanks and branches
   const [tanksRes, branchesRes] = await Promise.all([
@@ -44,7 +55,7 @@ export default async function TankPage() {
               <h1 className="text-2xl font-bold tracking-tight">Tank Management</h1>
               <p className="text-muted-foreground">Monitor and manage fuel tank levels by branch</p>
             </div>
-            <TankFormDialog />
+            {!isGm && <TankFormDialog />}
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">
@@ -65,7 +76,7 @@ export default async function TankPage() {
                     {tanks.length} tank{tanks.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <TankCard tanks={tanks}/>
+                <TankCard tanks={tanks} userRole={userRole} />
               </TabsContent>
             ))}
           </Tabs>
