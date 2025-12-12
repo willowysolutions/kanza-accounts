@@ -1,13 +1,13 @@
 export const dynamic = "force-dynamic";
 import MeterTabManagement from "@/components/meter-tab-management/reading-management";
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 export default async function MeterReadingPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const hdrs = await headers();
   const host = hdrs.get("host");
@@ -29,8 +29,8 @@ export default async function MeterReadingPage({
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
   // 🔹 Forward cookies
-  const cookie = cookies().toString();
-  const params = await searchParams;
+  const cookie = hdrs.get("cookie") ?? "";
+  const params = searchParams;
 
   // Get pagination parameters
   const page = typeof params.page === "string" ? parseInt(params.page) : 1;

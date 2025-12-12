@@ -37,7 +37,9 @@ import { format } from "date-fns";
 export function ReportTable<TValue>({ 
   columns, 
   data, 
-  pagination: serverPagination
+  pagination: serverPagination,
+  loading = false,
+  onPageChange
 }: SalesTableProps<TValue> & {
   pagination?: {
     currentPage: number;
@@ -48,6 +50,8 @@ export function ReportTable<TValue>({
     limit: number;
   };
   currentPage?: number;
+  loading?: boolean;
+  onPageChange?: (page: number) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -137,7 +141,16 @@ export function ReportTable<TValue>({
               ))}
             </TableHeader>
             <TableBody>
-              {filteredRows.length ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <span className="ml-2">Loading...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredRows.length ? (
                 filteredRows.map((row) => (
                   <TableRow
                     key={row.id}
@@ -164,18 +177,28 @@ export function ReportTable<TValue>({
           {serverPagination && (
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
-                Showing {((serverPagination.currentPage - 1) * serverPagination.limit) + 1} to {Math.min(serverPagination.currentPage * serverPagination.limit, serverPagination.totalCount)} of {serverPagination.totalCount} results
+                {loading ? (
+                  "Loading..."
+                ) : (
+                  <>
+                    Showing {((serverPagination.currentPage - 1) * serverPagination.limit) + 1} to {Math.min(serverPagination.currentPage * serverPagination.limit, serverPagination.totalCount)} of {serverPagination.totalCount} results
+                  </>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('page', (serverPagination.currentPage - 1).toString());
-                    window.location.href = url.toString();
+                    if (onPageChange) {
+                      onPageChange(serverPagination.currentPage - 1);
+                    } else {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('page', (serverPagination.currentPage - 1).toString());
+                      window.location.href = url.toString();
+                    }
                   }}
-                  disabled={!serverPagination.hasPrevPage}
+                  disabled={!serverPagination.hasPrevPage || loading}
                 >
                   Previous
                 </Button>
@@ -188,11 +211,15 @@ export function ReportTable<TValue>({
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('page', (serverPagination.currentPage + 1).toString());
-                    window.location.href = url.toString();
+                    if (onPageChange) {
+                      onPageChange(serverPagination.currentPage + 1);
+                    } else {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('page', (serverPagination.currentPage + 1).toString());
+                      window.location.href = url.toString();
+                    }
                   }}
-                  disabled={!serverPagination.hasNextPage}
+                  disabled={!serverPagination.hasNextPage || loading}
                 >
                   Next
                 </Button>

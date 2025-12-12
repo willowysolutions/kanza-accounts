@@ -1,8 +1,6 @@
 "use client";
 
-import {
-  DialogClose,
-} from "@/components/ui/dialog";
+import { DialogClose } from "@/components/ui/dialog";
 import {
   FormControl,
   FormField,
@@ -32,7 +30,13 @@ import { useRouter } from "next/navigation";
 import { ExpenseFormProps } from "@/types/expense";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { cn } from "@/lib/utils";
 import { BranchSelector } from "@/components/common/branch-selector";
 import { useNextAllowedDate } from "@/hooks/use-next-allowed-date";
@@ -44,71 +48,103 @@ export const ExpenseFormDialog = ({
   userRole,
   userBranchId,
 }: ExpenseFormProps & { userRole?: string; userBranchId?: string }) => {
-  const [expenseCategoryList, setExpenseCategoryList] = useState<{ name: string; id: string; limit?: number }[]>([])
-  const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>([])
+  const [expenseCategoryList, setExpenseCategoryList] = useState<
+    { name: string; id: string; limit?: number }[]
+  >([]);
+  const [bankList, setBankList] = useState<{ bankName: string; id: string }[]>(
+    []
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(expense?.branchId || userBranchId || "");
+
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    expense?.branchId || userBranchId || ""
+  );
+
   const router = useRouter();
 
-  // Get next allowed date for branch managers
+  // Branch date restriction
   const { nextAllowedDate, isDateRestricted } = useNextAllowedDate({
     userRole,
     branchId: selectedBranchId,
     isEditMode: !!expense,
   });
 
-
+  // --------------------
+  // FORM
+  // --------------------
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
       description: expense?.description ?? "",
       amount: expense?.amount ?? undefined,
-      date: expense?.date ? new Date(expense.date) : (nextAllowedDate || new Date()),
+      date: expense?.date ? new Date(expense.date) : new Date(),
       expenseCategoryId: expense?.expenseCategoryId || "",
-      bankId:expense?.bankId || undefined,
+      bankId: expense?.bankId || undefined,
       reason: (expense as { reason?: string })?.reason || "",
     },
   });
 
-  // Update date when nextAllowedDate is available for branch managers
-  useEffect(() => {
-    if (isDateRestricted && nextAllowedDate && !expense) {
-      form.setValue("date", nextAllowedDate);
-    }
-  }, [isDateRestricted, nextAllowedDate, expense, form]);
-
-  // Watch fields
   const selectedCategoryId = form.watch("expenseCategoryId");
   const enteredAmount = form.watch("amount") ?? 0;
-
-  // Find selected category
   const selectedCategory = expenseCategoryList.find(
     (c) => c.id === selectedCategoryId
   );
 
-  // Check if total expenses + new amount exceeds category limit
-  const exceedsLimit = selectedCategory?.limit && selectedCategory.name === "TA" && Number(enteredAmount || 0) > selectedCategory.limit;
+  const exceedsLimit =
+    selectedCategory?.name === "TA" &&
+    selectedCategory.limit &&
+    Number(enteredAmount) > selectedCategory.limit;
 
+  // --------------------
+  // FETCH CATEGORY + BANKS
+  // --------------------
+  useEffect(() => {
+    fetch("/api/expensescategory")
+      .then((res) => res.json())
+      .then((d) => setExpenseCategoryList(d.data || []))
+      .catch((err) => console.error("Failed to fetch categories", err));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/banks")
+      .then((res) => res.json())
+      .then((d) => setBankList(d.banks || []))
+      .catch((err) => console.error("Failed to fetch banks", err));
+  }, []);
+
+  // --------------------
+  // AUTO-SELECT DATE (like Sales, using nextAllowedDate)
+  // --------------------
+  useEffect(() => {
+    // Treat undefined `open` (uncontrolled dialog) as open=true so the date still applies
+    const isOpen = open ?? true;
+    if (isOpen && isDateRestricted && nextAllowedDate && !expense) {
+      const current = form.getValues();
+      form.reset({ ...current, date: nextAllowedDate });
+    }
+  }, [open, isDateRestricted, nextAllowedDate, expense, form]);
+
+  // --------------------
+  // SUBMIT
+  // --------------------
   const handleSubmit = async (
     values: z.infer<typeof expenseSchema>,
     close: () => void
   ) => {
-    // Validate reason when limit is exceeded
     if (exceedsLimit && (!values.reason || values.reason.trim() === "")) {
-      toast.error("Reason is required when expense amount exceeds TA category limit");
+      toast.error("Reason is required when expense exceeds TA category limit.");
       return;
     }
 
     setIsSubmitting(true);
+
     try {
       const url = expense
         ? `/api/expenses/${expense.id}`
         : `/api/expenses/create`;
 
-      const method = expense ? "PATCH" : "POST";
-
       const res = await fetch(url, {
-        method,
+        method: expense ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...values,
@@ -123,51 +159,25 @@ export const ExpenseFormDialog = ({
         return;
       }
 
-      toast.success(expense ? "Expense updated successfully" : "Expense created successfully");
+      toast.success(expense ? "Expense updated" : "Expense created");
       close();
       router.refresh();
-    } catch (error) {
-      console.error("Error saving expense:", error);
+    } catch (err) {
+      console.error("Expense save error:", err);
       toast.error("Unexpected error occurred");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  useEffect(() => {
-      const fetchCategorys = async () => {
-        try {
-          const res = await fetch("/api/expensescategory");
-          const json = await res.json();
-          setExpenseCategoryList(json.data || []);
-        } catch (error) {
-          console.error("Failed to fetch expense category", error);
-        }
-      };
-  
-      fetchCategorys();
-    }, []);
-
-  useEffect(() => {
-      const fetchBanks = async () => {
-        try {
-          const res = await fetch("/api/banks");
-          const json = await res.json();
-          setBankList(json.banks || []);
-        } catch (error) {
-          console.error("Failed to fetch expense category", error);
-        }
-      };
-  
-      fetchBanks();
-    }, []);
-    
   return (
     <FormDialog
       open={open}
       openChange={openChange}
       form={form}
-      onSubmit={(values) => handleSubmit(values, () => openChange?.(false))}
+      onSubmit={(values) =>
+        handleSubmit(values, () => openChange?.(false))
+      }
     >
       <FormDialogTrigger asChild>
         <Button>
@@ -179,12 +189,9 @@ export const ExpenseFormDialog = ({
       <FormDialogContent className="sm:max-w-sm">
         <FormDialogHeader>
           <FormDialogTitle>{expense ? "Edit Expense" : "New Expense"}</FormDialogTitle>
-          <FormDialogDescription>
-            Fill out the expense details. Click save when you’re done.
-          </FormDialogDescription>
+          <FormDialogDescription>Fill out the expense details.</FormDialogDescription>
         </FormDialogHeader>
 
-        {/* Branch Selector */}
         <BranchSelector
           value={selectedBranchId}
           onValueChange={setSelectedBranchId}
@@ -193,170 +200,161 @@ export const ExpenseFormDialog = ({
           isEditMode={!!expense}
         />
 
-        {/* Title */}
-        {/* Expense Category */}
-        <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Date</FormLabel>
-              <FormControl>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value
-                          ? new Date(field.value).toLocaleDateString()
-                          : "Pick a date"}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={field.onChange}
-                      captionLayout="dropdown"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-
-        <FormField
-          control={form.control}
-          name="expenseCategoryId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Expense Category</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+        <div className="grid grid-cols-2 gap-4 mt-2">
+          {/* Date */}
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="category" />
-                  </SelectTrigger>
+                  {isDateRestricted ? (
+                    <Button
+                      variant="outline"
+                      disabled
+                      className={cn(
+                        "w-full pl-3 text-left font-normal bg-muted cursor-not-allowed",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? new Date(field.value).toLocaleDateString()
+                        : "Pick a date"}
+                    </Button>
+                  ) : (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? new Date(field.value).toLocaleDateString()
+                            : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={field.onChange}
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </FormControl>
-                <SelectContent>
-                  {expenseCategoryList.map((expenseCategory) => (
-                    <SelectItem key={expenseCategory?.id} value={expenseCategory?.id}>
-                      {expenseCategory?.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {(() => {
-          const selectedCategoryId = form.watch("expenseCategoryId");
-          const selectedCategory = expenseCategoryList.find(c => c.id === selectedCategoryId);
+          {/* Expense Category */}
+          <FormField
+            control={form.control}
+            name="expenseCategoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Expense Category</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {expenseCategoryList.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          if (selectedCategory?.name.toLocaleLowerCase() === "bank") {
-            return (
-              <FormField
-                control={form.control}
-                name="bankId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Select Bank</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="bank" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {bankList.map((bank) => (
-                          <SelectItem key={bank?.id} value={bank?.id}>
-                            {bank?.bankName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            );
-          }
-          return null;
-        })()}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Amount</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  value={field.value ?? ""}
-                  placeholder="Amount"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Date */}
-        </div>
-
-
-
-        <div className="w-full">
-
-            {/* Description */}
+          {/* Bank selector only when category=Bank */}
+          {selectedCategory?.name?.toLowerCase() === "bank" && (
             <FormField
               control={form.control}
-              name="description"
+              name="bankId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="description" {...field}/>
-                  </FormControl>
+                  <FormLabel>Select Bank</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="bank" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {bankList.map((bank) => (
+                        <SelectItem key={bank.id} value={bank.id}>
+                          {bank.bankName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </div>
-
-
+          )}
+        </div>
 
         {/* Amount */}
-        
+        <div className="grid grid-cols-2 gap-4 mt-2">
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amount</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value ?? ""}
+                    placeholder="Amount"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        {/* Reason field - only show when TA expense amount exceeds limit */}
+        {/* Description */}
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="description" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Reason for exceeding TA limit */}
         {exceedsLimit && (
           <FormField
             control={form.control}
             name="reason"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Reason (Required - TA expense exceeds limit)</FormLabel>
+                <FormLabel>Reason (Required)</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Enter reason for exceeding TA category limit"
-                    {...field}
-                  />
+                  <Input placeholder="Enter reason" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -370,14 +368,17 @@ export const ExpenseFormDialog = ({
               Cancel
             </Button>
           </DialogClose>
+
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Saving...
               </>
+            ) : expense ? (
+              "Update"
             ) : (
-              expense ? "Update" : "Save"
+              "Save"
             )}
           </Button>
         </FormDialogFooter>
