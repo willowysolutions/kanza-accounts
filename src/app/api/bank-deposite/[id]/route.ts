@@ -181,23 +181,19 @@ export async function PATCH(
 }
 
 // DELETE
-
 export async function DELETE(
-  req: Request,
-  // Next.js' type checker for route contexts can be overly strict; keep this untyped
-  // to satisfy the build while we validate at runtime.
-  context: unknown
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = (context as { params?: { id?: string } })?.params ?? {};
-  const idParam = typeof params.id === "string" ? params.id : null;
-
-  if (!idParam || !ObjectId.isValid(idParam)) {
-    return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
-  }
-
   try {
+    const { id } = await params;
+
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
     const existingDeposite = await prisma.bankDeposite.findUnique({
-      where: { id: idParam },
+      where: { id },
     });
 
     if (!existingDeposite) {
@@ -208,7 +204,7 @@ export async function DELETE(
 
     const [deletedBankDeposite] = await prisma.$transaction(async (tx) => {
       // 1. Delete deposit
-      const removedDeposit = await tx.bankDeposite.delete({ where: { id: idParam } });
+      const removedDeposit = await tx.bankDeposite.delete({ where: { id } });
 
       // 2. Decrement bank balance
       await tx.bank.update({
