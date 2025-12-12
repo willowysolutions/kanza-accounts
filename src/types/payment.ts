@@ -13,6 +13,7 @@ export type PaymentWithCustomer = PrismaCustomerPayment & {
 export interface PaymentTableProps<TData = PaymentWithCustomer, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  isGm?: boolean;
 }
 
 export type PaymentWithSupplier = PrismaSupplierPayment & {
@@ -25,6 +26,7 @@ export type PaymentWithSupplier = PrismaSupplierPayment & {
 export interface PurchasePaymentTableProps<TData = PaymentWithSupplier, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  isGm?: boolean;
 }
 
 export interface PaymentFormData {

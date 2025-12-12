@@ -10,10 +10,11 @@ type BankDepositsWithBranchTabsProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   depositsByBranch: { branchId: string; branchName: string; deposits: any[] }[];
   userRole?: string;
+  isGm?: boolean;
   userBranchId?: string;
 };
 
-export function BankDepositsWithBranchTabs({ branches, depositsByBranch, userRole, userBranchId }: BankDepositsWithBranchTabsProps) {
+export function BankDepositsWithBranchTabs({ branches, depositsByBranch, userRole, userBranchId , isGm }: BankDepositsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (
@@ -24,11 +25,11 @@ export function BankDepositsWithBranchTabs({ branches, depositsByBranch, userRol
             <h1 className="text-2xl font-bold tracking-tight">Bank Deposit Management</h1>
             <p className="text-muted-foreground">Manage your bank deposits by branch</p>
           </div>
-          <BankDepositeFormDialog 
+          {!isGm && <BankDepositeFormDialog 
             branchId={activeBranch} 
             userRole={userRole}
             userBranchId={userBranchId}
-          />
+          />}
         </div>
 
         <Tabs value={activeBranch} onValueChange={setActiveBranch} className="w-full">

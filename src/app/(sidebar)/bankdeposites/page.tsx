@@ -21,7 +21,8 @@ if (!session) {
   redirect('/login');
 }
 
-const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin' || (session.user.role ?? '').toLowerCase() === 'gm';
+const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
 const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
 
 // Fetch bank deposits and branches
@@ -67,6 +68,7 @@ const depositsByBranch = visibleBranches.map((branch: { id: string; name: string
         depositsByBranch={depositsByBranch}
         userRole={session.user.role || undefined}
         userBranchId={userBranchId}
+        isGm={isGm}
       />
     </div>
   );

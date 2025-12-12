@@ -74,7 +74,7 @@ export async function GET(req: Request) {
     
     // Use requested branchId if provided, otherwise use session branchId
     const branchId = requestedBranchId || session?.user?.branch;
-    const whereClause = session?.user?.role === 'admin' ? 
+    const whereClause = (session?.user?.role === 'admin' || session?.user?.role === 'gm') ? 
       (requestedBranchId ? { branchId: requestedBranchId } : {}) : 
       { branchId };
     

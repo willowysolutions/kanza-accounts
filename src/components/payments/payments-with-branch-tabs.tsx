@@ -17,9 +17,10 @@ type PaymentsWithBranchTabsProps = {
     paymentHistory: any[] 
   }[];
   userRole?: string;
+  isGm?: boolean;
 };
 
-export function PaymentsWithBranchTabs({ branches, paymentsByBranch, userRole }: PaymentsWithBranchTabsProps) {
+export function PaymentsWithBranchTabs({ branches, paymentsByBranch, userRole ,isGm }: PaymentsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (
@@ -50,6 +51,7 @@ export function PaymentsWithBranchTabs({ branches, paymentsByBranch, userRole }:
                 </p>
               </div>
               <PaymentManagement 
+              isGm={isGm}
                 customerPayment={customers} 
                 supplierPayment={suppliers} 
                 paymentHistory={paymentHistory}

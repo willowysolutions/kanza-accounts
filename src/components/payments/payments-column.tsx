@@ -10,7 +10,7 @@ import { IconCash } from "@tabler/icons-react";
 
 
 
-export const customerPaymentColumns = (userRole?: string, userBranchId?: string): ColumnDef<PaymentWithCustomer>[] => [
+export const customerPaymentColumns = (userRole?: string, userBranchId?: string,isGm?:boolean): ColumnDef<PaymentWithCustomer>[] => [
   {
     accessorKey: "name",
     header: "Name",
@@ -24,7 +24,7 @@ export const customerPaymentColumns = (userRole?: string, userBranchId?: string)
   {
     id: "action",
     cell: ({ row }) =>
-      row.original && <PaymentButton customer={row.original} userRole={userRole} userBranchId={userBranchId} />,
+      row.original && (!isGm &&<PaymentButton customer={row.original} userRole={userRole} userBranchId={userBranchId} />),
   },
 ];
 

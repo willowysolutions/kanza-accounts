@@ -10,9 +10,10 @@ type CreditsWithBranchTabsProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   creditsByBranch: { branchId: string; branchName: string; credits: any[] }[];
   userRole?: string;
+  isGm?: boolean;
 };
 
-export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole }: CreditsWithBranchTabsProps) {
+export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole , isGm }: CreditsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (
@@ -23,11 +24,11 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole }: C
             <h1 className="text-2xl font-bold tracking-tight">Credit Management</h1>
             <p className="text-muted-foreground">Manage customer credits by branch</p>
           </div>
-          <CreditFormDialog 
-            branchId={activeBranch} 
-            userRole={userRole}
-            userBranchId={branches.find(b => b.id === activeBranch)?.id}
-          />
+          {
+            !isGm && (
+              <CreditFormDialog />
+            )
+          }
         </div>
 
         <Tabs value={activeBranch} onValueChange={setActiveBranch} className="w-full">

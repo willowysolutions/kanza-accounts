@@ -25,7 +25,8 @@ export default async function CustomerPage() {
     redirect('/login');
   }
 
-  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin' || (session.user.role ?? '').toLowerCase() === 'gm';
+  const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
   // Fetch customers and branches
@@ -62,10 +63,10 @@ export default async function CustomerPage() {
               <h1 className="text-2xl font-bold tracking-tight">Customers</h1>
               <p className="text-muted-foreground">Manage your Customers by branch</p>
             </div>
-            <CustomerFormDialog 
+            {!isGm && <CustomerFormDialog 
               userRole={session.user.role || undefined}
               userBranchId={userBranchId}
-            />
+            />}
           </div>
 
           <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">

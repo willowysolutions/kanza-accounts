@@ -83,7 +83,8 @@ export function DashboardWrapper({
   page = 0,
   stocksByBranch,
 }: DashboardWrapperProps) {
-  const isAdmin = (role ?? "").toLowerCase() === "admin";
+  const isAdmin = (role ?? "").toLowerCase() === "admin" || (role ?? "").toLowerCase() === "gm";
+  const isGM = (role ?? "").toLowerCase() === "gm";
   const visibleBranches = isAdmin
     ? branches
     : branches.filter((b) => b.id === (userBranchId ?? ""));
@@ -612,7 +613,7 @@ export function DashboardWrapper({
             <div className="flex items-center justify-between">
               <CardTitle>Branch Sales Report</CardTitle>
               <div className="flex items-center gap-4">
-                <WizardButton />
+                {!isGM && <WizardButton /> }
               </div>
             </div>
           </CardHeader>

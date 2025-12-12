@@ -1,15 +1,31 @@
 import { expenseCategoryColumns } from "@/components/expense-category/expense-category-columns";
 import { ExpenseTable } from "@/components/expense-category/expense-category-table";
 import { ExpenseCategoryFormDialog } from "@/components/expense-category/expense-category-form";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function ExpenseCategoryPage() {
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const hdrs = await headers();
+  // Get session to check user role and branch
+  const session = await auth.api.getSession({
+    headers: hdrs,
+  });
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
 
 const res = await fetch(`${baseUrl}/api/expensescategory`, {
   cache: "no-store",
 });
 const { data } = await res.json();
+
+// const columns = isGm ? expenseCategoryColumns?.filter(col => col.id !== 'actions') : expenseCategoryColumns;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -20,7 +36,7 @@ const { data } = await res.json();
               <h1 className="text-2xl font-bold tracking-tight">Expense Category</h1>
               <p className="text-muted-foreground">Manage your Expense Category</p>
             </div>
-              <ExpenseCategoryFormDialog />
+              {!isGm && <ExpenseCategoryFormDialog />}
           </div>
 
           <ExpenseTable columns={expenseCategoryColumns} data={data} />

@@ -26,7 +26,8 @@ export default async function SalesPage() {
       redirect('/login');
     }
 
-    const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+    const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin' || (session.user.role ?? '').toLowerCase() === 'gm';
+    const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
     const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
     
     // Fetch sales and branches with pagination
@@ -63,10 +64,12 @@ export default async function SalesPage() {
               <h1 className="text-2xl font-bold tracking-tight">Sales Management</h1>
               <p className="text-muted-foreground">Track and manage fuel sales transactions by branch</p>
             </div>
-            <SalesFormModal 
+            {
+              !isGm && <SalesFormModal 
               userRole={session.user.role || undefined}
               userBranchId={userBranchId}
             />
+            }
           </div>
 
           <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">

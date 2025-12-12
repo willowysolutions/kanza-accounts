@@ -22,7 +22,7 @@ export function CustomerDetailsCard({
   userBranchId, 
   page = 0 
 }: CustomerDetailsCardProps) {
-  const isAdmin = (role ?? '').toLowerCase() === 'admin';
+  const isAdmin = (role ?? '').toLowerCase() === 'admin' || (role ?? '').toLowerCase() === 'gm';
   const visibleBranches = isAdmin ? branches : branches.filter(b => b.id === (userBranchId ?? ''));
 
   // Pagination settings

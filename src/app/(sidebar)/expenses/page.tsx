@@ -21,7 +21,8 @@ if (!session) {
   redirect('/login');
 }
 
-const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin' || (session.user.role ?? '').toLowerCase() === 'gm';
+const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
 const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
 
 // Fetch expenses and branches
@@ -59,10 +60,7 @@ const expensesByBranch = visibleBranches.map((branch: { id: string; name: string
               <h1 className="text-2xl font-bold tracking-tight">Expense Management</h1>
               <p className="text-muted-foreground">Manage your expenses by branch</p>
             </div>
-              <ExpenseFormDialog 
-                userRole={session.user.role || undefined}
-                userBranchId={userBranchId}
-              />
+              {!isGm && <ExpenseFormDialog />}
           </div>
 
           <Tabs defaultValue={visibleBranches[0]?.id} className="w-full">

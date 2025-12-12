@@ -8,6 +8,7 @@ export interface Oil extends PrismaOil {
 
 
 export interface OilTableProps<TValue> {
+  isGm?: boolean;
   columns: ColumnDef<Oil, TValue>[];
   data: Oil[];
 }

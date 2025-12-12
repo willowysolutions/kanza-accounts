@@ -32,13 +32,18 @@ import { PurchasePaymentTableProps } from "@/types/payment";
 export function PurchasePaymentTable<TData, TValue>({
   columns,
   data,
+  isGm,
 }: PurchasePaymentTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
+  const columnsForTable = isGm
+    ? columns.filter((column) => column.id !== "actions")
+    : columns;
+    
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsForTable,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -49,6 +54,7 @@ export function PurchasePaymentTable<TData, TValue>({
       globalFilter,
     },
   });
+
 
   return (
     <div className="flex flex-col gap-5">

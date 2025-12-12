@@ -20,12 +20,14 @@ import { Plus } from "lucide-react";
 function ReportTableWithDynamicColumns({
   data,
   userRole,
+  isGm,
   branchId,
   pagination,
   currentPage,
 }: {
   data: Sales[];
   userRole?: string;
+  isGm?: boolean;
   branchId: string;
   pagination?: {
     currentPage: number;
@@ -38,11 +40,14 @@ function ReportTableWithDynamicColumns({
   currentPage?: number;
 }) {
   const columns = useReportColumns(userRole, branchId);
+  const columnsForTable = isGm 
+        ? columns.filter(column => column.id !== "actions")
+        : columns;
   
   return (
     <ReportTable 
       data={data} 
-      columns={columns}
+      columns={columnsForTable}
       pagination={pagination}
       currentPage={currentPage}
     />
@@ -55,6 +60,7 @@ type MeterTabManagementProps = {
   sales: Sales[];
   branches: { id: string; name: string }[];
   userRole?: string;
+  isGm?: boolean;
   initialBranchId?: string;
   salesPagination?: {
     currentPage: number;
@@ -73,6 +79,7 @@ export default function MeterTabManagement({
   sales,
   branches,
   userRole,
+  isGm,
   initialBranchId,
   salesPagination,
   currentPage,
@@ -122,6 +129,10 @@ export default function MeterTabManagement({
       sales: sales.filter((sale: Sales) => sale.branchId === branch.id)
     }));
 
+    const oilColumnsForTable = isGm 
+        ? oilColumns.filter(column => column.id !== "actions")
+        : oilColumns;
+
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -130,7 +141,9 @@ export default function MeterTabManagement({
             <h1 className="text-2xl font-bold tracking-tight">Meter Reading</h1>
             <p className="text-muted-foreground">Track daily meter readings for all nozzles by branch</p>
           </div>
-          <div className="flex gap-2">
+          {
+            !isGm && (
+              <div className="flex gap-2">
             <Button 
               onClick={() => router.push('/meter-reading/wizard')}>
               <Plus className="w-4 h-4 mr-2" />
@@ -138,6 +151,8 @@ export default function MeterTabManagement({
             </Button>
             {activeTab === "meter-reading" ? <MeterReadingFormSheet key={activeBranch} branchId={activeBranch} userRole={userRole} userBranchId={branches.find(b => b.id === activeBranch)?.id} /> : activeTab === "other-Products" ? <OilFormModal key={activeBranch} branchId={activeBranch} userRole={userRole} userBranchId={branches.find(b => b.id === activeBranch)?.id} /> : ""}
           </div>
+            )
+          }
         </div>
 
         {/* Branch Tabs */}
@@ -176,7 +191,7 @@ export default function MeterTabManagement({
                 </TabsContent>
 
                 <TabsContent value="other-Products">
-                  <OilTable data={branchOil} columns={oilColumns} branchId={branchId}/>
+                  <OilTable data={branchOil} columns={oilColumnsForTable} branchId={branchId}/>
                 </TabsContent>
 
                 <TabsContent value="report">

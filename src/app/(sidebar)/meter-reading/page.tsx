@@ -24,7 +24,8 @@ export default async function MeterReadingPage({
     redirect('/login');
   }
 
-  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin' || (session.user.role ?? '').toLowerCase() === 'gm';
+  const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
   // 🔹 Forward cookies
@@ -84,6 +85,7 @@ export default async function MeterReadingPage({
         sales={sales}
         branches={visibleBranches}
         userRole={session.user.role || undefined}
+        isGm={isGm}
         initialBranchId={activeBranchId}
         salesPagination={pagination}
         currentPage={page}

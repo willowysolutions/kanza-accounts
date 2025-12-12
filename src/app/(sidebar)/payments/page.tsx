@@ -20,7 +20,8 @@ export default async function PaymentsPage() {
     redirect('/login');
   }
 
-  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin' || (session.user.role ?? '').toLowerCase() === 'gm';
+  const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
 
   // Fetch all required data
@@ -75,6 +76,7 @@ export default async function PaymentsPage() {
         branches={visibleBranches} 
         paymentsByBranch={paymentsByBranch}
         userRole={session.user.role || undefined}
+        isGm={isGm}
       />
     </div>
   );

@@ -8,9 +8,10 @@ interface CustomerPaymentTableWrapperProps {
   data: PaymentWithCustomer[];
   userRole?: string;
   branchId?: string;
+  isGm?: boolean;
 }
 
-export function CustomerPaymentTableWrapper({ data, userRole, branchId }: CustomerPaymentTableWrapperProps) {
-  const columns = customerPaymentColumns(userRole, branchId);
+export function CustomerPaymentTableWrapper({ data, userRole, branchId, isGm }: CustomerPaymentTableWrapperProps) {
+  const columns = customerPaymentColumns(userRole, branchId , isGm);
   return <CustomerPaymentTable data={data} columns={columns} />;
 }

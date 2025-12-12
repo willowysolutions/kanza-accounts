@@ -49,8 +49,8 @@ export function AppSidebar({ user,...props }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent className="bg-primary text-primary-foreground">
         <NavMain items={filteredNavMain}/>
-        {user?.role === "admin" && (
-          <NavGroup label="Admin Area" items={SIDEBAR_DATA.admin} />
+        {(user?.role === "admin" || user?.role === "gm") && (
+          <NavGroup label={user?.role === "admin" ? "Admin Area" : "GM Area"} items={SIDEBAR_DATA.admin} />
         )}
         {/* {user?.role === "branch" && (
           <NavGroup label="Branch Area" items={SIDEBAR_DATA.branch} />

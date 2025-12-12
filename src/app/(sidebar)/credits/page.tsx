@@ -19,7 +19,8 @@ if (!session) {
   redirect('/login');
 }
 
-const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin' || (session.user.role ?? '').toLowerCase() === 'gm';
+const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
 const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
 
 // Fetch credits and branches
@@ -50,7 +51,7 @@ const creditsByBranch = visibleBranches.map((branch: { id: string; name: string 
 
   return (
     <div className="flex flex-1 flex-col">
-      <CreditsWithBranchTabs branches={visibleBranches} creditsByBranch={creditsByBranch} userRole={session.user.role || undefined} />
+      <CreditsWithBranchTabs branches={visibleBranches} creditsByBranch={creditsByBranch} isGm={isGm} userRole={session.user.role || undefined} />
     </div>
   );
 }

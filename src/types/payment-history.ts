@@ -11,4 +11,5 @@ export interface PaymentHistoryTableProps<TValue> {
   columns: ColumnDef<PaymentHistory, TValue>[];
   data: PaymentHistory[];
   userRole?: string;
+  isGm?: boolean;
 }

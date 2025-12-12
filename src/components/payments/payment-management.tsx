@@ -14,6 +14,7 @@ type PaymentManagementProps = {
   supplierPayment: PaymentWithSupplier[];
   paymentHistory: PaymentHistory[];
   userRole?: string;
+  isGm?: boolean
   branchId?: string;
 };
 
@@ -21,6 +22,7 @@ export function PaymentManagement({
   customerPayment, 
   supplierPayment, 
   paymentHistory, 
+  isGm,
   userRole, 
   branchId 
 }: PaymentManagementProps) {
@@ -37,11 +39,11 @@ export function PaymentManagement({
       </TabsList>
 
       <TabsContent value="due">
-        <CustomerPaymentTableWrapper data={customerPayment} userRole={userRole} branchId={branchId} />
+        <CustomerPaymentTableWrapper  data={customerPayment} userRole={userRole} branchId={branchId} isGm={isGm} />
       </TabsContent>
 
       <TabsContent value="purchase-due">
-        <PurchasePaymentTable data={supplierPayment} columns={supplierPaymentColumns} />
+        <PurchasePaymentTable data={supplierPayment} columns={supplierPaymentColumns} isGm={isGm} />
       </TabsContent>
 
       <TabsContent value="history">

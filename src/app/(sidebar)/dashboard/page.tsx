@@ -23,7 +23,8 @@ export default async function Dashboard({
 
   // Use optimized dashboard data fetcher
   // For admin users, don't filter by branch to show all data
-  const isAdmin = (session?.user?.role ?? '').toLowerCase() === 'admin';
+  const userRole = session?.user?.role ?? '';
+  const isAdmin = (userRole.toLowerCase() === 'admin') || (userRole.toLowerCase() === 'gm');
   const userBranchId = typeof session?.user?.branch === 'string' ? session.user.branch : undefined;
   const branchFilter = isAdmin ? undefined : userBranchId;
   const dashboardData = await getOptimizedDashboardData(branchFilter);

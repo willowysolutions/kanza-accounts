@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     
     // Use requested branchId if provided, otherwise use session branchId
     const branchId = requestedBranchId || session?.user?.branch;
-    const isAdmin = session?.user?.role?.toLowerCase() === 'admin';
+    const isAdmin = (session?.user?.role?.toLowerCase() === 'admin' || session?.user?.role?.toLowerCase() === 'gm');
     
     // Add date filtering
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
