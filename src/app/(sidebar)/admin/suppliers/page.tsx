@@ -14,6 +14,7 @@ export default async function SupplierPage() {
 
   const userRole = session?.user?.role ?? undefined;
   const userBranchId = session?.user?.branch ?? undefined;
+  const isGm = (userRole ?? "").toLowerCase() === "gm";
 
   const hdrs = await headers();
   const host = hdrs.get("host");
@@ -53,10 +54,10 @@ export default async function SupplierPage() {
               <h1 className="text-2xl font-bold tracking-tight">Suppliers</h1>
               <p className="text-muted-foreground">Manage your Suppliers by branch</p>
             </div>
-            <SupplierFormDialog 
+            {!isGm && <SupplierFormDialog 
               userRole={userRole}
               userBranchId={userBranchId}
-            />
+            />}
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">
@@ -78,6 +79,7 @@ export default async function SupplierPage() {
                   </p>
                 </div>
                 <SupplierTable 
+                  isGm={isGm}
                   data={suppliers} 
                   columns={supplierColumns} 
                   userRole={userRole}

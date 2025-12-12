@@ -42,22 +42,29 @@ type ExpenseCategoryWithExpenses = ExpenseCategory & {
 interface ExpenseCategoryTableProps<TValue> {
   columns: ColumnDef<ExpenseCategoryWithExpenses, TValue>[];
   data: ExpenseCategoryWithExpenses[];
+  isGm?: boolean;
 }
 
 export function ExpenseTable<TValue>({
   columns,
   data,
+  isGm,
 }: ExpenseCategoryTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 20, // 👈 adjust page size as needed
+    pageSize: 20,
   });
+
+    const filteredColumns = isGm
+    ? columns?.filter((col) => col.id !== "actions")
+    : columns;
+
 
   const table = useReactTable({
     data,
-    columns,
+    columns: filteredColumns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
@@ -70,12 +77,13 @@ export function ExpenseTable<TValue>({
       globalFilter,
       pagination,
     },
-    globalFilterFn: (row, columnId, filterValue) => {
+    globalFilterFn: (row,  filterValue) => {
       const name = row.getValue("name") as string;
       const filter = String(filterValue || "").toLowerCase();
       return name.toLowerCase().includes(filter);
     },
   });
+
 
   return (
     <div className="flex flex-col gap-5">

@@ -47,13 +47,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ViewUserModal } from './view-user-modal';
 import { UpdatePasswordModal } from './update-password-modal';
 
-export function UsersTable({ users, roles, branches }: UsersTableProps) {
+export function UsersTable({ users, roles, branches , isGm }: UsersTableProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [updatingBranchUserId, setUpdatingBranchUserId] = useState<string | null>(null);
@@ -61,10 +60,6 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [passwordUpdateUser, setPasswordUpdateUser] = useState<User | null>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-
-  console.log(branches);
-  
-
 
   const updateBranch = async (userId: string, branchId: string) => {
     setUpdatingBranchUserId(userId);
@@ -324,7 +319,7 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
                     {/* <TableHead>Role</TableHead> */}
                     <TableHead>Branch</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {!isGm && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -346,37 +341,39 @@ export function UsersTable({ users, roles, branches }: UsersTableProps) {
                           <BranchSelect user={user} />
                         </TableCell>
                         <TableCell>{formatDate(user.createdAt)}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <IconDotsVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewClick(user)}>
-                                <IconEye className="mr-2 h-4 w-4" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditClick(user)}>
-                                <IconPencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUpdatePasswordClick(user)}>
-                                <IconLock className="mr-2 h-4 w-4" />
-                                Update Password
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleDeleteClick(user)}
-                              >
-                                <IconTrash className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        {!isGm && (
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <IconDotsVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewClick(user)}>
+                                  <IconEye className="mr-2 h-4 w-4" />
+                                  View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditClick(user)}>
+                                  <IconPencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdatePasswordClick(user)}>
+                                  <IconLock className="mr-2 h-4 w-4" />
+                                  Update Password
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteClick(user)}
+                                >
+                                  <IconTrash className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}

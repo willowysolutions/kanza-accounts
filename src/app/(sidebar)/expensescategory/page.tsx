@@ -25,8 +25,6 @@ const res = await fetch(`${baseUrl}/api/expensescategory`, {
 });
 const { data } = await res.json();
 
-// const columns = isGm ? expenseCategoryColumns?.filter(col => col.id !== 'actions') : expenseCategoryColumns;
-
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">
@@ -39,7 +37,7 @@ const { data } = await res.json();
               {!isGm && <ExpenseCategoryFormDialog />}
           </div>
 
-          <ExpenseTable columns={expenseCategoryColumns} data={data} />
+          <ExpenseTable isGm={isGm} columns={expenseCategoryColumns} data={data} />
         </div>
       </div>
     </div>

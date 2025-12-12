@@ -15,6 +15,8 @@ export default async function ProductPage() {
 
   const userRole = session?.user?.role ?? undefined;
   const userBranchId = session?.user?.branch ?? undefined;
+  const isGm = (userRole ?? '').toLowerCase() === 'gm';
+
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
   
@@ -43,10 +45,10 @@ export default async function ProductPage() {
               <h1 className="text-2xl font-bold tracking-tight">Products</h1>
               <p className="text-muted-foreground">Manage your Products by Branch</p>
             </div>
-            <ProductFormDialog 
+            {!isGm && <ProductFormDialog 
               userRole={userRole}
               userBranchId={userBranchId}
-            />
+            />}
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">
@@ -96,7 +98,8 @@ export default async function ProductPage() {
                     <TabsContent value="fuel">
                       <ProductTable 
                         data={fuelProducts as ProductType[]} 
-                        columns={productColumns} 
+                        columns={productColumns}
+                        isGm = {isGm}
                         userRole={userRole}
                         userBranchId={userBranchId}
                       />
@@ -106,6 +109,7 @@ export default async function ProductPage() {
                       <ProductTable 
                         data={otherProducts as ProductType[]} 
                         columns={productColumns} 
+                        isGm = {isGm}
                         userRole={userRole}
                         userBranchId={userBranchId}
                       />

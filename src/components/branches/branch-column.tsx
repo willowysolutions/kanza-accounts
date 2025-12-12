@@ -8,42 +8,49 @@ import { BranchFormModal } from "./branch-form";
 import { BranchDeleteDialog } from "./branch-delete-dialog";
 import { Branch } from "@prisma/client";
 
-export const branchColumns: ColumnDef<Branch>[] = [
-  {
-    accessorKey: "name",
-    header: ({ column }) => {
-      const sort = column.getIsSorted();
-      const renderIcon = () => {
-        if (!sort) return <ArrowUpDown className="size-4" />;
-        if (sort === "asc") return <ArrowUp className="size-4" />;
-        if (sort === "desc") return <ArrowDown className="size-4" />;
-        return null;
-      };
+export const branchColumns = (isGm?: boolean): ColumnDef<Branch>[] => {
+  const columns: ColumnDef<Branch>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => {
+        const sort = column.getIsSorted();
+        const renderIcon = () => {
+          if (!sort) return <ArrowUpDown className="size-4" />;
+          if (sort === "asc") return <ArrowUp className="size-4" />;
+          if (sort === "desc") return <ArrowDown className="size-4" />;
+          return null;
+        };
 
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
-          Name {renderIcon()}
-        </Button>
-      );
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
+            Name {renderIcon()}
+          </Button>
+        );
+      },
+      cell: ({ row }) => <div className="px-3 text-blue-800">{row.getValue("name")}</div>,
     },
-    cell: ({ row }) => <div className="px-3 text-blue-800">{row.getValue("name")}</div>,
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-    cell: ({ row }) => <div>{row.getValue("email")}</div>,
-  },
-  {
-    accessorKey: "phone",
-    header: "Phone",
-    cell: ({ row }) => <div>{row.getValue("phone")}</div>,
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => <BranchActions branch={row.original} />,
-  },
-];
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => <div>{row.getValue("email")}</div>,
+    },
+    {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+    },
+  ];
+
+  if (!isGm) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => <BranchActions branch={row.original} />,
+    });
+  }
+
+  return columns;
+};
 
 const BranchActions = ({ branch }: { branch: Branch }) => {
   const [openEdit, setOpenEdit] = useState(false);

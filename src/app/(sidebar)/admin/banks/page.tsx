@@ -12,6 +12,7 @@ export default async function BankPage() {
 
   const userRole = session?.user?.role ?? undefined;
   const userBranchId = session?.user?.branch ?? undefined;
+  const isGm = (userRole ?? "").toLowerCase() === "gm";
 
   const hdrs = await headers();
   const host = hdrs.get("host");
@@ -69,6 +70,7 @@ export default async function BankPage() {
               </p>
             </div>
             <BankManagement 
+              isGm={isGm}
               bank={banks} 
               bankDeposite={bankDeposite}
               userRole={userRole}

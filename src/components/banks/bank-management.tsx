@@ -15,9 +15,10 @@ type BankManagementProps = {
   bankDeposite: BankDeposite[];
   userRole?: string;
   userBranchId?: string;
+  isGm?: boolean;
 };
 
-export default function BankManagement({ bank, bankDeposite, userRole, userBranchId }: BankManagementProps) {
+export default function BankManagement({ bank, bankDeposite, userRole, userBranchId , isGm }: BankManagementProps) {
   const [activeTab, setActiveTab] = useState("bank");
 
   return (
@@ -28,7 +29,11 @@ export default function BankManagement({ bank, bankDeposite, userRole, userBranc
             <h1 className="text-2xl font-bold tracking-tight">Bank Management</h1>
             <p className="text-muted-foreground">Manage bank account and deposites</p>
           </div>
-          {activeTab === "bank" ? <BankFormDialog userRole={userRole} userBranchId={userBranchId} /> : <BankDepositeFormDialog userRole={userRole} userBranchId={userBranchId} />}
+          {
+            !isGm && (
+              activeTab === "bank" ? <BankFormDialog userRole={userRole} userBranchId={userBranchId} /> : <BankDepositeFormDialog userRole={userRole} userBranchId={userBranchId} />
+            )
+          }
         </div>
 
         <Tabs
@@ -42,7 +47,7 @@ export default function BankManagement({ bank, bankDeposite, userRole, userBranc
           </TabsList>
 
           <TabsContent value="bank">
-            <BankTable data={bank} columns={bankColumns} />
+            <BankTable data={bank} columns={bankColumns(isGm)} />
           </TabsContent>
 
           <TabsContent value="bankdeposite">

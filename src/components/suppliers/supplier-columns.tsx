@@ -9,76 +9,83 @@ import { SupplierDeleteDialog } from "./supplier-delete-dailog";
 import { Supplier } from "@prisma/client";
 import { useUser } from "./supplier-table";
 
-export const supplierColumns: ColumnDef<Supplier>[] = [
-  {
-    accessorKey: "SupplierId",
-    header: ({ column }) => {
-      const sort = column.getIsSorted();
-      const renderIcon = () => {
-        if (!sort) return <ArrowUpDown className="size-4" />;
-        if (sort === "asc") return <ArrowUp className="size-4" />;
-        if (sort === "desc") return <ArrowDown className="size-4" />;
-        return null;
-      };
+export const supplierColumns = (isGm?: boolean): ColumnDef<Supplier>[] => {
+  const columns: ColumnDef<Supplier>[] = [
+    {
+      accessorKey: "SupplierId",
+      header: ({ column }) => {
+        const sort = column.getIsSorted();
+        const renderIcon = () => {
+          if (!sort) return <ArrowUpDown className="size-4" />;
+          if (sort === "asc") return <ArrowUp className="size-4" />;
+          if (sort === "desc") return <ArrowDown className="size-4" />;
+          return null;
+        };
 
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
-          Supplier Id {renderIcon()}
-        </Button>
-      );
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
+            Supplier Id {renderIcon()}
+          </Button>
+        );
+      },
+      cell: ({ row }) => <div className="px-3">{row.getValue("SupplierId") as string}</div>,
     },
-    cell: ({ row }) => <div className="px-3">{row.getValue("SupplierId") as string}</div>,
-  },
-  {
-    accessorKey: "name",
-    header: ({ column }) => {
-      const sort = column.getIsSorted();
-      const renderIcon = () => {
-        if (!sort) return <ArrowUpDown className="size-4" />;
-        if (sort === "asc") return <ArrowUp className="size-4" />;
-        if (sort === "desc") return <ArrowDown className="size-4" />;
-        return null;
-      };
+    {
+      accessorKey: "name",
+      header: ({ column }) => {
+        const sort = column.getIsSorted();
+        const renderIcon = () => {
+          if (!sort) return <ArrowUpDown className="size-4" />;
+          if (sort === "asc") return <ArrowUp className="size-4" />;
+          if (sort === "desc") return <ArrowDown className="size-4" />;
+          return null;
+        };
 
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
-          Name {renderIcon()}
-        </Button>
-      );
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(sort === "asc")}>
+            Name {renderIcon()}
+          </Button>
+        );
+      },
+      cell: ({ row }) => <div className="px-3">{row.getValue("name") as string}</div>,
     },
-    cell: ({ row }) => <div className="px-3">{row.getValue("name") as string}</div>,
-  },
-  {
-    accessorKey: "openingBalance",
-    header: "Opening",
-    cell: ({ row }) => <div>{row.getValue("openingBalance")}</div>,
-  },
-  {
-    accessorKey: "outstandingPayments",
-    header: "Pending",
-    cell: ({ row }) => <div>{row.getValue("outstandingPayments")}</div>,
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-    cell: ({ row }) => <div className="px-3">{row.getValue("email") || "..."}</div>,
-  },
-  {
-    accessorKey: "phone",
-    header: "Phone",
-    cell: ({ row }) => <div className="px-3">{row.getValue("phone") || "..."}</div>,
-  },
-  {
-    accessorKey: "address",
-    header: "Address",
-    cell: ({ row }) => <div className="px-3">{row.getValue("address") || "..."}</div>,
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => <SupplierActions supplier={row.original} />,
-  },
-];
+    {
+      accessorKey: "openingBalance",
+      header: "Opening",
+      cell: ({ row }) => <div>{row.getValue("openingBalance")}</div>,
+    },
+    {
+      accessorKey: "outstandingPayments",
+      header: "Pending",
+      cell: ({ row }) => <div>{row.getValue("outstandingPayments")}</div>,
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => <div className="px-3">{row.getValue("email") || "..."}</div>,
+    },
+    {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => <div className="px-3">{row.getValue("phone") || "..."}</div>,
+    },
+    {
+      accessorKey: "address",
+      header: "Address",
+      cell: ({ row }) => <div className="px-3">{row.getValue("address") || "..."}</div>,
+    },
+  ];
+
+  if (!isGm) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => <SupplierActions supplier={row.original} />,
+    });
+  }
+
+  return columns;
+};
 
 const SupplierActions = ({ supplier }: { supplier: Supplier }) => {
   const [openEdit, setOpenEdit] = useState(false);

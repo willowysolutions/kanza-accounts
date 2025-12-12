@@ -3,12 +3,20 @@ export const dynamic = "force-dynamic";
 import { BranchTable } from "@/components/branches/branch-table";
 import { BranchFormModal } from "@/components/branches/branch-form";
 import { branchColumns } from "@/components/branches/branch-column";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function BranchPage() {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const isGm = (session?.user.role ?? "").toLowerCase() === "gm";
+
   const res = await fetch(`${baseUrl}/api/branch`, {
-    cache: "no-store", // or "force-cache" if you prefer caching
+    cache: "no-store", 
   });
 
   const { data } = await res.json();
@@ -22,10 +30,10 @@ export default async function BranchPage() {
               <h1 className="text-2xl font-bold tracking-tight">Branch</h1>
               <p className="text-muted-foreground">Manage your branches</p>
             </div>
-              <BranchFormModal />
+            {!isGm && <BranchFormModal />}
           </div>
 
-          <BranchTable columns={branchColumns} data={data} />
+          <BranchTable isGm={isGm} columns={branchColumns} data={data} />
         </div>
       </div>
     </div>

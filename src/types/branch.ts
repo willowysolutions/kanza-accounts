@@ -17,6 +17,7 @@ export interface BranchFormProps {
 }
 
 export interface BranchTableProps<TValue> {
-  columns: ColumnDef<Branch, TValue>[];
+  columns: ((isGm?: boolean) => ColumnDef<Branch, TValue>[]) | ColumnDef<Branch, TValue>[];
   data: Branch[];
+  isGm?: boolean;
 }

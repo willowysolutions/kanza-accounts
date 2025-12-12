@@ -48,19 +48,20 @@ export function useUser() {
 }
 
 interface SupplierTableProps<TValue> {
-  columns: ColumnDef<Supplier, TValue>[];
+  columns: ((isGm?: boolean) => ColumnDef<Supplier, TValue>[]) | ColumnDef<Supplier, TValue>[];
   data: Supplier[];
   userRole?: string;
   userBranchId?: string;
+  isGm?: boolean;
 }
 
-export function SupplierTable<TValue>({ columns, data, userRole, userBranchId }: SupplierTableProps<TValue>) {
+export function SupplierTable<TValue>({ columns, data, userRole, userBranchId , isGm }: SupplierTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
   const table = useReactTable({
     data,
-    columns,
+    columns: typeof columns === 'function' ? columns(isGm) : columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),

@@ -1,9 +1,17 @@
 // src/app/(sidebar)/admin/users/page.tsx
 import { UsersTable } from '@/components/users/branch-manager/users-table';
 import { AddUserDialog } from '@/components/users/branch-manager/add-user-dialog';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 export default async function UsersPage() {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+    const session = await auth.api.getSession({
+        headers: await headers(),
+      });
+
+     const isGm = (session?.user.role ?? '').toLowerCase() === 'gm'; 
 
     const res = await fetch(`${baseUrl}/api/users`, {
       cache: "no-store",
@@ -19,10 +27,10 @@ export default async function UsersPage() {
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">Manage system users and their roles</p>
         </div>
-        <AddUserDialog roles={roles} branches={branch}/>
+        {!isGm &&<AddUserDialog roles={roles} branches={branch}/>}
       </div>
 
-      <UsersTable users={users} roles={roles} branches={branch}/>
+      <UsersTable isGm={isGm} users={users} roles={roles} branches={branch}/>
     </div>
   );
 }
