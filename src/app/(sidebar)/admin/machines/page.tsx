@@ -4,6 +4,8 @@ import { Machinecard } from "@/components/machines/machine-card";
 import { MachineFormModal } from "@/components/machines/machine-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { headers, cookies } from "next/headers";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function MachinePage() {
   const hdrs = await headers();
@@ -12,6 +14,15 @@ export default async function MachinePage() {
     hdrs.get("x-forwarded-proto") ??
     (process.env.NODE_ENV === "production" ? "https" : "http");
   const cookie = (await cookies()).toString();
+  
+  // Get session to check user role
+  const session = await auth.api.getSession({ headers: hdrs });
+  if (!session) {
+    redirect('/login');
+  }
+  
+  const userRole = session.user?.role ?? undefined;
+  const isGm = (userRole?.toLowerCase() === "gm");
   
   // Fetch machines and branches
   const [machinesRes, branchesRes] = await Promise.all([
@@ -44,7 +55,7 @@ export default async function MachinePage() {
               <h1 className="text-2xl font-bold tracking-tight">Machine Management</h1>
               <p className="text-muted-foreground">Monitor and manage fuel dispensing machines by branch</p>
             </div>
-            <MachineFormModal />
+            {!isGm && <MachineFormModal />}
           </div>
 
           <Tabs defaultValue={branches[0]?.id} className="w-full">
@@ -65,7 +76,7 @@ export default async function MachinePage() {
                     {machines.length} machine{machines.length !== 1 ? 's' : ''} in this branch
                   </p>
                 </div>
-                <Machinecard data={machines}/>
+                <Machinecard data={machines} userRole={userRole} />
               </TabsContent>
             ))}
           </Tabs>

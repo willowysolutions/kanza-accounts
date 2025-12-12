@@ -20,14 +20,12 @@ import { Plus } from "lucide-react";
 function ReportTableWithDynamicColumns({
   data: initialData,
   userRole,
-  isGm,
   branchId,
   pagination: initialPagination,
   currentPage: initialPage,
 }: {
   data: Sales[];
   userRole?: string;
-  isGm?: boolean;
   branchId: string;
   pagination?: {
     currentPage: number;
@@ -108,7 +106,7 @@ function ReportTableWithDynamicColumns({
   return (
     <ReportTable 
       data={data} 
-      columns={columnsForTable}
+      columns={columns}
       pagination={pagination}
       currentPage={pagination.currentPage}
       loading={loading}

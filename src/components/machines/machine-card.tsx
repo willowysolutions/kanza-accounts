@@ -16,9 +16,11 @@ import { Machine } from "@/types/machine";
 
 type Props = {
   data: Machine[];
+  userRole?: string;
 }
 
-export function Machinecard({ data }: Props) {
+export function Machinecard({ data, userRole }: Props) {
+  const isGm = (userRole?.toLowerCase() === "gm");
 
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false); 
@@ -56,35 +58,37 @@ export function Machinecard({ data }: Props) {
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-2 pt-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
+                {!isGm && (
+                  <div className="flex justify-end space-x-2 pt-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
 
-                    <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end">
 
-                      <DropdownMenuItem 
+                        <DropdownMenuItem 
+                            onSelect={() => {
+                            setSelectedMachine(machine)
+                            setOpenEdit(true)}}>
+                            <Edit2 className="size-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
                           onSelect={() => {
-                          setSelectedMachine(machine)
-                          setOpenEdit(true)}}>
-                          <Edit2 className="size-4 mr-2" /> Edit
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onSelect={() => {
-                          setSelectedMachine(machine);
-                          setOpenDelete(true);
-                        }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="size-4 mr-2" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                            setSelectedMachine(machine);
+                            setOpenDelete(true);
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="size-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))

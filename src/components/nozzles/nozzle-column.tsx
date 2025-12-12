@@ -56,6 +56,15 @@ export const nozzleColumns: ColumnDef<Nozzle>[] = [
   },
 ];
 
+// Function to get columns based on user role
+export const getNozzleColumns = (userRole?: string): ColumnDef<Nozzle>[] => {
+  const isGm = (userRole?.toLowerCase() === "gm");
+  if (isGm) {
+    return nozzleColumns.filter(col => col.id !== "actions");
+  }
+  return nozzleColumns;
+};
+
 const NozzleActions = ({ nozzle }: { nozzle: Nozzle }) => {
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);

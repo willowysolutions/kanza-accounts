@@ -13,7 +13,7 @@ type CreditsWithBranchTabsProps = {
   isGm?: boolean;
 };
 
-export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole , isGm }: CreditsWithBranchTabsProps) {
+export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole, isGm }: CreditsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (

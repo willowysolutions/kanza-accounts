@@ -20,9 +20,11 @@ import { Progress } from '../ui/progress'
 
 interface TankCardProps {
   tanks: Tank[]
+  userRole?: string
 }
 
-export function TankCard({ tanks }: TankCardProps) {
+export function TankCard({ tanks, userRole }: TankCardProps) {
+  const isGm = (userRole?.toLowerCase() === "gm");
   const [openEdit, setOpenEdit] = useState(false)
   const [openDelete, setOpenDelete] = useState(false)
   const [openRefill, setOpenRefill] = useState(false)
@@ -90,46 +92,50 @@ export function TankCard({ tanks }: TankCardProps) {
                 </div>
 
                 <div className="flex space-x-2 pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => {
-                      setSelectedTank(tank)
-                      setOpenRefill(true)
-                    }}
+                  {!isGm && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedTank(tank)
+                        setOpenRefill(true)
+                      }}
 
-                  >
-                    <Droplets className="mr-1 h-3 w-3" />
-                    Refill
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    >
+                      <Droplets className="mr-1 h-3 w-3" />
+                      Refill
+                    </Button>
+                  )}
+                  {!isGm && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
 
-                      <DropdownMenuItem 
-                        onSelect={() => {
-                        setSelectedTank(tank) ;
-                        setOpenEdit(true);}}>
-                        <Edit2 className="size-4 mr-2" /> Edit
-                      </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onSelect={() => {
+                          setSelectedTank(tank) ;
+                          setOpenEdit(true);}}>
+                          <Edit2 className="size-4 mr-2" /> Edit
+                        </DropdownMenuItem>
 
-                      <DropdownMenuItem
-                        onSelect={() => {
-                          setSelectedTank(tank);
-                          setOpenDelete(true);
-                        }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="size-4 mr-2" /> Delete
-                      </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setSelectedTank(tank);
+                            setOpenDelete(true);
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="size-4 mr-2" /> Delete
+                        </DropdownMenuItem>
 
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </CardContent>
             </Card>
