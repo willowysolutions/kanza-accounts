@@ -93,7 +93,7 @@ export function CreditFormDialog({
       const current = form.getValues();
       form.reset({ ...current, date: nextAllowedDate });
     }
-  }, [open, isDateRestricted, nextAllowedDate, credits, form]);
+  }, [open, isDateRestricted, nextAllowedDate, credits, form, selectedBranchId]);
 
   // 🔑 Watch fields
   const selectedCustomerId = form.watch("customerId");

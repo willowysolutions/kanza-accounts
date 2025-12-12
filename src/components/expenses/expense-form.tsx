@@ -45,9 +45,10 @@ export const ExpenseFormDialog = ({
   expense,
   open,
   openChange,
+  branchId,
   userRole,
   userBranchId,
-}: ExpenseFormProps & { userRole?: string; userBranchId?: string }) => {
+}: ExpenseFormProps & { branchId?: string; userRole?: string; userBranchId?: string }) => {
   const [expenseCategoryList, setExpenseCategoryList] = useState<
     { name: string; id: string; limit?: number }[]
   >([]);
@@ -56,8 +57,8 @@ export const ExpenseFormDialog = ({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [selectedBranchId, setSelectedBranchId] = useState(
-    expense?.branchId || userBranchId || ""
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    expense?.branchId || branchId || userBranchId || ""
   );
 
   const router = useRouter();
@@ -122,7 +123,7 @@ export const ExpenseFormDialog = ({
       const current = form.getValues();
       form.reset({ ...current, date: nextAllowedDate });
     }
-  }, [open, isDateRestricted, nextAllowedDate, expense, form]);
+  }, [open, isDateRestricted, nextAllowedDate, expense, form, selectedBranchId]);
 
   // --------------------
   // SUBMIT

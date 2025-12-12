@@ -11,9 +11,10 @@ type CreditsWithBranchTabsProps = {
   creditsByBranch: { branchId: string; branchName: string; credits: any[] }[];
   userRole?: string;
   isGm?: boolean;
+  userBranchId?: string;
 };
 
-export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole, isGm }: CreditsWithBranchTabsProps) {
+export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole, isGm, userBranchId }: CreditsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (
@@ -26,7 +27,11 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole, isG
           </div>
           {
             !isGm && (
-              <CreditFormDialog />
+              <CreditFormDialog 
+                branchId={activeBranch}
+                userRole={userRole}
+                userBranchId={userBranchId}
+              />
             )
           }
         </div>
