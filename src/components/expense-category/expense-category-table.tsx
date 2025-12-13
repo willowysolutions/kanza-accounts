@@ -33,21 +33,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { ExpenseCategory, Expense } from "@prisma/client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { expenseCategoryColumns } from "./expense-category-columns";
 
 type ExpenseCategoryWithExpenses = ExpenseCategory & {
   expenses: Expense[];
 };
 
 interface ExpenseCategoryTableProps<TValue> {
-  columns: ColumnDef<ExpenseCategoryWithExpenses, TValue>[];
+  columns?: ColumnDef<ExpenseCategoryWithExpenses, TValue>[];
   data: ExpenseCategoryWithExpenses[];
+  userRole?: string;
 }
 
 export function ExpenseTable<TValue>({
   columns,
   data,
+  userRole,
 }: ExpenseCategoryTableProps<TValue>) {
+  // If columns are provided, use them; otherwise generate based on userRole
+  const tableColumns = useMemo(() => {
+    if (columns) return columns;
+    return expenseCategoryColumns(userRole);
+  }, [columns, userRole]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
@@ -57,7 +65,7 @@ export function ExpenseTable<TValue>({
 
   const table = useReactTable({
     data,
-    columns,
+    columns: tableColumns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
@@ -138,7 +146,7 @@ export function ExpenseTable<TValue>({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={tableColumns.length}
                     className="h-24 text-center"
                   >
                     No results.
