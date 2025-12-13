@@ -8,33 +8,40 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-export const productColumns = (userRole?: string, userBranchId?: string): ColumnDef<ProductType>[] => [
-  {
-    accessorKey: "productName",
-    header: "Product Name",
-    cell: ({ row }) => <div className="px-3">{row.getValue("productName")}</div>,
-  },
-  {
-    accessorKey: "productUnit",
-    header: "Unit",
-    cell: ({ row }) => <div>{row.getValue("productUnit")}</div>,
-  },
-  {
-    accessorKey: "purchasePrice",
-    header: "Purchase Price",
-    cell: ({ row }) => <div className="px-3">{row.getValue("purchasePrice")}</div>,
-  },
-  {
-    accessorKey: "sellingPrice",
-    header: "Selling Price",
-    cell: ({ row }) => <div className="px-3">{row.getValue("sellingPrice")}</div>,
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => <ProductActions product={row.original} userRole={userRole} userBranchId={userBranchId} />,
-  },
-];
+export const productColumns = (userRole?: string, userBranchId?: string, isGm?: boolean): ColumnDef<ProductType>[] => {
+  const columns: ColumnDef<ProductType>[] = [
+    {
+      accessorKey: "productName",
+      header: "Product Name",
+      cell: ({ row }) => <div className="px-3">{row.getValue("productName")}</div>,
+    },
+    {
+      accessorKey: "productUnit",
+      header: "Unit",
+      cell: ({ row }) => <div>{row.getValue("productUnit")}</div>,
+    },
+    {
+      accessorKey: "purchasePrice",
+      header: "Purchase Price",
+      cell: ({ row }) => <div className="px-3">{row.getValue("purchasePrice")}</div>,
+    },
+    {
+      accessorKey: "sellingPrice",
+      header: "Selling Price",
+      cell: ({ row }) => <div className="px-3">{row.getValue("sellingPrice")}</div>,
+    },
+  ];
+
+  if (!isGm) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => <ProductActions product={row.original} userRole={userRole} userBranchId={userBranchId} />,
+    });
+  }
+
+  return columns;
+};
 
 const ProductActions = ({
   product,

@@ -30,6 +30,7 @@ export type UsersTableProps = {
   users: User[];
   roles: Role[];
   branches: Branch[];
+  isGm?: boolean;
 };
 
 export type UserFormData = {

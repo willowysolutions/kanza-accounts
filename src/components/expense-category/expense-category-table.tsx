@@ -51,17 +51,18 @@ export function ExpenseTable<TValue>({
   data,
   userRole,
 }: ExpenseCategoryTableProps<TValue>) {
-  // If columns are provided, use them; otherwise generate based on userRole
-  const tableColumns = useMemo(() => {
-    if (columns) return columns;
-    return expenseCategoryColumns(userRole);
-  }, [columns, userRole]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 20, // 👈 adjust page size as needed
+    pageSize: 20,
   });
+
+  const tableColumns = useMemo(() => {
+    if (columns) return columns;
+    return expenseCategoryColumns(userRole);
+  }, [columns, userRole]);
+
 
   const table = useReactTable({
     data,
@@ -78,12 +79,13 @@ export function ExpenseTable<TValue>({
       globalFilter,
       pagination,
     },
-    globalFilterFn: (row, columnId, filterValue) => {
+    globalFilterFn: (row,  filterValue) => {
       const name = row.getValue("name") as string;
       const filter = String(filterValue || "").toLowerCase();
       return name.toLowerCase().includes(filter);
     },
   });
+
 
   return (
     <div className="flex flex-col gap-5">

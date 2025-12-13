@@ -27,9 +27,11 @@ export function BankTable<TValue>({ columns, data }: BankTableProps<TValue>) {
       const [sorting, setSorting] = useState<SortingState>([]);
       const [globalFilter, setGlobalFilter] = useState("");
     
+  const resolvedColumns = typeof columns === 'function' ? columns() : columns;
+    
   const table = useReactTable({
       data,
-      columns,
+      columns: resolvedColumns,
       onSortingChange: setSorting,
       onGlobalFilterChange: setGlobalFilter,
       getCoreRowModel: getCoreRowModel(),

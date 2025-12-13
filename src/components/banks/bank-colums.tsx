@@ -8,29 +8,36 @@ import { BankFormDialog } from "./bank-form";
 import { BankDeleteDialog } from "./bank-delete-dailog";
 import { Bank } from "@prisma/client";
 
-export const bankColumns: ColumnDef<Bank>[] = [
-  {
-    accessorKey: "bankName",
-    header: "Bank Name",
-  },
-  {
-    accessorKey: "accountNumber",
-    header: "Account Number",
-  },
-  {
-    accessorKey: "ifse",
-    header: "IFSE",
-  },
-  {
-    accessorKey: "balanceAmount",
-    header: "Balance",
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => <BankActions bank={row.original} />,
-  },
-];
+export const bankColumns = (isGm?: boolean): ColumnDef<Bank>[] => {
+  const columns: ColumnDef<Bank>[] = [
+    {
+      accessorKey: "bankName",
+      header: "Bank Name",
+    },
+    {
+      accessorKey: "accountNumber",
+      header: "Account Number",
+    },
+    {
+      accessorKey: "ifse",
+      header: "IFSE",
+    },
+    {
+      accessorKey: "balanceAmount",
+      header: "Balance",
+    },
+  ];
+
+  if (!isGm) {
+    columns.push({
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => <BankActions bank={row.original} />,
+    });
+  }
+
+  return columns;
+};
 
 const BankActions = ({ bank }: { bank: Bank }) => {
   const [openEdit, setOpenEdit] = useState(false);

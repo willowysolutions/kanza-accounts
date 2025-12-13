@@ -8,7 +8,7 @@ export async function GET() {
 
     const session = await auth.api.getSession({ headers: await headers() });
     const branchId = session?.user?.branch;
-    const whereClause = session?.user?.role === 'admin' ? {} : { branchId };
+    const whereClause = (session?.user?.role === 'admin' || session?.user?.role === 'gm') ? {} : { branchId };
   
     const banks = await prisma.bank.findMany({
       where : whereClause,

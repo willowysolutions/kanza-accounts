@@ -30,13 +30,13 @@ import { useState } from "react";
 import { ProductTableProps } from "@/types/product";
 
 
-export function ProductTable<TValue>({ columns, data, userRole, userBranchId }: ProductTableProps<TValue>) {
+export function ProductTable<TValue>({ columns, data, userRole, userBranchId , isGm }: ProductTableProps<TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
   const table = useReactTable({
     data,
-    columns: typeof columns === 'function' ? columns(userRole, userBranchId) : columns,
+    columns: typeof columns === 'function' ? columns(userRole, userBranchId, isGm) : columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),

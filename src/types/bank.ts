@@ -9,6 +9,6 @@ export interface BankFormProps {
 }
 
 export interface BankTableProps<TValue> {
-  columns: ColumnDef<Bank, TValue>[];
+  columns: ((isGm?: boolean) => ColumnDef<Bank, TValue>[]) | ColumnDef<Bank, TValue>[];
   data: Bank[];
 }

@@ -37,7 +37,7 @@ const { data } = await res.json();
               {!isGm && <ExpenseCategoryFormDialog />}
           </div>
 
-          <ExpenseTable data={data} userRole={userRole} />
+          <ExpenseTable userRole={userRole} data={data} />
         </div>
       </div>
     </div>

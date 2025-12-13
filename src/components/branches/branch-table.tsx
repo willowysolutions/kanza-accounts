@@ -29,14 +29,14 @@ import {
 import { useState } from "react";
 import { BranchTableProps } from "@/types/branch";
 
-export function BranchTable<TValue>({ columns, data }: BranchTableProps<TValue>) {
+export function BranchTable<TValue>({ columns, data , isGm }: BranchTableProps<TValue>) {
     
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
   const table = useReactTable({
     data,
-    columns,
+    columns: typeof columns === 'function' ? columns(isGm) : columns,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
