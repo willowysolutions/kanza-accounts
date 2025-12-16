@@ -19,10 +19,14 @@ type PurchaseManagementProps = {
   userRole?: string;
   userBranchId?: string;
   branchId?: string;
+  isGm?: boolean;
 };
 
-export default function PurchaseManagement({ purchase, purchaseOrder, userRole, userBranchId, branchId }: PurchaseManagementProps) {
+export default function PurchaseManagement({ purchase, purchaseOrder, userRole, userBranchId, branchId , isGm }: PurchaseManagementProps) {
   const [activeTab, setActiveTab] = useState("purchase");
+
+  const tablePurchaseColumns = isGm ? purchaseColumns.filter(col => col.id !== 'actions') : purchaseColumns;
+  const tablePurchaseOrderColumns = isGm ? purchaseOrderColumns.filter(col => col.id !== 'actions') : purchaseOrderColumns;
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -53,11 +57,11 @@ export default function PurchaseManagement({ purchase, purchaseOrder, userRole, 
           </TabsList>
 
           <TabsContent value="purchase">
-            <PurchaseTable data={purchase} columns={purchaseColumns} branchId={branchId} />
+            <PurchaseTable data={purchase} columns={tablePurchaseColumns} branchId={branchId} />
           </TabsContent>
 
           <TabsContent value="ordered">
-            <PurchaseOrderTable data={purchaseOrder} columns={purchaseOrderColumns} />
+            <PurchaseOrderTable data={purchaseOrder} columns={tablePurchaseOrderColumns} />
           </TabsContent>
         </Tabs>
       </div>
