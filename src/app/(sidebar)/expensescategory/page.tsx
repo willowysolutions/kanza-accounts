@@ -1,4 +1,3 @@
-import { expenseCategoryColumns } from "@/components/expense-category/expense-category-columns";
 import { ExpenseTable } from "@/components/expense-category/expense-category-table";
 import { ExpenseCategoryFormDialog } from "@/components/expense-category/expense-category-form";
 import { headers } from "next/headers";
@@ -19,6 +18,7 @@ const hdrs = await headers();
   }
 
   const isGm = (session.user.role ?? '').toLowerCase() === 'gm';
+  const userRole = session.user.role || undefined;
 
 const res = await fetch(`${baseUrl}/api/expensescategory`, {
   cache: "no-store",
@@ -37,7 +37,7 @@ const { data } = await res.json();
               {!isGm && <ExpenseCategoryFormDialog />}
           </div>
 
-          <ExpenseTable isGm={isGm} columns={expenseCategoryColumns} data={data} />
+          <ExpenseTable userRole={userRole} data={data} />
         </div>
       </div>
     </div>
