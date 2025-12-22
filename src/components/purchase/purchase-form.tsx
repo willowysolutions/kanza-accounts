@@ -25,16 +25,20 @@ import {
   FormDialogTitle,
   FormDialogTrigger,
 } from "@/components/ui/form-dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { DialogClose } from "@/components/ui/dialog";
-import { useForm,useWatch } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Pencil, Loader2 } from "lucide-react";
 import { purchaseSchema } from "@/schemas/purchase-schema";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Purchase } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { BranchSelector } from "@/components/common/branch-selector";
@@ -43,8 +47,8 @@ type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
 export function PurchaseFormModal({
   purchase,
-  open,
-  openChange,
+  // open,
+  // openChange,
   userRole,
   userBranchId,
 }: {
@@ -54,18 +58,25 @@ export function PurchaseFormModal({
   userRole?: string;
   userBranchId?: string;
 }) {
-  const [supplierOptions, setSupplierOptions] = useState<{ name: string; id: string, phone:string}[]>([]);
-  const [productOption, setProductOptions] = useState<{ 
-  productName: string;
-  id: string;
-  purchasePrice:number;
-  sellingPrice:number;
-  productUnit:string;
-  branchId: string | null;
-  }[]>([]);
+  const [supplierOptions, setSupplierOptions] = useState<
+    { name: string; id: string; phone: string }[]
+  >([]);
+  const [productOption, setProductOptions] = useState<
+    {
+      productName: string;
+      id: string;
+      purchasePrice: number;
+      sellingPrice: number;
+      productUnit: string;
+      branchId: string | null;
+    }[]
+  >([]);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [purchasePrice, setPurchasePrice] = useState<number>(0);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(purchase?.branchId || userBranchId || "");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    purchase?.branchId || userBranchId || "",
+  );
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   const router = useRouter();
 
@@ -75,9 +86,9 @@ export function PurchaseFormModal({
       supplierId: purchase?.supplierId || "",
       productType: purchase?.productType || "",
       quantity: purchase?.quantity || undefined,
-      date:purchase?.date || new Date(),
-      purchasePrice:purchase?.purchasePrice || undefined,
-      paidAmount:purchase?.paidAmount || undefined,
+      date: purchase?.date || new Date(),
+      purchasePrice: purchase?.purchasePrice || undefined,
+      paidAmount: purchase?.paidAmount || undefined,
       branchId: purchase?.branchId ?? undefined,
     },
   });
@@ -85,8 +96,9 @@ export function PurchaseFormModal({
   const quantity = useWatch({ control: form.control, name: "quantity" });
   const productType = useWatch({ control: form.control, name: "productType" });
 
-
-  const handleSubmit = async (values: PurchaseFormValues, close: () => void) => {
+  const handleSubmit = async (
+    values: PurchaseFormValues,
+  ) => {
     try {
       const url = purchase
         ? `/api/purchases/${purchase.id}`
@@ -109,8 +121,13 @@ export function PurchaseFormModal({
         return;
       }
 
-      toast.success(purchase ? "Purchase updated successfully" : "Purchase created successfully");
+      toast.success(
+        purchase
+          ? "Purchase updated successfully"
+          : "Purchase created successfully",
+      );
       close();
+      closeRef.current?.click();
       router.refresh();
     } catch (error) {
       console.error("Something went wrong:", error);
@@ -133,32 +150,31 @@ export function PurchaseFormModal({
   }, []);
 
   useEffect(() => {
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch("/api/products");
-      const json = await res.json();
-      
-      // Keep all products with their branch-specific prices
-      setProductOptions(json.data || []);
-    } catch (error) {
-      console.error("Failed to fetch products", error);
-    }
-  };
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("/api/products");
+        const json = await res.json();
 
-  fetchProducts();
+        setProductOptions(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch products", error);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
-
-
- useEffect(() => {
+  useEffect(() => {
     const quantity = form.watch("quantity") || 0;
     const selectedProductName = form.watch("productType");
 
     // Find product for the selected branch
     const selectedProduct = productOption.find(
-      (p) => p.productName === selectedProductName && p.branchId === selectedBranchId
+      (p) =>
+        p.productName === selectedProductName &&
+        p.branchId === selectedBranchId,
     );
-    
+
     const sellingPrice = selectedProduct?.sellingPrice ?? 0;
     const purchasePrice = selectedProduct?.purchasePrice ?? 0;
 
@@ -180,21 +196,31 @@ export function PurchaseFormModal({
 
   return (
     <FormDialog
-      open={open}
-      openChange={openChange}
+      // open={open}
+      // openChange={openChange}
       form={form}
-      onSubmit={(values) => handleSubmit(values, () => openChange?.(false))}
+      onSubmit={(values) => handleSubmit(values)}
     >
+      <DialogClose asChild>
+  <button ref={closeRef} className="hidden" />
+</DialogClose>
+
       <FormDialogTrigger asChild>
         <Button>
-          {purchase ? <Pencil className="size-4 mr-2" /> : <Plus className="size-4 mr-2" />}
+          {purchase ? (
+            <Pencil className="mr-2 size-4" />
+          ) : (
+            <Plus className="mr-2 size-4" />
+          )}
           {purchase ? "Edit Purchase" : "New Purchase"}
         </Button>
       </FormDialogTrigger>
 
       <FormDialogContent className="sm:max-w-md">
         <FormDialogHeader>
-          <FormDialogTitle>{purchase ? "Edit Purchase" : "Create Purchase"}</FormDialogTitle>
+          <FormDialogTitle>
+            {purchase ? "Edit Purchase" : "Create Purchase"}
+          </FormDialogTitle>
           <FormDialogDescription>
             {purchase
               ? "Update an existing purchase order"
@@ -204,35 +230,38 @@ export function PurchaseFormModal({
 
         <div className="flex gap-10">
           <p className="text-sm font-medium text-green-500">
-          {sellingPrice > 0 && `Selling Price: ₹${sellingPrice}`}{" "}
+            {sellingPrice > 0 && `Selling Price: ₹${sellingPrice}`}{" "}
           </p>
           <p className="text-sm font-medium text-red-500">
             {purchasePrice > 0 && `Purchase Price: ₹${purchasePrice}`}
           </p>
         </div>
 
-
         <div className="grid grid-cols-2 gap-4">
-          <FormField control={form.control} name="supplierId" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Supplier</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Supplier" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {supplierOptions.map((supplier) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
+          <FormField
+            control={form.control}
+            name="supplierId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Supplier</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Supplier" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {supplierOptions.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <BranchSelector
             value={selectedBranchId}
@@ -261,34 +290,36 @@ export function PurchaseFormModal({
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
-          control={form.control}
-          name="productType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fuel Type</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select fuel type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {productOption
-                    .filter(product => product.branchId === selectedBranchId)
-                    .map(product => (
-                      <SelectItem key={product.id} value={product.productName}>
-                        {product.productName}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            control={form.control}
+            name="productType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fuel Type</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select fuel type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {productOption
+                      .filter(
+                        (product) => product.branchId === selectedBranchId,
+                      )
+                      .map((product) => (
+                        <SelectItem
+                          key={product.id}
+                          value={product.productName}
+                        >
+                          {product.productName}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
@@ -303,7 +334,10 @@ export function PurchaseFormModal({
                     {...field}
                     value={field.value ?? ""}
                     onChange={(e) => {
-                      const quantity = e.target.value === "" ? undefined : Number(e.target.value);
+                      const quantity =
+                        e.target.value === ""
+                          ? undefined
+                          : Number(e.target.value);
                       field.onChange(quantity);
                     }}
                   />
@@ -315,7 +349,7 @@ export function PurchaseFormModal({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-        <FormField
+          <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
@@ -345,17 +379,14 @@ export function PurchaseFormModal({
             )}
           />
 
-
-        <FormField
+          <FormField
             control={form.control}
             name="purchasePrice"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Purchase Total</FormLabel>
                 <FormControl>
-                  <Input type="number" 
-                  {...field} 
-                  value={field.value ?? ""}/>
+                  <Input type="number" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -364,22 +395,23 @@ export function PurchaseFormModal({
         </div>
 
         <FormField
-            control={form.control}
-            name="paidAmount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Paid Amount</FormLabel>
-                <FormControl>
-                  <Input type="number" 
+          control={form.control}
+          name="paidAmount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Paid Amount</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
                   placeholder="000.00"
-                  {...field} 
-                  value={field.value ?? ""}/>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormDialogFooter>
           <DialogClose asChild>
@@ -393,8 +425,10 @@ export function PurchaseFormModal({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
+            ) : purchase ? (
+              "Update"
             ) : (
-              purchase ? "Update" : "Save"
+              "Save"
             )}
           </Button>
         </FormDialogFooter>

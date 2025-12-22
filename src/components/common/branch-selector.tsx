@@ -24,9 +24,9 @@ export function BranchSelector({
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = userRole?.toLowerCase() === 'admin';
+  const isAdmin = (userRole?.toLowerCase() === 'admin') || (userRole?.toLowerCase() === 'gm');
   
-  console.log('BranchSelector props:', { value, userRole, userBranchId, isAdmin });
+  // console.log('BranchSelector props:', { value, userRole, userBranchId, isAdmin });
 
   useEffect(() => {
     const fetchBranches = async () => {
