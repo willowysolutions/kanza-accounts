@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreditFormDialog } from "@/components/credits/credit-form";
 import { CreditTable } from "@/components/credits/credit-table";
@@ -14,7 +14,13 @@ type CreditsWithBranchTabsProps = {
   userBranchId?: string;
 };
 
-export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole, isGm, userBranchId }: CreditsWithBranchTabsProps) {
+export function CreditsWithBranchTabs({
+  branches,
+  creditsByBranch,
+  userRole,
+  isGm,
+  userBranchId,
+}: CreditsWithBranchTabsProps) {
   const [activeBranch, setActiveBranch] = useState(branches[0]?.id || "");
 
   return (
@@ -22,24 +28,34 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole, isG
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Credit Management</h1>
-            <p className="text-muted-foreground">Manage customer credits by branch</p>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Credit Management
+            </h1>
+            <p className="text-muted-foreground">
+              Manage customer credits by branch
+            </p>
           </div>
-          {
-            !isGm && (
-              <CreditFormDialog 
-                branchId={activeBranch}
-                userRole={userRole}
-                userBranchId={userBranchId}
-              />
-            )
-          }
+          {!isGm && (
+            <CreditFormDialog
+              branchId={activeBranch}
+              userRole={userRole}
+              userBranchId={userBranchId}
+            />
+          )}
         </div>
 
-        <Tabs value={activeBranch} onValueChange={setActiveBranch} className="w-full">
-          <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
+        <Tabs
+          value={activeBranch}
+          onValueChange={setActiveBranch}
+          className="w-full"
+        >
+          <TabsList className="mb-4 flex w-full flex-wrap gap-2">
             {branches.map((branch) => (
-              <TabsTrigger key={branch.id} value={branch.id}>
+              <TabsTrigger
+                className="data-[state=active]:bg-secondary min-w-[120px] flex-1 data-[state=active]:text-white"
+                key={branch.id}
+                value={branch.id}
+              >
                 {branch.name}
               </TabsTrigger>
             ))}
@@ -49,11 +65,16 @@ export function CreditsWithBranchTabs({ branches, creditsByBranch, userRole, isG
             <TabsContent key={branchId} value={branchId}>
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">{branchName} Credits</h2>
-                <p className="text-sm text-muted-foreground">
-                  {credits.length} credit{credits.length !== 1 ? 's' : ''} in this branch
+                <p className="text-muted-foreground text-sm">
+                  {credits.length} credit{credits.length !== 1 ? "s" : ""} in
+                  this branch
                 </p>
               </div>
-              <CreditTable data={credits} userRole={userRole} branchId={branchId} />
+              <CreditTable
+                data={credits}
+                userRole={userRole}
+                branchId={branchId}
+              />
             </TabsContent>
           ))}
         </Tabs>

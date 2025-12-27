@@ -9,7 +9,7 @@ export default async function MeterReadingPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams; // 👈 REQUIRED FIX
+  const params = await searchParams;
 
   const hdrs = await headers();
   const host = hdrs.get("host");

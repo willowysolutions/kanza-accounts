@@ -220,7 +220,7 @@ export default function MeterTabManagement({
         <Tabs value={activeBranch} onValueChange={handleBranchChange} className="w-full">
           <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
             {branches.map((branch) => (
-              <TabsTrigger key={branch.id} value={branch.id}>
+              <TabsTrigger key={branch.id} value={branch.id} className="min-w-[120px] flex-1 data-[state=active]:bg-secondary data-[state=active]:text-white">
                 {branch.name}
               </TabsTrigger>
             ))}
@@ -242,9 +242,9 @@ export default function MeterTabManagement({
                 onValueChange={(value) => setActiveTab(value)}
               >
                 <TabsList>
-                  <TabsTrigger value="meter-reading">Meter Reading</TabsTrigger>
-                  <TabsTrigger value="other-Products">Other Products</TabsTrigger>
-                  <TabsTrigger value="report">Report</TabsTrigger>
+                  <TabsTrigger className="min-w-[120px] flex-1 data-[state=active]:bg-secondary data-[state=active]:text-white" value="meter-reading">Meter Reading</TabsTrigger>
+                  <TabsTrigger className="min-w-[120px] flex-1 data-[state=active]:bg-secondary data-[state=active]:text-white" value="other-Products">Other Products</TabsTrigger>
+                  <TabsTrigger className="min-w-[120px] flex-1 data-[state=active]:bg-secondary data-[state=active]:text-white" value="report">Report</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="meter-reading">

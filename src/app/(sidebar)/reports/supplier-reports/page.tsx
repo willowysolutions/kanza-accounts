@@ -21,7 +21,7 @@ export default async function SupplierReportPage() {
     redirect('/login');
   }
 
-  const isAdmin = (session.user.role ?? '').toLowerCase() === 'admin';
+  const isAdmin = ((session.user.role ?? '').toLowerCase() === 'admin') || ((session.user.role ?? '').toLowerCase() === 'gm');
   const userBranchId = typeof session.user.branch === 'string' ? session.user.branch : undefined;
   
   // Forward cookies

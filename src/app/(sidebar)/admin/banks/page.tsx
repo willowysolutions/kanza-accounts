@@ -54,7 +54,7 @@ export default async function BankPage() {
       <Tabs defaultValue={branches[0]?.id} className="w-full">
         <TabsList className="mb-4 flex flex-wrap gap-2 w-full">
           {branches.map((branch: { id: string; name: string }) => (
-            <TabsTrigger key={branch.id} value={branch.id}>
+            <TabsTrigger className="data-[state=active]:bg-secondary min-w-[120px] flex-1 data-[state=active]:text-white" key={branch.id} value={branch.id}>
               {branch.name}
             </TabsTrigger>
           ))}

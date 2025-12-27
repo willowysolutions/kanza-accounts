@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  IconBottle,
-  IconCurrencyDollar,
-} from "@tabler/icons-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IconBottle, IconCurrencyDollar } from "@tabler/icons-react";
 import { Fuel, Calendar } from "lucide-react";
 import { ChartAreaInteractive } from "@/components/dashboard/chart";
 import DashboardCharts from "@/components/graphs/sales-purchase-graph";
@@ -27,12 +30,12 @@ function CustomerNameButton({ customer }: { customer: Customer }) {
   return (
     <>
       <button
-        className="text-blue-600 hover:underline cursor-pointer"
+        className="cursor-pointer text-blue-600 hover:underline"
         onClick={() => setOpenHistory(true)}
       >
         {customer.name}
       </button>
-      
+
       <CustomerHistoryModal
         customerId={customer.id}
         open={openHistory}
@@ -83,7 +86,9 @@ export function DashboardWrapper({
   page = 0,
   stocksByBranch,
 }: DashboardWrapperProps) {
-  const isAdmin = (role ?? "").toLowerCase() === "admin" || (role ?? "").toLowerCase() === "gm";
+  const isAdmin =
+    (role ?? "").toLowerCase() === "admin" ||
+    (role ?? "").toLowerCase() === "gm";
   const isGM = (role ?? "").toLowerCase() === "gm";
   const visibleBranches = isAdmin
     ? branches
@@ -145,14 +150,19 @@ export function DashboardWrapper({
       setLoadingProducts(true);
       try {
         // Fetch products for the branch
-        const productsRes = await fetch(`/api/products?branchId=${selectedBranchId}`);
+        const productsRes = await fetch(
+          `/api/products?branchId=${selectedBranchId}`,
+        );
         const productsData = await productsRes.json();
         const products = productsData.data || [];
 
         // Filter: ONLY FUEL category products AND ONLY for the selected branch
         const fuelProducts = products.filter(
-          (p: { productCategory?: string; branchId?: string | null; productName: string }) => 
-            p.productCategory === "FUEL" && p.branchId === selectedBranchId
+          (p: {
+            productCategory?: string;
+            branchId?: string | null;
+            productName: string;
+          }) => p.productCategory === "FUEL" && p.branchId === selectedBranchId,
         ) as Array<{
           id: string;
           productName: string;
@@ -161,7 +171,10 @@ export function DashboardWrapper({
         }>;
 
         // Remove duplicates by product name (in case there are multiple entries)
-        const uniqueFuelProductsMap = new Map<string, typeof fuelProducts[0]>();
+        const uniqueFuelProductsMap = new Map<
+          string,
+          (typeof fuelProducts)[0]
+        >();
         fuelProducts.forEach((p) => {
           const upperName = p.productName.toUpperCase();
           if (!uniqueFuelProductsMap.has(upperName)) {
@@ -174,8 +187,8 @@ export function DashboardWrapper({
 
         // Get stocks for the selected branch
         const branchStocksData =
-          stocksByBranch.find((sb) => sb.branchId === selectedBranchId)?.stocks ||
-          [];
+          stocksByBranch.find((sb) => sb.branchId === selectedBranchId)
+            ?.stocks || [];
         setBranchStocks(branchStocksData);
       } catch (error) {
         console.error("Failed to fetch branch data:", error);
@@ -194,7 +207,7 @@ export function DashboardWrapper({
     if (branchProducts.length === 0) return [];
 
     // Create a map of product names (uppercase) to products for easy lookup
-    const productMap = new Map<string, typeof branchProducts[0]>();
+    const productMap = new Map<string, (typeof branchProducts)[0]>();
     branchProducts.forEach((product) => {
       const upperName = product.productName.toUpperCase().trim();
       // Only add if not already in map (prevent duplicates)
@@ -204,17 +217,17 @@ export function DashboardWrapper({
     });
 
     const result: typeof branchProducts = [];
-    
+
     // 1. Always add MS-PETROL if it exists in branch products
     if (productMap.has("MS-PETROL")) {
       result.push(productMap.get("MS-PETROL")!);
     }
-    
+
     // 2. Always add HSD-DIESEL if it exists in branch products
     if (productMap.has("HSD-DIESEL")) {
       result.push(productMap.get("HSD-DIESEL")!);
     }
-    
+
     // 3. Add XG-DIESEL OR POWER PETROL (only if they exist in branch products)
     // Prefer XG-DIESEL, but if branch has POWER PETROL and not XG-DIESEL, show POWER PETROL
     // If branch has neither, skip this (will show only 2 cards: MS-PETROL and HSD-DIESEL)
@@ -226,7 +239,7 @@ export function DashboardWrapper({
       result.push(productMap.get("XP 95 PETROL")!);
     }
     // If branch has neither XG-DIESEL nor POWER PETROL, skip this (will show only 2-3 cards)
-    
+
     // 4. Add 2T-OIL if it exists in branch products (optional - only if branch has it)
     if (productMap.has("2T-OIL")) {
       result.push(productMap.get("2T-OIL")!);
@@ -238,12 +251,7 @@ export function DashboardWrapper({
 
   // Card colors for different products
   const getCardColor = (index: number, productName: string) => {
-    const colors = [
-      "bg-blue-950",
-      "bg-green-600",
-      "bg-blue-500",
-      "bg-sky-600",
-    ];
+    const colors = ["bg-blue-950", "bg-green-600", "bg-blue-500", "bg-sky-600"];
     const productColors: Record<string, string> = {
       "MS-PETROL": "bg-blue-950",
       "HSD-DIESEL": "bg-blue-500",
@@ -271,14 +279,12 @@ export function DashboardWrapper({
 
   // Filter sales and customers for selected branch
   const filteredSales = useMemo(() => {
-    return allSales.filter(
-      (sale) => sale.branchId === selectedBranchId
-    );
+    return allSales.filter((sale) => sale.branchId === selectedBranchId);
   }, [allSales, selectedBranchId]);
 
   const filteredCustomers = useMemo(() => {
     return customers.filter(
-      (customer) => customer.branchId === selectedBranchId
+      (customer) => customer.branchId === selectedBranchId,
     );
   }, [customers, selectedBranchId]);
 
@@ -308,7 +314,7 @@ export function DashboardWrapper({
       if (!selectedBranchId) return;
       try {
         const res = await fetch(
-          `/api/meterreadings?branchId=${selectedBranchId}&limit=1`
+          `/api/meterreadings?branchId=${selectedBranchId}&limit=1`,
         );
         const json = await res.json();
         if (json.withDifference && json.withDifference.length > 0) {
@@ -324,7 +330,7 @@ export function DashboardWrapper({
   // Determine which fuel column to show (XG-DIESEL or POWER PETROL)
   const hasXgDiesel = useMemo(() => {
     return branchProducts.some(
-      (p) => p.productName.toUpperCase() === "XG-DIESEL"
+      (p) => p.productName.toUpperCase() === "XG-DIESEL",
     );
   }, [branchProducts]);
 
@@ -332,7 +338,7 @@ export function DashboardWrapper({
     return branchProducts.some(
       (p) =>
         p.productName.toUpperCase() === "POWER PETROL" ||
-        p.productName.toUpperCase() === "XP 95 PETROL"
+        p.productName.toUpperCase() === "XP 95 PETROL",
     );
   }, [branchProducts]);
 
@@ -378,17 +384,14 @@ export function DashboardWrapper({
       };
 
       // Get values from fuelTotals JSON or legacy fields
-      const hsdTotal =
-        fuelTotals["HSD-DIESEL"] ?? sale.hsdDieselTotal ?? 0;
-      const xgTotal =
-        fuelTotals["XG-DIESEL"] ?? sale.xgDieselTotal ?? 0;
+      const hsdTotal = fuelTotals["HSD-DIESEL"] ?? sale.hsdDieselTotal ?? 0;
+      const xgTotal = fuelTotals["XG-DIESEL"] ?? sale.xgDieselTotal ?? 0;
       const powerTotal =
         fuelTotals["POWER PETROL"] ??
         fuelTotals["XP 95 PETROL"] ??
         sale.powerPetrolTotal ??
         0;
-      const msTotal =
-        fuelTotals["MS-PETROL"] ?? sale.msPetrolTotal ?? 0;
+      const msTotal = fuelTotals["MS-PETROL"] ?? sale.msPetrolTotal ?? 0;
 
       map.set(dateKey, {
         cashPayment: existing.cashPayment + (sale.cashPayment ?? 0),
@@ -409,7 +412,7 @@ export function DashboardWrapper({
 
   const getDatesWithSalesData = (page: number = 0, pageSize: number = 5) => {
     const allDates = Array.from(branchSalesMap.keys()).sort(
-      (a, b) => new Date(b).getTime() - new Date(a).getTime()
+      (a, b) => new Date(b).getTime() - new Date(a).getTime(),
     );
     const startIndex = page * pageSize;
     const endIndex = startIndex + pageSize;
@@ -417,19 +420,18 @@ export function DashboardWrapper({
   };
 
   const salesRows = getDatesWithSalesData(page).map((date) => {
-    const salesData =
-      branchSalesMap.get(date) || {
-        cashPayment: 0,
-        atmPayment: 0,
-        paytmPayment: 0,
-        fleetPayment: 0,
-        hsdDieselTotal: 0,
-        xgDieselTotal: 0,
-        powerPetrolTotal: 0,
-        msPetrolTotal: 0,
-        totalAmount: 0,
-        originalDate: date,
-      };
+    const salesData = branchSalesMap.get(date) || {
+      cashPayment: 0,
+      atmPayment: 0,
+      paytmPayment: 0,
+      fleetPayment: 0,
+      hsdDieselTotal: 0,
+      xgDieselTotal: 0,
+      powerPetrolTotal: 0,
+      msPetrolTotal: 0,
+      totalAmount: 0,
+      originalDate: date,
+    };
     return { date, sales: salesData };
   });
 
@@ -454,9 +456,13 @@ export function DashboardWrapper({
               onValueChange={handleBranchChange}
               className="w-full"
             >
-              <TabsList className="flex flex-wrap gap-2 w-full justify-start">
+              <TabsList className="flex w-full flex-wrap justify-start gap-2">
                 {visibleBranches.map((branch) => (
-                  <TabsTrigger key={branch.id} value={branch.id} className="flex-1 min-w-[120px]">
+                  <TabsTrigger
+                    key={branch.id}
+                    value={branch.id}
+                    className="min-w-[120px] flex-1 data-[state=active]:bg-secondary data-[state=active]:text-white"
+                  >
                     {branch.name}
                   </TabsTrigger>
                 ))}
@@ -466,25 +472,30 @@ export function DashboardWrapper({
         )}
 
         {/* Dynamic Price Cards - Based on Branch Fuel Products */}
-        <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${
-          fuelProductsToShow.length === 2 
-            ? 'lg:grid-cols-2' 
-            : fuelProductsToShow.length === 3 
-            ? 'lg:grid-cols-3' 
-            : fuelProductsToShow.length === 4
-            ? 'lg:grid-cols-4'
-            : 'lg:grid-cols-1'
-        }`}>
+        <div
+          className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${
+            fuelProductsToShow.length === 2
+              ? "lg:grid-cols-2"
+              : fuelProductsToShow.length === 3
+                ? "lg:grid-cols-3"
+                : fuelProductsToShow.length === 4
+                  ? "lg:grid-cols-4"
+                  : "lg:grid-cols-1"
+          }`}
+        >
           {loadingProducts ? (
             // Loading state - show based on expected number of products
-            Array.from({ length: fuelProductsToShow.length > 0 ? fuelProductsToShow.length : 4 }).map((_, i) => (
+            Array.from({
+              length:
+                fuelProductsToShow.length > 0 ? fuelProductsToShow.length : 4,
+            }).map((_, i) => (
               <Card key={i} className="bg-gray-100 text-gray-400">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardDescription>Loading...</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">-</div>
-                  <div className="text-sm mt-1">Loading stock...</div>
+                  <div className="mt-1 text-sm">Loading stock...</div>
                 </CardContent>
               </Card>
             ))
@@ -492,7 +503,8 @@ export function DashboardWrapper({
             // Show fuel products for the selected branch
             fuelProductsToShow.map((product, index) => {
               const stock = branchStocks.find(
-                (s) => s.item.toUpperCase() === product.productName.toUpperCase()
+                (s) =>
+                  s.item.toUpperCase() === product.productName.toUpperCase(),
               );
               const cardColor = getCardColor(index, product.productName);
 
@@ -508,9 +520,8 @@ export function DashboardWrapper({
                     <div className="text-2xl font-bold">
                       ₹{product.sellingPrice?.toFixed(2) ?? "N/A"}
                     </div>
-                    <div className="text-sm mt-1">
-                      Available Stock:{" "}
-                      {stock?.quantity.toFixed(2) ?? "0.00"} L
+                    <div className="mt-1 text-sm">
+                      Available Stock: {stock?.quantity.toFixed(2) ?? "0.00"} L
                     </div>
                   </CardContent>
                 </Card>
@@ -518,7 +529,7 @@ export function DashboardWrapper({
             })
           ) : (
             // No fuel products found
-            <Card className="bg-gray-100 text-gray-400 col-span-4">
+            <Card className="col-span-4 bg-gray-100 text-gray-400">
               <CardHeader>
                 <CardDescription>
                   No fuel products found for this branch
@@ -535,9 +546,9 @@ export function DashboardWrapper({
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
+              <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="text-left border-b">
+                  <tr className="border-b text-left">
                     <th className="p-2">Name</th>
                     <th className="p-2">Opening</th>
                     <th className="p-2">Pending</th>
@@ -548,18 +559,32 @@ export function DashboardWrapper({
                 <tbody>
                   {customerPages.customers.length > 0 ? (
                     customerPages.customers.map((customer) => (
-                      <tr key={customer.id} className="border-b hover:bg-muted">
+                      <tr key={customer.id} className="hover:bg-muted border-b">
                         <td className="p-2">
                           <CustomerNameButton customer={customer} />
                         </td>
-                        <td className="p-2">₹{((customer as { calculatedOpeningBalance?: number }).calculatedOpeningBalance ?? customer.openingBalance)?.toFixed(2) || '0.00'}</td>
-                        <td className={`p-2 ${(() => {
-                          const limit = (customer as { limit?: number }).limit;
-                          return limit && customer.outstandingPayments > limit ? 'text-red-600 font-semibold' : '';
-                        })()}`}>
-                          ₹{customer.outstandingPayments?.toFixed(2) || '0.00'}
+                        <td className="p-2">
+                          ₹
+                          {(
+                            (customer as { calculatedOpeningBalance?: number })
+                              .calculatedOpeningBalance ??
+                            customer.openingBalance
+                          )?.toFixed(2) || "0.00"}
                         </td>
-                        <td className="p-2">{customer.branch?.name || '...'}</td>
+                        <td
+                          className={`p-2 ${(() => {
+                            const limit = (customer as { limit?: number })
+                              .limit;
+                            return limit && customer.outstandingPayments > limit
+                              ? "font-semibold text-red-600"
+                              : "";
+                          })()}`}
+                        >
+                          ₹{customer.outstandingPayments?.toFixed(2) || "0.00"}
+                        </td>
+                        <td className="p-2">
+                          {customer.branch?.name || "..."}
+                        </td>
                         <td className="p-2">
                           <CustomerDownloadButton customers={[customer]} />
                         </td>
@@ -567,7 +592,10 @@ export function DashboardWrapper({
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="p-4 text-center text-muted-foreground">
+                      <td
+                        colSpan={5}
+                        className="text-muted-foreground p-4 text-center"
+                      >
                         No customers found for this branch
                       </td>
                     </tr>
@@ -579,14 +607,26 @@ export function DashboardWrapper({
             {/* Pagination Controls for Customer Details */}
             {filteredCustomers.length > customerPageSize && (
               <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Showing {Math.min(page * customerPageSize + 1, filteredCustomers.length)} - {Math.min((page + 1) * customerPageSize, filteredCustomers.length)} of {filteredCustomers.length} customers
+                <div className="text-muted-foreground text-sm">
+                  Showing{" "}
+                  {Math.min(
+                    page * customerPageSize + 1,
+                    filteredCustomers.length,
+                  )}{" "}
+                  -{" "}
+                  {Math.min(
+                    (page + 1) * customerPageSize,
+                    filteredCustomers.length,
+                  )}{" "}
+                  of {filteredCustomers.length} customers
                 </div>
                 <div className="flex items-center gap-2">
                   <a
                     href={buildPageHref(Math.max(page - 1, 0))}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                      !customerPages.hasPrevious ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
+                      !customerPages.hasPrevious
+                        ? "pointer-events-none cursor-not-allowed opacity-50"
+                        : ""
                     }`}
                     aria-disabled={!customerPages.hasPrevious}
                   >
@@ -595,7 +635,9 @@ export function DashboardWrapper({
                   <a
                     href={buildPageHref(page + 1)}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                      !customerPages.hasNext ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
+                      !customerPages.hasNext
+                        ? "pointer-events-none cursor-not-allowed opacity-50"
+                        : ""
                     }`}
                     aria-disabled={!customerPages.hasNext}
                   >
@@ -613,12 +655,12 @@ export function DashboardWrapper({
             <div className="flex items-center justify-between">
               <CardTitle>Branch Sales Report</CardTitle>
               <div className="flex items-center gap-4">
-                {!isGM && <WizardButton /> }
+                {!isGM && <WizardButton />}
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="text-muted-foreground mb-4 flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-red-500" />
               <span className="text-red-500">
                 Last meter reading:{" "}
@@ -628,9 +670,9 @@ export function DashboardWrapper({
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
+              <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="text-left border-b">
+                  <tr className="border-b text-left">
                     <th className="p-2">Date</th>
                     <th className="p-2">Cash Payment</th>
                     <th className="p-2">ATM Payment</th>
@@ -662,12 +704,16 @@ export function DashboardWrapper({
                       );
                     })
                     .map(({ date, sales }) => (
-                      <tr key={date} className="border-b hover:bg-muted">
+                      <tr key={date} className="hover:bg-muted border-b">
                         <td className="p-2">{formatDate(date)}</td>
                         <td className="p-2">₹{sales.cashPayment.toFixed(2)}</td>
                         <td className="p-2">₹{sales.atmPayment.toFixed(2)}</td>
-                        <td className="p-2">₹{sales.paytmPayment.toFixed(2)}</td>
-                        <td className="p-2">₹{sales.fleetPayment.toFixed(2)}</td>
+                        <td className="p-2">
+                          ₹{sales.paytmPayment.toFixed(2)}
+                        </td>
+                        <td className="p-2">
+                          ₹{sales.fleetPayment.toFixed(2)}
+                        </td>
                         <td className="p-2 text-blue-600">
                           ₹{(sales.hsdDieselTotal || 0).toFixed(2)}
                         </td>
@@ -701,14 +747,18 @@ export function DashboardWrapper({
 
             {branchSalesMap.size > 5 && (
               <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Showing {Math.min(page * 5 + 1, branchSalesMap.size)} - {Math.min((page + 1) * 5, branchSalesMap.size)} of {branchSalesMap.size} dates
+                <div className="text-muted-foreground text-sm">
+                  Showing {Math.min(page * 5 + 1, branchSalesMap.size)} -{" "}
+                  {Math.min((page + 1) * 5, branchSalesMap.size)} of{" "}
+                  {branchSalesMap.size} dates
                 </div>
                 <div className="flex items-center gap-2">
                   <a
                     href={buildPageHref(Math.max(page - 1, 0))}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                      page <= 0 ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
+                      page <= 0
+                        ? "pointer-events-none cursor-not-allowed opacity-50"
+                        : ""
                     }`}
                     aria-disabled={page <= 0}
                   >
@@ -718,10 +768,12 @@ export function DashboardWrapper({
                     href={buildPageHref(page + 1)}
                     className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
                       page >= Math.ceil(branchSalesMap.size / 5) - 1
-                        ? "opacity-50 cursor-not-allowed pointer-events-none"
+                        ? "pointer-events-none cursor-not-allowed opacity-50"
                         : ""
                     }`}
-                    aria-disabled={page >= Math.ceil(branchSalesMap.size / 5) - 1}
+                    aria-disabled={
+                      page >= Math.ceil(branchSalesMap.size / 5) - 1
+                    }
                   >
                     Next
                   </a>
@@ -755,7 +807,7 @@ export function DashboardWrapper({
                   "Selected Branch"}{" "}
                 Stock Levels
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {branchStocks.length} stock item
                 {branchStocks.length !== 1 ? "s" : ""} in this branch
               </p>
@@ -766,8 +818,13 @@ export function DashboardWrapper({
                 const stockPageSize = 5;
                 const stockStartIndex = page * stockPageSize;
                 const stockEndIndex = stockStartIndex + stockPageSize;
-                const paginatedStocks = branchStocks.slice(stockStartIndex, stockEndIndex);
-                const stockTotalPages = Math.ceil(branchStocks.length / stockPageSize);
+                const paginatedStocks = branchStocks.slice(
+                  stockStartIndex,
+                  stockEndIndex,
+                );
+                const stockTotalPages = Math.ceil(
+                  branchStocks.length / stockPageSize,
+                );
                 const stockHasNext = page < stockTotalPages - 1;
                 const stockHasPrevious = page > 0;
 
@@ -784,22 +841,27 @@ export function DashboardWrapper({
                         </li>
                       ))
                     ) : (
-                      <li className="py-4 text-center text-sm text-muted-foreground">
+                      <li className="text-muted-foreground py-4 text-center text-sm">
                         No stock items found for this branch
                       </li>
                     )}
                     {/* Pagination Controls for Stock Levels */}
                     {branchStocks.length > stockPageSize && (
-                      <li className="pt-4 border-t">
+                      <li className="border-t pt-4">
                         <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">
-                            Showing {Math.min(stockStartIndex + 1, branchStocks.length)} - {Math.min(stockEndIndex, branchStocks.length)} of {branchStocks.length} items
+                          <div className="text-muted-foreground text-sm">
+                            Showing{" "}
+                            {Math.min(stockStartIndex + 1, branchStocks.length)}{" "}
+                            - {Math.min(stockEndIndex, branchStocks.length)} of{" "}
+                            {branchStocks.length} items
                           </div>
                           <div className="flex items-center gap-2">
                             <a
                               href={`?page=${Math.max(page - 1, 0)}`}
                               className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                                !stockHasPrevious ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                                !stockHasPrevious
+                                  ? "pointer-events-none cursor-not-allowed opacity-50"
+                                  : ""
                               }`}
                               aria-disabled={!stockHasPrevious}
                             >
@@ -808,7 +870,9 @@ export function DashboardWrapper({
                             <a
                               href={`?page=${page + 1}`}
                               className={`inline-flex items-center rounded-md border px-3 py-1 text-sm ${
-                                !stockHasNext ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                                !stockHasNext
+                                  ? "pointer-events-none cursor-not-allowed opacity-50"
+                                  : ""
                               }`}
                               aria-disabled={!stockHasNext}
                             >
@@ -828,4 +892,3 @@ export function DashboardWrapper({
     </div>
   );
 }
-
