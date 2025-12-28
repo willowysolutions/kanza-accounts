@@ -25,12 +25,19 @@ export const MeterReadingDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`/api/meterreadings/${meterReading?.id}`,{
+          const response = await fetch(`/api/meterreadings/${meterReading?.id}`,{
               method:"DELETE"
             });
-          toast.success(`Meter reading "${meterReading.fuelType}" deleted.`)
-          setOpen(!open)
-          router.refresh()
+          
+          if (response.ok) {
+            toast.success(`Meter reading "${meterReading.fuelType}" deleted.`)
+            setOpen(!open)
+            // Dispatch custom event to refresh the table
+            window.dispatchEvent(new Event('meter-reading-deleted'))
+            router.refresh()
+          } else {
+            toast.error("Failed to delete meter reading.")
+          }
       }catch(error){
           toast.error("Failed to delete meter reading.")
           console.log(error,"Error on deleting meter reading");

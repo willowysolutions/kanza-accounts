@@ -253,16 +253,15 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  context: unknown
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const params = (context as { params?: { id?: string } })?.params ?? {};
-  const id = typeof params.id === "string" ? params.id : null;
-
-  if (!id || !ObjectId.isValid(id)) {
-    return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
-  }
-
   try {
+    const { id } = await params;
+
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
     // Get the meter reading with related data BEFORE deleting
     const existingReading = await prisma.meterReading.findUnique({
       where: { id },

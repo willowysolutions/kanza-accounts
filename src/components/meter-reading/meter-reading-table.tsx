@@ -93,6 +93,16 @@ export function MeterReadingTable<TValue>({
     }
   }, [initialData, fetchData]);
 
+  // Listen for delete event to refresh data
+  useEffect(() => {
+    const handleDelete = () => {
+      fetchData(pagination.currentPage, globalFilter);
+    };
+
+    window.addEventListener('meter-reading-deleted', handleDelete);
+    return () => window.removeEventListener('meter-reading-deleted', handleDelete);
+  }, [fetchData, pagination.currentPage, globalFilter]);
+
   // Handle search with debounce
   useEffect(() => {
     const timeoutId = setTimeout(() => {
