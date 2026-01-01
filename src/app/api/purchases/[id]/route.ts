@@ -92,21 +92,18 @@ export async function PATCH(
 
 //DELETE
 export async function DELETE(
-  req: Request,
-  context: unknown
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-
-  const params = (context as { params?: { id?: string } })?.params ?? {};
-  const id = typeof params.id === "string" ? params.id : null;
-
-  if (!id || !ObjectId.isValid(id)) {
-    return NextResponse.json(
-      { error: "Invalid ID format" },
-      { status: 400 }
-    );
-  }
-
   try {
+    const { id } = await params;
+
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "Invalid ID format" },
+        { status: 400 }
+      );
+    }
     const purchase = await prisma.purchase.findUnique({
       where: { id },
     });

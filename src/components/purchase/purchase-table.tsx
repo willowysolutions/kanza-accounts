@@ -99,6 +99,16 @@ export function PurchaseTable<TValue>({
     }
   }, [initialData, loading]);
 
+  // Listen for delete event to refresh data
+  useEffect(() => {
+    const handleDelete = () => {
+      fetchData(pagination.currentPage, globalFilter);
+    };
+
+    window.addEventListener('purchase-deleted', handleDelete);
+    return () => window.removeEventListener('purchase-deleted', handleDelete);
+  }, [fetchData, pagination.currentPage, globalFilter]);
+
   const table = useReactTable({
     data,
     columns,

@@ -26,12 +26,19 @@ export const PurchaseDeleteDialog: FC<{
     const router = useRouter()
     const handleDelete = async () => {
       try{
-          await fetch(`/api/purchases/${purchase?.id}`,{
+          const response = await fetch(`/api/purchases/${purchase?.id}`,{
               method:"DELETE"
             });
-          toast.success(`Purchase "${purchase.productType}" deleted.`)
-          setOpen(!open)
-          router.refresh()
+          
+          if (response.ok) {
+            toast.success(`Purchase "${purchase.productType}" deleted.`)
+            setOpen(!open)
+            // Dispatch custom event to refresh the table
+            window.dispatchEvent(new Event('purchase-deleted'))
+            router.refresh()
+          } else {
+            toast.error("Failed to delete purchase.")
+          }
       }catch(error){
           toast.error("Failed to delete purchase.")
           console.log(error,"Error on deleting purchase");
