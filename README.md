@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
+new
 > A modern, production-ready admin dashboard template built with Next.js 15, React 19, TypeScript, Tailwind CSS v4, and ShadCN UI. Perfect foundation for building professional admin interfaces with enterprise-grade architecture.
 > 
 ## ✨ Features
