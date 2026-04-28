@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 
     // --- MAINTENANCE MODE / PAUSE LOGIC ---
     // Set this to true to pause the application
-    const IS_APP_PAUSED = true;
+    const IS_APP_PAUSED = false;
 
     if (IS_APP_PAUSED) {
         if (!pathname.startsWith("/suspended") && !pathname.startsWith("/_next") && pathname !== "/favicon.ico") {
