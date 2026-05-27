@@ -20,7 +20,7 @@ export function useNextAllowedDate({
   const refresh = () => setRefreshKey(prev => prev + 1);
 
   const isBranchManager = userRole?.toLowerCase() === "branch";
-  const shouldRestrict = false; // Disable restriction as requested by user
+  const shouldRestrict = isBranchManager && !isEditMode && !!branchId;
 
   useEffect(() => {
     if (!shouldRestrict) {

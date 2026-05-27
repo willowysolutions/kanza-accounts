@@ -43,14 +43,27 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Get the last meter reading for this branch
+    const lastMeterReading = await prisma.meterReading.findFirst({
+      where: {
+        branchId: branchId as string,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      select: {
+        date: true,
+      },
+    });
+
     const lastSaleDate = lastSale?.date;
     const lastClosedDate = lastClosedDay?.date;
+    const lastMeterDate = lastMeterReading?.date;
 
     let finalLastDate = null;
-    if (lastSaleDate && lastClosedDate) {
-      finalLastDate = lastSaleDate > lastClosedDate ? lastSaleDate : lastClosedDate;
-    } else {
-      finalLastDate = lastSaleDate || lastClosedDate || null;
+    const dates = [lastSaleDate, lastClosedDate, lastMeterDate].filter(Boolean) as Date[];
+    if (dates.length > 0) {
+      finalLastDate = new Date(Math.max(...dates.map(d => d.getTime())));
     }
 
     return NextResponse.json({ 

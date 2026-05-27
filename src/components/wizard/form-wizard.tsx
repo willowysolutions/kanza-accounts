@@ -172,8 +172,14 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     isEditMode: false,
   });
 
-  // Common date for all steps - initialized to current date (today)
+  // Common date for all steps - initialized based on user role
   const [commonDate, setCommonDate] = useState<Date>(() => {
+    // For branch managers, use next allowed date if available
+    if (userRole?.toLowerCase() === 'branch' && nextAllowedDate) {
+      const date = new Date(nextAllowedDate);
+      date.setUTCHours(18, 30, 0, 0);
+      return date;
+    }
     const now = new Date();
     now.setUTCHours(18, 30, 0, 0);
     return now;
