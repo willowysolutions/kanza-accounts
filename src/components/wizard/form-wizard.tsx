@@ -172,19 +172,11 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({
     isEditMode: false,
   });
 
-  // Common date for all steps - initialized based on user role
+  // Common date for all steps - initialized to current date (today)
   const [commonDate, setCommonDate] = useState<Date>(() => {
-    // For branch managers, use next allowed date if available
-    if (userRole?.toLowerCase() === 'branch' && nextAllowedDate) {
-      const date = new Date(nextAllowedDate);
-      date.setUTCHours(18, 30, 0, 0);
-      return date;
-    }
-    // For admins, use yesterday
     const now = new Date();
-    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    yesterday.setUTCHours(18, 30, 0, 0);
-    return yesterday;
+    now.setUTCHours(18, 30, 0, 0);
+    return now;
   });
 
   // Update commonDate when nextAllowedDate is available for branch managers
@@ -591,6 +583,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   onSave,
   saveButtonText,
 }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="w-full mx-auto flex items-center justify-center p-12 min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <WizardProvider 
       steps={steps} 
