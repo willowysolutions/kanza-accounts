@@ -187,72 +187,77 @@ export function MeterReadingFormSheet({
     // setHasValidationErrors(hasErrors);
   }, [form, validateTankLevel]);
 
-useEffect(() => {
-  const load = async () => {
-    setLoading(true);
-    try {
-      // Fetch machines and tank levels in parallel
-      const machinesUrl = selectedBranchId ? `/api/machines/with-nozzles?branchId=${selectedBranchId}` : '/api/machines/with-nozzles';
-      const tankLevelsUrl = selectedBranchId ? `/api/tanks/current-levels?branchId=${selectedBranchId}` : '/api/tanks/current-levels';
-      const [machinesRes, tankLevelsRes] = await Promise.all([
-        fetch(machinesUrl),
-        fetch(tankLevelsUrl)
-      ]);
+  const selectedDate = form.watch("date");
 
-      const machinesJson = await machinesRes.json();
-      const tankLevelsJson = await tankLevelsRes.json();
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        // Fetch machines and tank levels in parallel
+        const formattedDate = selectedDate ? new Date(selectedDate).toISOString() : '';
+        const machinesUrl = selectedBranchId 
+          ? `/api/machines/with-nozzles?branchId=${selectedBranchId}&date=${formattedDate}` 
+          : `/api/machines/with-nozzles?date=${formattedDate}`;
+        const tankLevelsUrl = selectedBranchId ? `/api/tanks/current-levels?branchId=${selectedBranchId}` : '/api/tanks/current-levels';
+        const [machinesRes, tankLevelsRes] = await Promise.all([
+          fetch(machinesUrl),
+          fetch(tankLevelsUrl)
+        ]);
 
-      const data: MachineWithNozzles[] = machinesJson.data ?? [];
-      setMachines(data);
-      setTankLevels(tankLevelsJson.data ?? {});
+        const machinesJson = await machinesRes.json();
+        const tankLevelsJson = await tankLevelsRes.json();
 
-      // Create a map of branch-specific fuel rates
-      const branchPriceMap = new Map<string, Map<string, number>>();
-      products.forEach(p => {
-        if (p.branchId) {
-          if (!branchPriceMap.has(p.branchId)) {
-            branchPriceMap.set(p.branchId, new Map());
+        const data: MachineWithNozzles[] = machinesJson.data ?? [];
+        setMachines(data);
+        setTankLevels(tankLevelsJson.data ?? {});
+
+        // Create a map of branch-specific fuel rates
+        const branchPriceMap = new Map<string, Map<string, number>>();
+        products.forEach(p => {
+          if (p.branchId) {
+            if (!branchPriceMap.has(p.branchId)) {
+              branchPriceMap.set(p.branchId, new Map());
+            }
+            branchPriceMap.get(p.branchId)!.set(p.productName, p.sellingPrice);
           }
-          branchPriceMap.get(p.branchId)!.set(p.productName, p.sellingPrice);
-        }
-      });
+        });
 
-      const rows: BulkForm['rows'] = data.flatMap((m) =>
-        m.nozzles.map((n) => {
-          const opening = n.openingReading;   
-          // Get fuel rate for the specific branch
-          const branchPrices = m.branchId ? branchPriceMap.get(m.branchId) : null;
-          const fuelRate = branchPrices?.get(n.fuelType) ?? undefined;
+        const rows: BulkForm['rows'] = data.flatMap((m) =>
+          m.nozzles.map((n) => {
+            const opening = n.openingReading;   
+            // Get fuel rate for the specific branch
+            const branchPrices = m.branchId ? branchPriceMap.get(m.branchId) : null;
+            const fuelRate = branchPrices?.get(n.fuelType) ?? undefined;
 
-          return {
-            nozzleId: n.id,
-            fuelType: n.fuelType,
-            opening,           
-            closing: undefined, 
-            fuelRate,
-            quantity: undefined,
-            totalAmount: undefined,
-          };
-        })
-      );
+            return {
+              nozzleId: n.id,
+              fuelType: n.fuelType,
+              opening,           
+              closing: undefined, 
+              fuelRate,
+              quantity: undefined,
+              totalAmount: undefined,
+            };
+          })
+        );
 
-      // Preserve whatever date is currently in the form (which may have been
-      // set from nextAllowedDate for branch users) and only reset the rows.
-      const currentDate = form.getValues("date");
-      form.reset({
-        date: currentDate || new Date(),
-        rows,
-      });
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to load machines/nozzles');
-    } finally {
-      setLoading(false);
-    }
-  };
+        // Preserve whatever date is currently in the form (which may have been
+        // set from nextAllowedDate for branch users) and only reset the rows.
+        const currentDate = form.getValues("date");
+        form.reset({
+          date: currentDate || new Date(),
+          rows,
+        });
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to load machines/nozzles');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  load();
-}, [products, form, selectedBranchId]);
+    load();
+  }, [products, form, selectedBranchId, selectedDate]);
 
   const rows = form.watch('rows');
 

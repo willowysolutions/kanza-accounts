@@ -133,7 +133,10 @@ export const MeterReadingStep: React.FC = () => {
       setLoading(true);
       try {
         // Fetch machines and tank levels in parallel
-        const machinesUrl = selectedBranchId ? `/api/machines/with-nozzles?branchId=${selectedBranchId}` : '/api/machines/with-nozzles';
+        const formattedDate = commonDate ? new Date(commonDate).toISOString() : '';
+        const machinesUrl = selectedBranchId 
+          ? `/api/machines/with-nozzles?branchId=${selectedBranchId}&date=${formattedDate}` 
+          : `/api/machines/with-nozzles?date=${formattedDate}`;
         const tankLevelsUrl = selectedBranchId ? `/api/tanks/current-levels?branchId=${selectedBranchId}` : '/api/tanks/current-levels';
         const [machinesRes, tankLevelsRes] = await Promise.all([
           fetch(machinesUrl),
